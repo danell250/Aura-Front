@@ -50,9 +50,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'coverImage') => {
     const file = e.target.files?.[0];
     if (file) {
+      console.log('File selected:', file.name, file.type, file.size);
       try {
         // Upload file to backend
+        console.log('Starting upload...');
         const uploadResult = await uploadService.uploadFile(file);
+        console.log('Upload successful:', uploadResult);
           
         // Consistent detection logic
         const isVideoFile = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
@@ -65,9 +68,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
           [field]: uploadResult.url, 
           [typeProperty]: type 
         }));
+        console.log('Form updated:', { [field]: uploadResult.url, [typeProperty]: type });
       } catch (error) {
         console.error('Upload failed:', error);
         // Fallback to temporary URL if upload fails
+        console.log('Using fallback URL...');
         const url = URL.createObjectURL(file);
         const isVideoFile = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
         const type = isVideoFile ? 'video' : 'image';
@@ -79,6 +84,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
           [field]: url, 
           [typeProperty]: type 
         }));
+        console.log('Fallback form updated:', { [field]: url, [typeProperty]: type });
       }
     }
   };
@@ -98,10 +104,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
   };
 
   const renderPreview = (url: string, type: 'image' | 'video' | undefined, fallback: string, className: string, isAvatar: boolean = false) => {
+    console.log('Rendering preview:', { url, type, fallback, className, isAvatar });
     if (!url) return <div className={`${className} bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl`}>{fallback}</div>;
     
     const isVideo = type === 'video' || url.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
     const objectClass = isAvatar ? 'object-contain bg-slate-50 dark:bg-slate-800' : 'object-cover';
+    
+    console.log('Is video:', isVideo, 'Object class:', objectClass);
     
     if (isVideo) {
       return (
@@ -114,6 +123,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
           muted 
           playsInline 
           preload="auto"
+          onError={(e) => console.error('Video error:', e)}
+          onLoad={() => console.log('Video loaded successfully')}
         />
       );
     }
@@ -124,6 +135,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
         className={`${className} ${objectClass} w-full h-full`} 
         alt="Preview" 
         loading="eager"
+        onError={(e) => console.error('Image error:', e)}
+        onLoad={() => console.log('Image loaded successfully')}
       />
     );
   };

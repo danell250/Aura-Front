@@ -3,7 +3,8 @@ export const uploadService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'https://aura-back-s1bw.onrender.com';
+    // Use local backend for development, production for deployment
+    const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002';
 
     const response = await fetch(`${BACKEND_URL}/api/upload`, {
       method: 'POST',

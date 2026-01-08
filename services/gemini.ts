@@ -1,4 +1,4 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '/api/gemini';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://aura-back-s1bw.onrender.com/api/gemini';
 
 export const geminiService = {
   async generatePostInspiration(topic: string) {

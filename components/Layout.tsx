@@ -74,8 +74,22 @@ const Layout: React.FC<LayoutProps> = ({
         </div>
 
         <div className="flex items-center space-x-2">
-          <button onClick={onToggleDarkMode} className="p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">{isDarkMode ? '🌞' : '🌙'}</button>
-          <button onClick={() => onViewChat()} className="p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">✉️</button>
+          <button onClick={onToggleDarkMode} className="p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
+            {isDarkMode ? (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 01-4.4 2.26 5.403 5.403 0 01-3.14-9.8c-.44-.06-.9-.1-1.36-.1z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            )}
+          </button>
+          <button onClick={() => onViewChat()} className="p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </button>
           <button className="p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg relative transition-colors">🔔 {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-emerald-500 text-[9px] text-white flex items-center justify-center rounded-full font-bold ring-2 ring-white dark:ring-slate-900">{unreadCount}</span>}</button>
           <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700 mx-2 hidden sm:block"></div>
           <div onClick={() => onViewProfile(currentUser.id)} className="w-8 h-8 rounded-lg overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 cursor-pointer hover:ring-emerald-500/50 transition-all bg-slate-50 dark:bg-slate-800">
@@ -87,15 +101,15 @@ const Layout: React.FC<LayoutProps> = ({
       <div className="flex-1 max-w-[1400px] w-full mx-auto px-4 py-8 flex gap-8">
         <aside className="hidden lg:flex flex-col w-64 space-y-6 sticky top-28 self-start max-h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar pb-10">
           <nav className="space-y-2">
-            <NavItem label="Home Feed" icon="🏠" onClick={onGoHome} active={activeView === 'feed'} />
-            <NavItem label="Credit Hub" icon="💎" onClick={onOpenCreditStore} active={activeView === 'credits'} isAction />
-            <NavItem label="Ad Manager" icon="📢" onClick={onStartCampaign} active={activeView === 'ad_manager'} />
-            <NavItem label="Connections" icon="🤝" onClick={onViewFriends} active={activeView === 'acquaintances'} />
-            <NavItem label="Privacy & Data" icon="🧠" onClick={onViewPrivacy} active={activeView === 'data_aura'} />
+            <NavItem label="Home Feed" onClick={onGoHome} active={activeView === 'feed'} />
+            <NavItem label="Credit Hub" onClick={onOpenCreditStore} active={activeView === 'credits'} isAction />
+            <NavItem label="Ad Manager" onClick={onStartCampaign} active={activeView === 'ad_manager'} />
+            <NavItem label="Connections" onClick={onViewFriends} active={activeView === 'acquaintances'} />
+            <NavItem label="Privacy & Data" onClick={onViewPrivacy} active={activeView === 'data_aura'} />
           </nav>
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-2">
-            <NavItem label="Settings" icon="⚙️" onClick={onViewSettings} active={activeView === 'settings'} />
-            <NavItem label="Log Out" icon="🚪" onClick={onLogout} />
+            <NavItem label="Settings" onClick={onViewSettings} active={activeView === 'settings'} />
+            <NavItem label="Log Out" onClick={onLogout} />
           </div>
         </aside>
 
@@ -122,7 +136,7 @@ const Layout: React.FC<LayoutProps> = ({
 
 const NavItem = ({ label, icon, active, onClick, isAction }: any) => (
   <button onClick={onClick} className={`w-full flex items-center space-x-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group ${active ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-semibold' : isAction ? 'text-emerald-600 dark:text-emerald-400 font-semibold hover:bg-emerald-50 dark:hover:bg-emerald-950/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'}`}>
-    <span className={`text-lg transition-transform group-hover:scale-110 ${active ? 'scale-110' : ''}`}>{icon}</span>
+    {icon && <span className={`text-lg transition-transform group-hover:scale-110 ${active ? 'scale-110' : ''}`}>{icon}</span>}
     <span className={`text-sm tracking-tight ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
   </button>
 );

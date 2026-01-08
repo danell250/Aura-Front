@@ -3,7 +3,9 @@ export const uploadService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch('/api/upload', {
+    const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'https://aura-back-s1bw.onrender.com';
+
+    const response = await fetch(`${BACKEND_URL}/api/upload`, {
       method: 'POST',
       body: formData,
     });

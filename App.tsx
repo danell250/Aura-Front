@@ -95,7 +95,12 @@ const App: React.FC = () => {
         const user = JSON.parse(savedSession);
         // Find user by ID in the latest users list to get fresh profile data (avatar etc)
         const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
-        setCurrentUser(refreshedUser);
+        // Preserve the avatar from the session if it exists and is a custom uploaded one
+        if (user.avatar && !user.avatar.includes('dicebear.com')) {
+          setCurrentUser({ ...refreshedUser, avatar: user.avatar, avatarType: user.avatarType });
+        } else {
+          setCurrentUser(refreshedUser);
+        }
         setIsAuthenticated(true);
         wasAuthenticated = true;
       } catch (e) { localStorage.removeItem(STORAGE_KEY); }
@@ -188,7 +193,11 @@ const App: React.FC = () => {
     const updatedUser = { ...currentUser, ...updates };
     if (updates.firstName && updates.lastName) updatedUser.name = `${updates.firstName} ${updates.lastName}`;
     setCurrentUser(updatedUser);
-    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    setAllUsers(prev => {
+      const updatedUsers = prev.map(u => u.id === currentUser.id ? updatedUser : u);
+      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      return updatedUsers;
+    });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
   };
 

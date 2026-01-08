@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { User } from '../types';
+import { uploadService } from '../services/upload';
 
 interface SettingsModalProps {
   currentUser: User;
@@ -46,21 +47,39 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'coverImage') => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'coverImage') => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      // Consistent detection logic
-      const isVideoFile = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
-      const type = isVideoFile ? 'video' : 'image';
-      
-      const typeProperty = field === 'avatar' ? 'avatarType' : 'coverType';
-      
-      setForm(prev => ({ 
-        ...prev, 
-        [field]: url, 
-        [typeProperty]: type 
-      }));
+      try {
+        // Upload file to backend
+        const uploadResult = await uploadService.uploadFile(file);
+          
+        // Consistent detection logic
+        const isVideoFile = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
+        const type = isVideoFile ? 'video' : 'image';
+          
+        const typeProperty = field === 'avatar' ? 'avatarType' : 'coverType';
+          
+        setForm(prev => ({ 
+          ...prev, 
+          [field]: uploadResult.url, 
+          [typeProperty]: type 
+        }));
+      } catch (error) {
+        console.error('Upload failed:', error);
+        // Fallback to temporary URL if upload fails
+        const url = URL.createObjectURL(file);
+        const isVideoFile = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
+        const type = isVideoFile ? 'video' : 'image';
+          
+        const typeProperty = field === 'avatar' ? 'avatarType' : 'coverType';
+          
+        setForm(prev => ({ 
+          ...prev, 
+          [field]: url, 
+          [typeProperty]: type 
+        }));
+      }
     }
   };
 

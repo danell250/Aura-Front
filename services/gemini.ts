@@ -12,7 +12,7 @@ export const geminiService = {
       const data = await response.json();
       return data.text || "Could not generate inspiration right now. Stay bright!";
     } catch (error) {
-      console.error("Gemini Error:", error);
+      console.error("Inspiration Error:", error);
       return "The aura is currently shifting. Try again later!";
     }
   },
@@ -28,7 +28,7 @@ export const geminiService = {
       const data = await response.json();
       return data.text || "Love the energy!";
     } catch (error) {
-      console.error("Gemini Error:", error);
+      console.error("Reply Error:", error);
       return "Beautifully said.";
     }
   },
@@ -44,7 +44,7 @@ export const geminiService = {
       const data = await response.json();
       return data.text || `Another rotation around the sun completed, ${name}. Your frequency is undeniable. Stay weird! 🌀🎸🍰`;
     } catch (error) {
-      console.error("Gemini Birthday Error:", error);
+      console.error("Birthday Error:", error);
       return `Universal sync complete: ${name} is officially one orbit older. Energy levels at maximum! 🚀✨🎂`;
     }
   },
@@ -60,7 +60,7 @@ export const geminiService = {
       const data = await response.json();
       return data.text || "Your aura is clear and transparent. You resonate with purity.";
     } catch (error) {
-      console.error("Gemini Analysis Error:", error);
+      console.error("Analysis Error:", error);
       return "Unable to calibrate neural aura at this time.";
     }
   }

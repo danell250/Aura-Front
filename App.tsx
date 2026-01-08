@@ -121,8 +121,17 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated, allUsers, syncBirthdays]);
 
-  useEffect(() => { if (posts.length > 0) localStorage.setItem(POSTS_KEY, JSON.stringify(posts)); }, [posts]);
-  useEffect(() => { if (ads.length > 0) localStorage.setItem(ADS_KEY, JSON.stringify(ads)); }, [ads]);
+  useEffect(() => { 
+    if (!loading) {
+      localStorage.setItem(POSTS_KEY, JSON.stringify(posts)); 
+    }
+  }, [posts, loading]);
+  
+  useEffect(() => { 
+    if (!loading) {
+      localStorage.setItem(ADS_KEY, JSON.stringify(ads)); 
+    }
+  }, [ads, loading]);
   useEffect(() => { localStorage.setItem(USERS_KEY, JSON.stringify(allUsers)); }, [allUsers]);
 
   const toggleDarkMode = () => {

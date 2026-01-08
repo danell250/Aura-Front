@@ -43,16 +43,16 @@ const PostCard: React.FC<PostCardProps> = ({
   }, []);
 
   const getEmbedUrl = (url: string) => {
-    const ytMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/\s]+)/);
+    const ytMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([^&?/\s]+)/);
     if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}`;
     
     const vimeoMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/);
     if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&muted=1&loop=1`;
 
-    const igMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:instagram\.com\/(?:p|reels|reel)\/)([^/?\s]+)/);
+    const igMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:instagram\.com\/(?:p|reels|reel|tv)\/)([^/?\s]+)/);
     if (igMatch) return `https://www.instagram.com/reels/${igMatch[1]}/embed`;
 
-    const fbMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:facebook\.com\/)(?:watch\/\?v=|reel\/|.*\/videos\/)([^/?\s]+)/);
+    const fbMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:facebook\.com\/)(?:watch\/\?v=|reel\/|share\/r\/|share\/v\/|.*\/videos\/)([^/?\s]+)/);
     if (fbMatch) return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&width=560`;
 
     return null;

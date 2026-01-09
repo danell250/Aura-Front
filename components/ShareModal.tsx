@@ -7,10 +7,11 @@ interface ShareModalProps {
   image?: string;
   onClose: () => void;
   currentUser?: any;
-  onAuraShare?: (sharedPost: any) => void;
+  onAuraShare?: (sharedPost: any, originalPost?: any) => void;
+  originalPost?: any;
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onClose, currentUser, onAuraShare }) => {
+const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onClose, currentUser, onAuraShare, originalPost }) => {
   const [copied, setCopied] = useState(false);
   const baseUrl = 'https://auraradiance.netlify.app';
   const shareUrl = `${baseUrl}/${url}`;
@@ -46,7 +47,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onC
     };
     
     if (onAuraShare) {
-      onAuraShare(sharedPost);
+      onAuraShare(sharedPost, originalPost);
     }
     
     onClose();

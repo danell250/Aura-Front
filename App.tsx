@@ -138,7 +138,7 @@ const App: React.FC = () => {
   const [isAdManagerOpen, setIsAdManagerOpen] = useState(false);
   const [isCreditStoreOpen, setIsCreditStoreOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [sharingContent, setSharingContent] = useState<{ content: string; url: string; title?: string; image?: string } | null>(null);
+  const [sharingContent, setSharingContent] = useState<{ content: string; url: string; title?: string; image?: string; originalPost?: Post } | null>(null);
   
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string}>({ type: 'feed' });
 
@@ -326,6 +326,8 @@ const App: React.FC = () => {
   useEffect(() => {
     if (currentUser && !loading) {
       saveSession(currentUser);
+      // Sync notifications from currentUser
+      setNotifications(currentUser.notifications || []);
     }
   }, [currentUser, loading]);
 
@@ -516,12 +518,49 @@ const App: React.FC = () => {
   }, []);
 
   const handleLike = useCallback((postId: string) => {
+    if (!currentUser) return;
+    
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p;
       const isPostInLikedSession = (p as any).sessionLiked || false;
+      const isLiking = !isPostInLikedSession;
+      
+      // Create notification for post author when liking (not when unliking)
+      if (isLiking && p.author.id !== currentUser.id) {
+        const newNotification: Notification = {
+          id: `notif-like-${Date.now()}-${Math.random()}`,
+          type: 'like',
+          fromUser: currentUser,
+          message: 'liked your post',
+          timestamp: Date.now(),
+          isRead: false,
+          postId: postId
+        };
+        
+        setAllUsers(prevUsers => {
+          const updatedUsers = prevUsers.map(u => {
+            if (u.id === p.author.id) {
+              const updatedUser = {
+                ...u,
+                notifications: [newNotification, ...(u.notifications || [])]
+              };
+              // Update currentUser if it's the post author (receiving notification)
+              if (u.id === currentUser.id) {
+                setCurrentUser(updatedUser);
+                saveSession(updatedUser);
+              }
+              return updatedUser;
+            }
+            return u;
+          });
+          localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+          return updatedUsers;
+        });
+      }
+      
       return { ...p, radiance: isPostInLikedSession ? Math.max(0, p.radiance - 1) : p.radiance + 1, sessionLiked: !isPostInLikedSession } as any;
     }));
-  }, []);
+  }, [currentUser]);
 
   const handleBoostPost = useCallback((postId: string) => {
     if (!currentUser) return;
@@ -559,13 +598,48 @@ const App: React.FC = () => {
     setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, trustScore: Math.min(100, u.trustScore + 10), auraCredits: u.auraCredits + 50 } : u));
   }, [currentUser?.auraCredits, currentUser?.email, handleUpdateProfile]);
 
-  const handleAuraShare = useCallback((sharedPost: any) => {
+  const handleAuraShare = useCallback((sharedPost: any, originalPost?: Post) => {
+    if (!currentUser) return;
+    
     // Add the shared post to the feed
     setPosts(prev => [sharedPost, ...prev]);
     
+    // Create notification for original post author when sharing
+    if (originalPost && originalPost.author.id !== currentUser.id) {
+      const newNotification: Notification = {
+        id: `notif-share-${Date.now()}-${Math.random()}`,
+        type: 'share',
+        fromUser: currentUser,
+        message: 'shared your post',
+        timestamp: Date.now(),
+        isRead: false,
+        postId: originalPost.id
+      };
+      
+      setAllUsers(prevUsers => {
+        const updatedUsers = prevUsers.map(u => {
+          if (u.id === originalPost.author.id) {
+            const updatedUser = {
+              ...u,
+              notifications: [newNotification, ...(u.notifications || [])]
+            };
+            // Update currentUser if it's the post author (receiving notification)
+            if (u.id === currentUser.id) {
+              setCurrentUser(updatedUser);
+              saveSession(updatedUser);
+            }
+            return updatedUser;
+          }
+          return u;
+        });
+        localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+        return updatedUsers;
+      });
+    }
+    
     // Show success message
     alert('Post shared to Aura feed successfully!');
-  }, [setPosts]);
+  }, [currentUser, setPosts]);
 
   const handlePurchaseCredits = (bundle: CreditBundle) => {
     if (!currentUser) return;
@@ -578,7 +652,46 @@ const App: React.FC = () => {
     if (!currentUser) return;
     
     const newComment: Comment = { id: `c-${Date.now()}`, author: currentUser, text, timestamp: Date.now(), parentId, reactions: {}, userReactions: [] };
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p));
+    
+    setPosts(prev => {
+      const post = prev.find(p => p.id === postId);
+      if (!post) return prev;
+      
+      // Create notification for post author when commenting (not for replies to comments)
+      if (!parentId && post.author.id !== currentUser.id) {
+        const newNotification: Notification = {
+          id: `notif-comment-${Date.now()}-${Math.random()}`,
+          type: 'comment',
+          fromUser: currentUser,
+          message: 'commented on your post',
+          timestamp: Date.now(),
+          isRead: false,
+          postId: postId
+        };
+        
+        setAllUsers(prevUsers => {
+          const updatedUsers = prevUsers.map(u => {
+            if (u.id === post.author.id) {
+              const updatedUser = {
+                ...u,
+                notifications: [newNotification, ...(u.notifications || [])]
+              };
+              // Update currentUser if it's the post author (receiving notification)
+              if (u.id === currentUser.id) {
+                setCurrentUser(updatedUser);
+                saveSession(updatedUser);
+              }
+              return updatedUser;
+            }
+            return u;
+          });
+          localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+          return updatedUsers;
+        });
+      }
+      
+      return prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p);
+    });
   }, [currentUser]);
 
   const handleReact = useCallback((postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => {

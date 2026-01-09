@@ -41,7 +41,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
     mediaUrl: '', 
     mediaType: 'image' as 'image' | 'video',
     ctaText: 'Explore My Profile', 
-    ctaLink: `https://aura.io/u/${currentUser.handle.substring(1)}` 
+    ctaLink: `https://auraradiance.netlify.app/profile/${currentUser.id}` 
   });
 
   const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';

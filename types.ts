@@ -124,7 +124,7 @@ export interface AdPackage {
 
 export interface Notification {
   id: string;
-  type: 'reaction' | 'comment' | 'link' | 'credit_received' | 'boost_received' | 'connection_request';
+  type: 'reaction' | 'comment' | 'link' | 'credit_received' | 'boost_received' | 'connection_request' | 'profile_view' | 'share' | 'like';
   fromUser: User;
   message: string;
   timestamp: number;

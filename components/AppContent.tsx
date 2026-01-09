@@ -50,7 +50,7 @@ interface AppContentProps {
   isAdManagerOpen: boolean;
   isCreditStoreOpen: boolean;
   isDarkMode: boolean;
-  sharingContent: { content: string; url: string; title?: string } | null;
+  sharingContent: { content: string; url: string; title?: string; image?: string; originalPost?: Post } | null;
   view: {type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string};
   setIsAuthenticated: (value: boolean) => void;
   setCurrentUser: (user: User | null) => void;
@@ -67,7 +67,7 @@ interface AppContentProps {
   setIsAdManagerOpen: (open: boolean) => void;
   setIsCreditStoreOpen: (open: boolean) => void;
   setIsDarkMode: (dark: boolean) => void;
-  setSharingContent: (content: { content: string; url: string; title?: string } | null) => void;
+  setSharingContent: (content: { content: string; url: string; title?: string; image?: string; originalPost?: Post } | null) => void;
   setView: (view: {type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string}) => void;
   handleLogin: (userData: any) => void;
   handleUpdateProfile: (updates: Partial<User>) => void;
@@ -146,7 +146,9 @@ const AppContent: React.FC<AppContentProps> = ({
         setSharingContent({
           content: post.content,
           url: `post/${postId}`,
-          title: `${post.author.name} on Aura`
+          title: `${post.author.name} on Aura`,
+          image: post.mediaUrl,
+          originalPost: post
         });
         // Navigate to feed and highlight the post
         setView({ type: 'feed' });
@@ -158,6 +160,53 @@ const AppContent: React.FC<AppContentProps> = ({
       setView({ type: 'feed' });
     }
   }, [location.pathname, isAuthenticated, posts, setView, setSharingContent]);
+
+  // Add notification when viewing another user's profile
+  useEffect(() => {
+    if (!currentUser || !view.targetId || view.type !== 'profile') return;
+    if (currentUser.id === view.targetId) return; // Don't notify when viewing own profile
+    
+    const viewedUser = allUsers.find(u => u.id === view.targetId);
+    if (!viewedUser) return;
+    
+    // Check if we already notified for this view (to avoid spam)
+    const recentNotification = viewedUser.notifications?.find(
+      n => n.type === 'profile_view' && 
+      n.fromUser.id === currentUser.id && 
+      (Date.now() - n.timestamp) < 60000 // Within last minute
+    );
+    
+    if (recentNotification) return; // Already notified recently
+    
+    const newNotification: Notification = {
+      id: `notif-profile-view-${Date.now()}-${Math.random()}`,
+      type: 'profile_view',
+      fromUser: currentUser,
+      message: 'viewed your profile',
+      timestamp: Date.now(),
+      isRead: false
+    };
+    
+    setAllUsers(prevUsers => {
+      const updatedUsers = prevUsers.map(u => {
+        if (u.id === viewedUser.id) {
+          const updatedUser = {
+            ...u,
+            notifications: [newNotification, ...(u.notifications || [])]
+          };
+          // Update currentUser if it's the same user
+          if (u.id === currentUser.id) {
+            setCurrentUser(updatedUser);
+            // Save session will be handled by the useEffect in App.tsx
+          }
+          return updatedUser;
+        }
+        return u;
+      });
+      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      return updatedUsers;
+    });
+  }, [view.type, view.targetId, currentUser, allUsers, setCurrentUser]);
 
   const syncBirthdays = useCallback(async (users: User[]) => {
     if (!currentUser) return;
@@ -335,7 +384,7 @@ const AppContent: React.FC<AppContentProps> = ({
                 /* Fix: Wrap handleReact to satisfy BirthdayPost's onReact signature requiring only 2 arguments while passing targetType: 'post' internally. */
                 if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} />;
                 return 'content' in item 
-                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl}); }} onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} />
+                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl, originalPost: p}); }} onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} />
                   : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`, title: `${ad.company} on Aura`, image: ad.imageUrl})} />
               })
             )}
@@ -353,7 +402,7 @@ const AppContent: React.FC<AppContentProps> = ({
           onComment={handleComment} 
           onReact={handleReact} 
           onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} 
-          onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl}); }} 
+          onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl, originalPost: p}); }} 
           onAddAcquaintance={handleAddAcquaintance} 
           onRemoveAcquaintance={handleRemoveAcquaintance} 
           onSearchTag={setSearchQuery} 
@@ -379,7 +428,7 @@ const AppContent: React.FC<AppContentProps> = ({
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
       {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={(ad) => setAds([ad, ...ads])} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}
       {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} onCreditsPurchased={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
-      {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} title={sharingContent.title} image={sharingContent.image} currentUser={currentUser} onAuraShare={handleAuraShare} onClose={() => setSharingContent(null)} />}
+      {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} title={sharingContent.title} image={sharingContent.image} currentUser={currentUser} onAuraShare={handleAuraShare} originalPost={sharingContent.originalPost} onClose={() => setSharingContent(null)} />}
     </Layout>
   );
 };

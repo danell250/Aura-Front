@@ -301,8 +301,9 @@ const PostCard: React.FC<PostCardProps> = ({
            
            <div className="flex items-center gap-2">
              <button onClick={() => onBoost && onBoost(post.id)} className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-2 rounded-xl hover:bg-emerald-600 hover:text-white transition-all">Boost</button>
-             <button onClick={() => onShare && onShare(post)} className="p-2 text-slate-400 hover:text-emerald-500 transition-all">
+             <button onClick={() => onShare && onShare(post)} className="p-2 text-slate-400 hover:text-emerald-500 transition-all flex items-center gap-1">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Share</span>
               </button>
            </div>
         </div>

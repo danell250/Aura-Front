@@ -87,10 +87,10 @@ const PostCard: React.FC<PostCardProps> = ({
     }
     if (isGif) {
       return (
-        <img key={url} src={url} className={`${className} transition-transform duration-700 hover:scale-[1.02]`} alt="" unoptimized="true" />
+        <img key={url} src={url} className={className} alt="" unoptimized="true" />
       );
     }
-    return <img key={url} src={url} className={`${className} transition-transform duration-700 hover:scale-[1.02]`} alt="" />;
+    return <img key={url} src={url} className={className} alt="" />;
   };
 
   const handleAISuggestion = async () => {
@@ -217,7 +217,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const radianceGlow = post.radiance > 10 ? `0 20px 40px -10px rgba(16, 185, 129, ${Math.min(post.radiance / 100, 0.4)})` : 'none';
 
   return (
-    <div className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 overflow-hidden mb-8 group relative ${post.isBoosted ? 'ring-1 ring-emerald-500/30' : ''}`} style={{ boxShadow: radianceGlow }}>
+    <div className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] overflow-hidden mb-8 group relative ${post.isBoosted ? 'ring-1 ring-emerald-500/30' : ''}`} style={{ boxShadow: radianceGlow }}>
       {post.isBoosted && (
         <div className="absolute top-0 right-0 p-4 z-10">
           <span className="px-3 py-1 bg-emerald-500 text-white text-[9px] font-bold uppercase rounded-full tracking-wider shadow-lg">Boosted</span>
@@ -261,8 +261,8 @@ const PostCard: React.FC<PostCardProps> = ({
         <div className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed mb-6 whitespace-pre-wrap font-medium tracking-tight">{renderContent(post.content)}</div>
 
         {displayMediaUrl && (
-          <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner group/media min-h-[100px] flex items-center justify-center">
-            {renderMedia(displayMediaUrl, post.mediaType, "w-full h-auto max-h-[600px] object-cover transition-transform duration-700 group-hover/media:scale-[1.01]")}
+          <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner min-h-[100px] flex items-center justify-center">
+            {renderMedia(displayMediaUrl, post.mediaType, "w-full h-auto max-h-[600px] object-cover")}
           </div>
         )}
 

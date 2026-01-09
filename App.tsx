@@ -146,25 +146,26 @@ const App: React.FC = () => {
     try {
       // Load users from localStorage - always use MOCK_USERS for development
       const savedUsers = localStorage.getItem(USERS_KEY);
-      let usersToProcess: User[] = [];
+      let usersToProcess: User[] = MOCK_USERS;
       
-      if (savedUsers && process.env.NODE_ENV === 'production') {
+      if (savedUsers) {
         try {
-          usersToProcess = JSON.parse(savedUsers);
-          // Validate users array
-          if (!Array.isArray(usersToProcess)) {
-            console.warn('Invalid users data, resetting...');
-            usersToProcess = MOCK_USERS;
+          const parsedUsers = JSON.parse(savedUsers);
+          if (Array.isArray(parsedUsers) && parsedUsers.length > 0) {
+            // Check if MOCK_USERS has more data (new dummy data added)
+            if (process.env.NODE_ENV !== 'production' || parsedUsers.length < MOCK_USERS.length) {
+               console.log('Using MOCK_USERS due to new data or dev mode');
+               usersToProcess = MOCK_USERS;
+            } else {
+               usersToProcess = parsedUsers;
+            }
           }
         } catch (e) {
           console.error('Failed to parse users data:', e);
-          usersToProcess = MOCK_USERS;
         }
-      } else {
-        // Always use dummy data in development
-        usersToProcess = MOCK_USERS;
-        localStorage.setItem(USERS_KEY, JSON.stringify(MOCK_USERS));
       }
+      
+      localStorage.setItem(USERS_KEY, JSON.stringify(usersToProcess));
       
       setAllUsers(usersToProcess);
 
@@ -223,23 +224,29 @@ const App: React.FC = () => {
 
       // Load posts - always use INITIAL_POSTS for development
       const savedPosts = localStorage.getItem(POSTS_KEY);
-      if (savedPosts && process.env.NODE_ENV === 'production') {
+      // Fallback to INITIAL_POSTS if saved data is invalid, empty, or if we are in development
+      // Also fallback if INITIAL_POSTS has significantly more data (dummy data injection)
+      let postsToUse = INITIAL_POSTS;
+      
+      if (savedPosts) {
         try {
           const parsedPosts = JSON.parse(savedPosts);
-          if (Array.isArray(parsedPosts)) {
-            setPosts(parsedPosts);
-          } else {
-            setPosts(INITIAL_POSTS);
+          if (Array.isArray(parsedPosts) && parsedPosts.length > 0) {
+             // If we have saved posts, check if we added new dummy data
+             if (process.env.NODE_ENV !== 'production' || parsedPosts.length < INITIAL_POSTS.length) {
+                console.log('Using INITIAL_POSTS due to new data or dev mode');
+                postsToUse = INITIAL_POSTS;
+             } else {
+                postsToUse = parsedPosts;
+             }
           }
         } catch (e) {
           console.error('Failed to parse posts:', e);
-          setPosts(INITIAL_POSTS);
         }
-      } else {
-        // Always use dummy data in development
-        setPosts(INITIAL_POSTS);
-        localStorage.setItem(POSTS_KEY, JSON.stringify(INITIAL_POSTS));
       }
+      
+      setPosts(postsToUse);
+      localStorage.setItem(POSTS_KEY, JSON.stringify(postsToUse));
 
       // Load ads - always use INITIAL_ADS for development
       const savedAds = localStorage.getItem(ADS_KEY);

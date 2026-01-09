@@ -1,25 +1,8 @@
-
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import Layout from './components/Layout';
-import PostCard from './components/PostCard';
-import CreatePost from './components/CreatePost';
-import BirthdayPost from './components/BirthdayPost';
-import AdCard from './components/AdCard';
-import Auth from './components/Auth';
-import ProfileView from './components/ProfileView';
-import ChatView from './components/ChatView';
-import SettingsModal from './components/SettingsModal';
-import AdManager from './components/AdManager';
-import AcquaintancesView from './components/AcquaintancesView';
-import DataAuraView from './components/DataAuraView';
-import ShareModal from './components/ShareModal';
-import CreditStoreModal from './components/CreditStoreModal';
-import FeedFilters from './components/FeedFilters';
-import Logo from './components/Logo';
-import { useMetaTags } from './hooks/useMetaTags';
-import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from './constants';
+import React, { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import AppContent from './components/AppContent';
+import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
-import { geminiService } from './services/gemini';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -54,90 +37,25 @@ const App: React.FC = () => {
   
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string}>({ type: 'feed' });
 
-  // Set up meta tags for the current page
-  const getMetaInfo = useCallback(() => {
-    const baseUrl = 'https://auraradiance.netlify.app';
-    
-    if (view.type === 'profile' && view.targetId) {
-      const profileUser = allUsers.find(u => u.id === view.targetId) || currentUser;
-      return {
-        title: `${profileUser.name} | Aura Profile`,
-        description: `Connect with ${profileUser.name} on Aura - ${profileUser.bio || 'Professional social network'}`,
-        url: `${baseUrl}/profile/${view.targetId}`,
-        type: 'profile' as const
-      };
-    }
-    
-    if (sharingContent) {
-      return {
-        title: `Post on Aura | ${sharingContent.content.substring(0, 50)}...`,
-        description: sharingContent.content,
-        url: `${baseUrl}/${sharingContent.url}`,
-        type: 'article' as const
-      };
-    }
-    
-    return {
-      title: 'Aura | Connect & Radiate',
-      description: 'Establish your professional frequency on Aura, the world\'s most elegant social network. Connect, radiate, and broadcast your professional pulse.',
-      url: baseUrl,
-      type: 'website' as const
-    };
-  }, [view, sharingContent, allUsers, currentUser]);
-
-  useMetaTags(getMetaInfo());
-
-  const syncBirthdays = useCallback(async (users: User[]) => {
-    const today = new Date();
-    const mmToday = today.getMonth();
-    const ddToday = today.getDate();
-    const acquaintances = users.filter(u => currentUser.acquaintances?.includes(u.id));
-    const birthdayPeeps = acquaintances.filter(u => {
-      if (!u.dob) return false;
-      const d = new Date(u.dob);
-      return d.getMonth() === mmToday && d.getDate() === ddToday;
-    });
-    
-    // Check if it's currentUser's birthday too
-    if (currentUser.dob) {
-      const d = new Date(currentUser.dob);
-      if (d.getMonth() === mmToday && d.getDate() === ddToday) {
-        birthdayPeeps.push(currentUser);
-      }
-    }
-
-    const announcements: BirthdayAnnouncement[] = [];
-    for (const person of birthdayPeeps) {
-      const quirkyWish = await geminiService.generateQuirkyBirthdayWish(person.firstName, person.bio);
-      announcements.push({
-        id: `bday-${person.id}-${today.getFullYear()}`,
-        user: person, wish: quirkyWish, reactions: {}, userReactions: []
-      });
-    }
-    setBirthdayAnnouncements(announcements);
-  }, [currentUser.acquaintances]);
-
   useEffect(() => {
     const savedUsers = localStorage.getItem(USERS_KEY);
     const usersToProcess = savedUsers ? JSON.parse(savedUsers) : MOCK_USERS;
     setAllUsers(usersToProcess);
 
     const savedSession = localStorage.getItem(STORAGE_KEY);
-    let wasAuthenticated = false;
     if (savedSession) {
       try {
         const user = JSON.parse(savedSession);
-        // Find user by ID in the latest users list to get fresh profile data (avatar etc)
         const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
-        // Preserve the avatar from the session if it exists and is a custom uploaded one
         if (user.avatar && !user.avatar.includes('dicebear.com')) {
           setCurrentUser({ ...refreshedUser, avatar: user.avatar, avatarType: user.avatarType });
         } else {
           setCurrentUser(refreshedUser);
         }
         setIsAuthenticated(true);
-        wasAuthenticated = true;
-      } catch (e) { localStorage.removeItem(STORAGE_KEY); }
+      } catch (e) { 
+        localStorage.removeItem(STORAGE_KEY); 
+      }
     }
 
     const savedPosts = localStorage.getItem(POSTS_KEY);
@@ -153,12 +71,6 @@ const App: React.FC = () => {
       setLoading(false);
     }, 1000);
   }, []);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      syncBirthdays(allUsers);
-    }
-  }, [isAuthenticated, allUsers, syncBirthdays]);
 
   useEffect(() => { 
     if (!loading) {
@@ -183,7 +95,6 @@ const App: React.FC = () => {
   };
 
   const handleLogin = (userData: any) => {
-    // Search in all users (both initial mocks and newly registered ones)
     const existingUser = allUsers.find(u => 
       (userData.email && u.email.toLowerCase() === userData.email.toLowerCase()) || 
       (userData.handle && u.handle.toLowerCase() === userData.handle.toLowerCase()) || 
@@ -194,7 +105,6 @@ const App: React.FC = () => {
       setCurrentUser(existingUser);
       setIsAuthenticated(true);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(existingUser));
-      syncBirthdays(allUsers);
       return;
     }
 
@@ -212,7 +122,6 @@ const App: React.FC = () => {
       activeGlow: 'none'
     };
     
-    // Update both state and localStorage consistently
     const updatedUsers = [...allUsers, newUser];
     setAllUsers(updatedUsers);
     setCurrentUser(newUser);
@@ -220,7 +129,6 @@ const App: React.FC = () => {
     setIsAuthenticated(true);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
     localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-    syncBirthdays(updatedUsers);
   };
 
   const handleUpdateProfile = (updates: Partial<User>) => {
@@ -346,11 +254,9 @@ const App: React.FC = () => {
   const handleAddAcquaintance = useCallback((targetUser: User) => {
     if (currentUser.id === targetUser.id) return;
     
-    // Check if already connected or requested
     if (currentUser.acquaintances?.includes(targetUser.id)) return;
     if (currentUser.sentConnectionRequests?.includes(targetUser.id)) return;
 
-    // Create notification for the target user
     const newNotification: Notification = {
       id: `notif-conn-${Date.now()}`,
       type: 'connection_request',
@@ -360,7 +266,6 @@ const App: React.FC = () => {
       isRead: false
     };
 
-    // Update current user (sender)
     const updatedCurrentUser = {
       ...currentUser,
       sentConnectionRequests: [...(currentUser.sentConnectionRequests || []), targetUser.id]
@@ -368,7 +273,6 @@ const App: React.FC = () => {
     setCurrentUser(updatedCurrentUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCurrentUser));
 
-    // Update target user (receiver)
     setAllUsers(prev => {
       const updatedUsers = prev.map(u => {
         if (u.id === currentUser.id) return updatedCurrentUser;
@@ -388,7 +292,6 @@ const App: React.FC = () => {
   const handleAcceptConnection = useCallback((notification: Notification) => {
     const requesterId = notification.fromUser.id;
     
-    // Update current user's acquaintances and notifications
     const updatedCurrentUser = {
       ...currentUser,
       acquaintances: Array.from(new Set([...(currentUser.acquaintances || []), requesterId])),
@@ -398,7 +301,6 @@ const App: React.FC = () => {
     setCurrentUser(updatedCurrentUser);
     setNotifications(updatedCurrentUser.notifications || []);
     
-    // Update allUsers to reflect connection on both sides
     setAllUsers(prev => {
       const updatedUsers = prev.map(u => {
         if (u.id === currentUser.id) return updatedCurrentUser;
@@ -437,158 +339,69 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
   }, [currentUser]);
 
-  const processedFeedItems = useMemo(() => {
-    // Apply filters first
-    const filteredPosts = posts.filter(p => {
-      const matchesSearch = p.content.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           p.author.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesEnergy = activeEnergy === 'all' || p.energy === activeEnergy;
-      const matchesMedia = activeMediaType === 'all' || p.mediaType === activeMediaType;
-      return matchesSearch && matchesEnergy && matchesMedia;
-    });
-
-    // Sort: Paid Ads at top, then Boosted posts, then by Timestamp
-    const activeAds = ads.filter(a => a.status === 'active');
-    
-    // Sort posts: Boosted first, then timestamp
-    const sortedPosts = [...filteredPosts].sort((a, b) => {
-        if (a.isBoosted && !b.isBoosted) return -1;
-        if (!a.isBoosted && b.isBoosted) return 1;
-        return b.timestamp - a.timestamp;
-    });
-
-    const combined: (Post | Ad | BirthdayAnnouncement)[] = [];
-    
-    // 1. Birthdays (top)
-    if (view.type === 'feed' && activeEnergy === 'all' && activeMediaType === 'all' && !searchQuery) {
-      birthdayAnnouncements.forEach(bday => combined.push(bday));
-    }
-
-    // 2. Paid Ads (High Advantage)
-    if (view.type === 'feed' && !searchQuery && activeAds.length > 0) {
-      // Put some ads right at the top
-      const topAdsCount = Math.min(2, activeAds.length);
-      for(let i=0; i < topAdsCount; i++) {
-        combined.push(activeAds[i]);
-      }
-    }
-
-    // 3. Posts with interleaved ads
-    let adIdx = (view.type === 'feed' && !searchQuery) ? Math.min(2, activeAds.length) : 0;
-    sortedPosts.forEach((post, index) => {
-      combined.push(post);
-      // Inject ads every 2 posts for better advantage
-      if (view.type === 'feed' && (index + 1) % 2 === 0 && adIdx < activeAds.length) {
-        combined.push(activeAds[adIdx]);
-        adIdx++;
-      }
-    });
-
-    // Append remaining ads
-    if (view.type === 'feed' && activeEnergy === 'all' && !searchQuery) {
-      while (adIdx < activeAds.length) { 
-        combined.push(activeAds[adIdx]); 
-        adIdx++; 
-      }
-    }
-
-    return combined;
-  }, [posts, ads, birthdayAnnouncements, view, searchQuery, activeEnergy, activeMediaType]);
-
   useEffect(() => {
     (window as any).handleAcceptConnection = handleAcceptConnection;
     return () => { delete (window as any).handleAcceptConnection; };
   }, [handleAcceptConnection]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950 transition-colors"><Logo size="lg" className="animate-float" /></div>;
-  if (!isAuthenticated) return <Auth onLogin={handleLogin} allUsers={allUsers} />;
-
   return (
-    <Layout 
-      activeView={view.type} searchQuery={searchQuery} onSearchChange={setSearchQuery} 
-      onLogout={() => { setIsAuthenticated(false); localStorage.removeItem(STORAGE_KEY); }}
-      currentUser={currentUser} isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode}
-      onStartCampaign={() => setIsAdManagerOpen(true)} onViewSettings={() => setIsSettingsOpen(true)} 
-      onViewChat={(id) => setView({ type: 'chat', targetId: id })} 
-      onViewFriends={() => setView({ type: 'acquaintances' })} onViewPrivacy={() => setView({ type: 'data_aura' })}
-      onGoHome={() => { setView({ type: 'feed' }); setActiveEnergy('all'); setSearchQuery(''); }} 
-      onViewProfile={(id) => setView({ type: 'profile', targetId: id })} 
-      ads={ads} notifications={notifications}
-      onOpenCreditStore={() => setIsCreditStoreOpen(true)}
-    >
-      {view.type === 'feed' && (
-        <div className="space-y-6">
-          <CreatePost allUsers={allUsers} currentUser={currentUser} onPost={handlePost} />
-          
-          <FeedFilters 
-            activeMediaType={activeMediaType}
-            onMediaTypeChange={setActiveMediaType}
+    <Router>
+      <Routes>
+        <Route path="/*" element={
+          <AppContent
+            isAuthenticated={isAuthenticated}
+            currentUser={currentUser}
+            allUsers={allUsers}
+            posts={posts}
+            ads={ads}
+            birthdayAnnouncements={birthdayAnnouncements}
+            notifications={notifications}
+            loading={loading}
+            searchQuery={searchQuery}
             activeEnergy={activeEnergy}
-            onEnergyChange={setActiveEnergy}
-            authors={[]}
-            activeAuthorId="all"
-            onAuthorChange={() => {}}
+            activeMediaType={activeMediaType}
+            isSettingsOpen={isSettingsOpen}
+            isAdManagerOpen={isAdManagerOpen}
+            isCreditStoreOpen={isCreditStoreOpen}
+            isDarkMode={isDarkMode}
+            sharingContent={sharingContent}
+            view={view}
+            setIsAuthenticated={setIsAuthenticated}
+            setCurrentUser={setCurrentUser}
+            setAllUsers={setAllUsers}
+            setPosts={setPosts}
+            setAds={setAds}
+            setBirthdayAnnouncements={setBirthdayAnnouncements}
+            setNotifications={setNotifications}
+            setLoading={setLoading}
+            setSearchQuery={setSearchQuery}
+            setActiveEnergy={setActiveEnergy}
+            setActiveMediaType={setActiveMediaType}
+            setIsSettingsOpen={setIsSettingsOpen}
+            setIsAdManagerOpen={setIsAdManagerOpen}
+            setIsCreditStoreOpen={setIsCreditStoreOpen}
+            setIsDarkMode={setIsDarkMode}
+            setSharingContent={setSharingContent}
+            setView={setView}
+            handleLogin={handleLogin}
+            handleUpdateProfile={handleUpdateProfile}
+            handlePost={handlePost}
+            handleDeletePost={handleDeletePost}
+            handleDeleteComment={handleDeleteComment}
+            handleLike={handleLike}
+            handleBoostPost={handleBoostPost}
+            handleBoostUser={handleBoostUser}
+            handleComment={handleComment}
+            handleReact={handleReact}
+            handleAddAcquaintance={handleAddAcquaintance}
+            handleAcceptConnection={handleAcceptConnection}
+            handleRemoveAcquaintance={handleRemoveAcquaintance}
+            handlePurchaseCredits={handlePurchaseCredits}
+            toggleDarkMode={toggleDarkMode}
           />
-
-          <div className="space-y-6 min-h-[500px]">
-            {processedFeedItems.length === 0 ? (
-               <div className="py-32 text-center bg-white dark:bg-slate-900/40 rounded-[3rem] border-2 border-dashed border-slate-100 dark:border-slate-800 animate-in fade-in duration-700">
-                  <div className="text-6xl mb-6 opacity-20 grayscale">🪐</div>
-                  <h3 className="text-xl font-black uppercase tracking-widest text-slate-400">No Posts Found</h3>
-                  <p className="text-[10px] font-bold uppercase text-slate-400 mt-2 tracking-[0.2em]">Adjust your filters to discover new updates.</p>
-                  <button onClick={() => { setActiveEnergy('all'); setActiveMediaType('all'); setSearchQuery(''); }} className="mt-8 text-emerald-500 font-black uppercase text-[10px] tracking-widest hover:underline underline-offset-8">Reset Filter</button>
-               </div>
-            ) : (
-              processedFeedItems.map((item) => {
-                /* Fix: Wrap handleReact to satisfy BirthdayPost's onReact signature requiring only 2 arguments while passing targetType: 'post' internally. */
-                if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} />;
-                return 'content' in item 
-                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`})} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} />
-                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`, title: `${ad.company} on Aura`})} />
-              })
-            )}
-          </div>
-        </div>
-      )}
-      {view.type === 'profile' && (
-        <ProfileView 
-          user={allUsers.find(u => u.id === (view.targetId || currentUser.id)) || currentUser} 
-          posts={posts.filter(p => p.author.id === (view.targetId || currentUser.id))} 
-          currentUser={currentUser} 
-          allUsers={allUsers} 
-          onBack={() => setView({ type: 'feed' })} 
-          onLike={handleLike} 
-          onComment={handleComment} 
-          onReact={handleReact} 
-          onViewProfile={(id) => setView({ type: 'profile', targetId: id })} 
-          onShare={() => {}} 
-          onAddAcquaintance={handleAddAcquaintance} 
-          onRemoveAcquaintance={handleRemoveAcquaintance} 
-          onSearchTag={setSearchQuery} 
-          onBoostPost={handleBoostPost} 
-          onBoostUser={handleBoostUser} 
-          onEditProfile={() => setIsSettingsOpen(true)} 
-          onDeletePost={handleDeletePost} 
-          onDeleteComment={handleDeleteComment} 
-        />
-      )}
-      {view.type === 'chat' && <ChatView currentUser={currentUser} acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} onBack={() => setView({ type: 'feed' })} initialContactId={view.targetId} />}
-      {view.type === 'acquaintances' && (
-        <AcquaintancesView 
-          currentUser={currentUser} 
-          acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} 
-          onViewProfile={(id) => setView({ type: 'profile', targetId: id })} 
-          onViewChat={(id) => setView({ type: 'chat', targetId: id })} 
-          onRemoveAcquaintance={handleRemoveAcquaintance} 
-          onBack={() => setView({ type: 'feed' })} 
-        />
-      )}
-      {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => setView({ type: 'feed' })} onPurchaseGlow={(glow) => handleUpdateProfile({ activeGlow: glow })} onClearData={() => {}} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
-      {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
-      {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={(ad) => setAds([ad, ...ads])} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}
-      {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} onCreditsPurchased={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
-      {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} onClose={() => setSharingContent(null)} />}
-    </Layout>
+        } />
+      </Routes>
+    </Router>
   );
 };
 

@@ -3,7 +3,18 @@ import { AdPackage, Ad, User, EnergyType, CreditBundle, Post } from './types';
 export const APP_NAME = "Aura";
 export const PRIMARY_COLOR = "emerald-600";
 
-export const CREDIT_BUNDLES: CreditBundle[] = [
+interface CreditBundleData {
+  id: string;
+  name: string;
+  credits: number;
+  price: string;
+  numericPrice: number;
+  description: string;
+  gradient: string;
+  icon: string;
+}
+
+export const CREDIT_BUNDLES: CreditBundleData[] = [
   {
     id: 'bundle-nano-pulse',
     name: 'Nano Pulse',

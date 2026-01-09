@@ -144,11 +144,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      // Load users from localStorage
+      // Load users from localStorage - always use MOCK_USERS for development
       const savedUsers = localStorage.getItem(USERS_KEY);
       let usersToProcess: User[] = [];
       
-      if (savedUsers) {
+      if (savedUsers && process.env.NODE_ENV === 'production') {
         try {
           usersToProcess = JSON.parse(savedUsers);
           // Validate users array
@@ -161,7 +161,9 @@ const App: React.FC = () => {
           usersToProcess = MOCK_USERS;
         }
       } else {
+        // Always use dummy data in development
         usersToProcess = MOCK_USERS;
+        localStorage.setItem(USERS_KEY, JSON.stringify(MOCK_USERS));
       }
       
       setAllUsers(usersToProcess);
@@ -219,9 +221,9 @@ const App: React.FC = () => {
         console.log('No valid session found - user needs to login');
       }
 
-      // Load posts
+      // Load posts - always use INITIAL_POSTS for development
       const savedPosts = localStorage.getItem(POSTS_KEY);
-      if (savedPosts) {
+      if (savedPosts && process.env.NODE_ENV === 'production') {
         try {
           const parsedPosts = JSON.parse(savedPosts);
           if (Array.isArray(parsedPosts)) {
@@ -234,12 +236,14 @@ const App: React.FC = () => {
           setPosts(INITIAL_POSTS);
         }
       } else {
+        // Always use dummy data in development
         setPosts(INITIAL_POSTS);
+        localStorage.setItem(POSTS_KEY, JSON.stringify(INITIAL_POSTS));
       }
 
-      // Load ads
+      // Load ads - always use INITIAL_ADS for development
       const savedAds = localStorage.getItem(ADS_KEY);
-      if (savedAds) {
+      if (savedAds && process.env.NODE_ENV === 'production') {
         try {
           const parsedAds = JSON.parse(savedAds);
           if (Array.isArray(parsedAds)) {
@@ -252,7 +256,9 @@ const App: React.FC = () => {
           setAds(INITIAL_ADS);
         }
       } else {
+        // Always use dummy data in development
         setAds(INITIAL_ADS);
+        localStorage.setItem(ADS_KEY, JSON.stringify(INITIAL_ADS));
       }
       
       // Load theme

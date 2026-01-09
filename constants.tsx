@@ -5,34 +5,44 @@ export const PRIMARY_COLOR = "emerald-600";
 
 export const CREDIT_BUNDLES: CreditBundle[] = [
   {
-    id: 'bundle-starter',
-    name: 'Starter Bundle',
+    id: 'bundle-nano-pulse',
+    name: 'Nano Pulse',
     credits: 100,
     price: '$9.99',
     numericPrice: 9.99,
-    description: 'Perfect for getting started with Aura features',
+    description: 'Perfect for quick post boosts.',
     gradient: 'from-emerald-500 to-teal-500',
-    icon: '💎'
+    icon: '🔹'
   },
   {
-    id: 'bundle-pro',
-    name: 'Pro Bundle',
-    credits: 250,
-    price: '$19.99',
-    numericPrice: 19.99,
-    description: 'Ideal for regular users who want more capabilities',
-    gradient: 'from-purple-500 to-indigo-500',
-    icon: '🔮'
-  },
-  {
-    id: 'bundle-enterprise',
-    name: 'Enterprise Bundle',
+    id: 'bundle-neural-spark',
+    name: 'Neural Spark',
     credits: 500,
-    price: '$29.99',
-    numericPrice: 29.99,
-    description: 'Best for power users and businesses',
+    price: '$39.99',
+    numericPrice: 39.99,
+    description: 'Empower your network visibility.',
+    gradient: 'from-purple-500 to-indigo-500',
+    icon: '✨'
+  },
+  {
+    id: 'bundle-neural-surge',
+    name: 'Neural Surge',
+    credits: 2000,
+    price: '$149.99',
+    numericPrice: 149.99,
+    description: 'High-frequency growth injection.',
     gradient: 'from-amber-500 to-orange-500',
-    icon: '🏆'
+    icon: '⚡'
+  },
+  {
+    id: 'bundle-universal-core',
+    name: 'Universal Core',
+    credits: 5000,
+    price: '$349.99',
+    numericPrice: 349.99,
+    description: 'Maximum dominance in the network.',
+    gradient: 'from-violet-500 to-purple-500',
+    icon: '💎'
   }
 ];
 

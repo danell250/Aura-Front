@@ -106,12 +106,16 @@ const App: React.FC = () => {
           auraCredits: sessionUser.auraCredits || refreshedUser.auraCredits,
           trustScore: sessionUser.trustScore || refreshedUser.trustScore,
           activeGlow: sessionUser.activeGlow || refreshedUser.activeGlow,
-          acquaintances: sessionUser.acquaintances || refreshedUser.acquaintances,
-          blockedUsers: sessionUser.blockedUsers || refreshedUser.blockedUsers,
+          acquaintances: sessionUser.acquaintances || refreshedUser.acquaintances || [],
+          blockedUsers: sessionUser.blockedUsers || refreshedUser.blockedUsers || [],
         };
       } else {
-        // If user not found in usersToProcess, use the session user as-is
-        refreshedUser = sessionUser;
+        // If user not found in usersToProcess, use the session user as-is but ensure required fields exist
+        refreshedUser = {
+          ...sessionUser,
+          acquaintances: sessionUser.acquaintances || [],
+          blockedUsers: sessionUser.blockedUsers || [],
+        };
       }
       
       setCurrentUser(refreshedUser);
@@ -181,7 +185,7 @@ const App: React.FC = () => {
       avatarType: 'image', 
       handle: userData.handle || ('@' + userData.firstName.toLowerCase().replace(/\s+/g, '') + userData.lastName.toLowerCase().replace(/\s+/g, '') + Math.floor(Math.random() * 100)),
       name: userData.name || `${userData.firstName} ${userData.lastName}`,
-      acquaintances: ['1', '2', '3'], 
+      acquaintances: [], 
       blockedUsers: [], 
       trustScore: 10, 
       auraCredits: 50, 
@@ -359,8 +363,11 @@ const App: React.FC = () => {
     
     if (currentUser.id === targetUser.id) return;
     
-    if (currentUser.acquaintances?.includes(targetUser.id)) return;
-    if (currentUser.sentConnectionRequests?.includes(targetUser.id)) return;
+    const acquaintances = currentUser.acquaintances || [];
+    const sentConnectionRequests = currentUser.sentConnectionRequests || [];
+    
+    if (acquaintances.includes(targetUser.id)) return;
+    if (sentConnectionRequests.includes(targetUser.id)) return;
 
     const newNotification: Notification = {
       id: `notif-conn-${Date.now()}`,
@@ -373,7 +380,8 @@ const App: React.FC = () => {
 
     const updatedCurrentUser = {
       ...currentUser,
-      sentConnectionRequests: [...(currentUser.sentConnectionRequests || []), targetUser.id]
+      acquaintances: acquaintances,
+      sentConnectionRequests: [...sentConnectionRequests, targetUser.id]
     };
     setCurrentUser(updatedCurrentUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCurrentUser));

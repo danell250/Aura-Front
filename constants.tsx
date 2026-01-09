@@ -443,6 +443,7 @@ export const CURRENT_USER = MOCK_USERS[0] || {
   name: '',
   handle: '',
   avatar: '',
+  avatarType: 'image' as const,
   acquaintances: [],
   email: '',
   dob: '',

@@ -160,10 +160,12 @@ const AppContent: React.FC<AppContentProps> = ({
   }, [location.pathname, isAuthenticated, posts, setView, setSharingContent]);
 
   const syncBirthdays = useCallback(async (users: User[]) => {
+    if (!currentUser) return;
+    
     const today = new Date();
     const mmToday = today.getMonth();
     const ddToday = today.getDate();
-    const acquaintances = users.filter(u => currentUser.acquaintances?.includes(u.id));
+    const acquaintances = users.filter(u => (currentUser.acquaintances || []).includes(u.id));
     const birthdayPeeps = acquaintances.filter(u => {
       if (!u.dob) return false;
       const d = new Date(u.dob);
@@ -187,7 +189,7 @@ const AppContent: React.FC<AppContentProps> = ({
       });
     }
     setBirthdayAnnouncements(announcements);
-  }, [currentUser.acquaintances, currentUser.dob, setBirthdayAnnouncements]);
+  }, [currentUser, setBirthdayAnnouncements]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -254,7 +256,7 @@ const AppContent: React.FC<AppContentProps> = ({
   }, [posts, ads, birthdayAnnouncements, view, searchQuery, activeEnergy, activeMediaType]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950 transition-colors"><Logo size="lg" className="animate-float" /></div>;
-  if (!isAuthenticated) return <Auth onLogin={handleLogin} allUsers={allUsers} />;
+  if (!isAuthenticated || !currentUser) return <Auth onLogin={handleLogin} allUsers={allUsers} />;
 
   return (
     <Layout 
@@ -326,11 +328,11 @@ const AppContent: React.FC<AppContentProps> = ({
           onDeleteComment={handleDeleteComment} 
         />
       )}
-      {view.type === 'chat' && <ChatView currentUser={currentUser} acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} initialContactId={view.targetId} />}
+      {view.type === 'chat' && <ChatView currentUser={currentUser} acquaintances={allUsers.filter(u => (currentUser?.acquaintances || []).includes(u.id))} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} initialContactId={view.targetId} />}
       {view.type === 'acquaintances' && (
         <AcquaintancesView 
           currentUser={currentUser} 
-          acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} 
+          acquaintances={allUsers.filter(u => (currentUser?.acquaintances || []).includes(u.id))} 
           onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} 
           onViewChat={(id) => { setView({ type: 'chat', targetId: id }); navigate(`/chat/${id}`); }} 
           onRemoveAcquaintance={handleRemoveAcquaintance} 

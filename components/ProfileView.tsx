@@ -107,7 +107,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                 ) : (
                   posts.map(post => (
-                    <PostCard key={post.id} post={post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onViewProfile={onViewProfile} onSearchTag={onSearchTag} onBoost={onBoostPost} onDeletePost={onDeletePost} onDeleteComment={onDeleteComment} />
+                    <PostCard key={post.id} post={post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={onShare} onViewProfile={onViewProfile} onSearchTag={onSearchTag} onBoost={onBoostPost} onDeletePost={onDeletePost} onDeleteComment={onDeleteComment} />
                   ))
                 )}
               </div>

@@ -314,7 +314,7 @@ const AppContent: React.FC<AppContentProps> = ({
           onComment={handleComment} 
           onReact={handleReact} 
           onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} 
-          onShare={() => {}} 
+          onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl}); }} 
           onAddAcquaintance={handleAddAcquaintance} 
           onRemoveAcquaintance={handleRemoveAcquaintance} 
           onSearchTag={setSearchQuery} 

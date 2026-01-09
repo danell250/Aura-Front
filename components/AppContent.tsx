@@ -83,6 +83,7 @@ interface AppContentProps {
   handleAcceptConnection: (notification: Notification) => void;
   handleRemoveAcquaintance: (userId: string) => void;
   handlePurchaseCredits: (bundle: CreditBundle) => void;
+  handleAuraShare: (selectedUsers: User[]) => void;
   toggleDarkMode: () => void;
 }
 
@@ -94,7 +95,7 @@ const AppContent: React.FC<AppContentProps> = ({
   setActiveMediaType, setIsSettingsOpen, setIsAdManagerOpen, setIsCreditStoreOpen, setIsDarkMode,
   setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleDeletePost,
   handleDeleteComment, handleLike, handleBoostPost, handleBoostUser, handleComment, handleReact,
-  handleAddAcquaintance, handleAcceptConnection, handleRemoveAcquaintance, handlePurchaseCredits,
+  handleAddAcquaintance, handleAcceptConnection, handleRemoveAcquaintance, handlePurchaseCredits, handleAuraShare,
   toggleDarkMode
 }) => {
   const navigate = useNavigate();
@@ -340,7 +341,7 @@ const AppContent: React.FC<AppContentProps> = ({
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
       {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={(ad) => setAds([ad, ...ads])} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}
       {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} onCreditsPurchased={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
-      {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} title={sharingContent.title} image={sharingContent.image} onClose={() => setSharingContent(null)} />}
+      {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} title={sharingContent.title} image={sharingContent.image} currentUser={currentUser} allUsers={allUsers} onAuraShare={handleAuraShare} onClose={() => setSharingContent(null)} />}
     </Layout>
   );
 };

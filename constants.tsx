@@ -44,40 +44,40 @@ export const MOCK_USERS: User[] = [];
 
 export const AD_PACKAGES: AdPackage[] = [
   {
-    id: 'pkg-leader',
-    name: 'Leadership Pulse',
-    subtitle: 'Amplify your executive presence',
-    durationDays: 30,
-    price: '$299 for 30 Days',
-    numericPrice: 299,
-    adLimit: 3,
-    idealFor: 'Executives, Business Leaders, Consultants.',
-    features: ['3 Leadership Signals', '30-Day Executive Reach', 'Professional Network Targeting', 'Leadership Analytics'],
-    gradient: 'from-blue-500 to-indigo-600'
+    id: 'pkg-personal-pulse',
+    name: 'Personal Pulse',
+    subtitle: 'Flash announcements, quick tests',
+    durationDays: 7,
+    price: '$49 for 7 Days',
+    numericPrice: 49,
+    adLimit: 1,
+    idealFor: 'Flash announcements, quick tests.',
+    features: ['1 Active Signal', '7-Day Neural Retention', 'Standard Network Propagation', 'Basic Analytics'],
+    gradient: 'from-blue-500 to-cyan-600'
   },
   {
-    id: 'pkg-career',
-    name: 'Career Growth',
-    subtitle: 'Accelerate your professional journey',
+    id: 'pkg-aura-radiance',
+    name: 'Aura Radiance',
+    subtitle: 'The "Sweet Spot"',
     durationDays: 30,
     price: '$199 for 30 Days',
     numericPrice: 199,
-    adLimit: 2,
-    idealFor: 'Career Professionals, Job Seekers, Coaches.',
-    features: ['2 Career Signals', '30-Day Professional Visibility', 'Industry-Specific Targeting', 'Career Analytics'],
-    gradient: 'from-emerald-500 to-teal-600'
+    adLimit: 5,
+    idealFor: 'Influencers, Content Creators.',
+    features: ['5 Simultaneous Signals (Huge upgrade)', '30-Day Signal Lock', 'Priority Feed Injection (Priority Placement)', 'Smart CTA Button (Custom Neural CTA)'],
+    gradient: 'from-purple-500 to-pink-600'
   },
   {
-    id: 'pkg-business',
-    name: 'Business Impact',
-    subtitle: 'Maximum business visibility',
+    id: 'pkg-universal-signal',
+    name: 'Universal Signal',
+    subtitle: 'The "Whale" Tier',
     durationDays: 30,
-    price: '$499 for 30 Days',
-    numericPrice: 499,
-    adLimit: 5,
-    idealFor: 'Business Owners, Entrepreneurs, B2B Services.',
-    features: ['5 Business Signals', '30-Day Business Network', 'Industry Leader Targeting', 'Business Growth Analytics'],
-    gradient: 'from-purple-500 to-pink-600'
+    price: '$699 for 30 Days',
+    numericPrice: 699,
+    adLimit: 20,
+    idealFor: 'Brands, Agencies, Power Users.',
+    features: ['20 Simultaneous Signals', 'Global Network Saturation (Maximum reach)', 'Deep-Dive Neural Analytics (Who clicked, when, and heatmaps)', '"Verified" Gold Border on Ads (Visual status symbol)'],
+    gradient: 'from-yellow-500 to-amber-600'
   }
 ];
 

@@ -207,8 +207,27 @@ const AppContent: React.FC<AppContentProps> = ({
       return matchesSearch && matchesEnergy && matchesMedia;
     });
 
-    // Sort: Paid Ads at top, then Boosted posts, then by Timestamp
-    const activeAds = ads.filter(a => a.status === 'active');
+    // Filter active ads and remove expired ones
+    const activeAds = ads.filter(a => {
+      if (a.status !== 'active') return false;
+      // Check if ad has expired
+      if (a.expiryDate && a.expiryDate < Date.now()) {
+        return false;
+      }
+      return true;
+    });
+    
+    // Sort ads by tier priority: Universal Signal > Aura Radiance > Personal Pulse
+    const sortedAds = [...activeAds].sort((a, b) => {
+      const tierPriority: Record<string, number> = {
+        'Universal Signal': 3,
+        'Aura Radiance': 2,
+        'Personal Pulse': 1
+      };
+      const aPriority = tierPriority[a.subscriptionTier || ''] || 0;
+      const bPriority = tierPriority[b.subscriptionTier || ''] || 0;
+      return bPriority - aPriority;
+    });
     
     // Sort posts: Boosted first, then timestamp
     const sortedPosts = [...filteredPosts].sort((a, b) => {
@@ -224,30 +243,34 @@ const AppContent: React.FC<AppContentProps> = ({
       birthdayAnnouncements.forEach(bday => combined.push(bday));
     }
 
-    // 2. Paid Ads (High Advantage)
-    if (view.type === 'feed' && !searchQuery && activeAds.length > 0) {
-      // Put some ads right at the top
-      const topAdsCount = Math.min(2, activeAds.length);
+    // 2. Paid Ads (High Advantage) - Priority Feed Injection for Aura Radiance and Universal Signal
+    if (view.type === 'feed' && !searchQuery && sortedAds.length > 0) {
+      // Put priority tier ads (Aura Radiance & Universal Signal) at the top
+      const priorityAds = sortedAds.filter(a => 
+        a.subscriptionTier === 'Aura Radiance' || a.subscriptionTier === 'Universal Signal'
+      );
+      const topAdsCount = Math.min(2, priorityAds.length > 0 ? priorityAds.length : sortedAds.length);
+      const adsToShow = priorityAds.length > 0 ? priorityAds : sortedAds;
       for(let i=0; i < topAdsCount; i++) {
-        combined.push(activeAds[i]);
+        combined.push(adsToShow[i]);
       }
     }
 
-    // 3. Posts with interleaved ads
-    let adIdx = (view.type === 'feed' && !searchQuery) ? Math.min(2, activeAds.length) : 0;
+    // 3. Posts with interleaved ads - Priority Feed Injection
+    let adIdx = (view.type === 'feed' && !searchQuery) ? Math.min(2, sortedAds.length) : 0;
     sortedPosts.forEach((post, index) => {
       combined.push(post);
-      // Inject ads every 2 posts for better advantage
-      if (view.type === 'feed' && (index + 1) % 2 === 0 && adIdx < activeAds.length) {
-        combined.push(activeAds[adIdx]);
+      // Inject ads every 2 posts for better advantage (Priority Feed Injection for Aura Radiance+)
+      if (view.type === 'feed' && (index + 1) % 2 === 0 && adIdx < sortedAds.length) {
+        combined.push(sortedAds[adIdx]);
         adIdx++;
       }
     });
 
     // Append remaining ads
     if (view.type === 'feed' && activeEnergy === 'all' && !searchQuery) {
-      while (adIdx < activeAds.length) { 
-        combined.push(activeAds[adIdx]); 
+      while (adIdx < sortedAds.length) { 
+        combined.push(sortedAds[adIdx]); 
         adIdx++; 
       }
     }

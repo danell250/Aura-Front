@@ -332,6 +332,21 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
       return;
     }
 
+    if (!selectedPkg) {
+      alert("No package selected.");
+      return;
+    }
+
+    // Check ad limit
+    const userActiveAds = ads.filter(a => a.ownerId === currentUser.id && a.status === 'active');
+    if (userActiveAds.length >= selectedPkg.adLimit) {
+      alert(`You have reached the limit of ${selectedPkg.adLimit} active ads for ${selectedPkg.name}. Please cancel an existing ad first.`);
+      return;
+    }
+
+    // Calculate expiry date based on package duration
+    const expiryDate = Date.now() + (selectedPkg.durationDays * 24 * 60 * 60 * 1000);
+
     const finalAd: Ad = {
       id: `ad-${Date.now()}`,
       ownerId: currentUser.id,
@@ -347,7 +362,8 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
       isSponsored: true,
       placement: 'feed',
       status: 'active',
-      subscriptionTier: selectedPkg?.name
+      subscriptionTier: selectedPkg.name,
+      expiryDate: expiryDate
     };
 
     onAdCreated(finalAd);

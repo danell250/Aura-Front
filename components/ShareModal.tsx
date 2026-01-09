@@ -4,10 +4,11 @@ interface ShareModalProps {
   content: string;
   url: string;
   title?: string;
+  image?: string; // Optional image for social media sharing
   onClose: () => void;
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, onClose }) => {
+const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onClose }) => {
   const [copied, setCopied] = useState(false);
   const baseUrl = 'https://auraradiance.netlify.app';
   const shareUrl = `${baseUrl}/${url}`;
@@ -25,19 +26,19 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, onClose })
       name: 'X', 
       icon: '𝕏', 
       color: 'bg-black text-white',
-      link: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareTitle}\n${content}`)}&url=${encodeURIComponent(shareUrl)}`
+      link: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareTitle}\n${content}\n${shareUrl}`)}`
     },
     { 
       name: 'LinkedIn', 
       icon: 'in', 
       color: 'bg-[#0077b5] text-white',
-      link: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}&summary=${encodeURIComponent(content)}`
+      link: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}&summary=${encodeURIComponent(content)}${image ? `&source=${encodeURIComponent(image)}` : ''}`
     },
     { 
       name: 'Facebook', 
       icon: 'f', 
       color: 'bg-[#1877f2] text-white',
-      link: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(`${shareTitle}\n${content}`)}`
+      link: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(`${shareTitle}\n${content}`)}${image ? `&picture=${encodeURIComponent(image)}` : ''}`
     },
     { 
       name: 'Instagram', 
@@ -56,7 +57,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, onClose })
       name: 'Reddit', 
       icon: '🤖', 
       color: 'bg-[#ff4500] text-white',
-      link: `https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}`
+      link: `https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}${image ? `&image=${encodeURIComponent(image)}` : ''}`
     }
   ];
 

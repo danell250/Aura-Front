@@ -33,7 +33,7 @@ const App: React.FC = () => {
   const [isAdManagerOpen, setIsAdManagerOpen] = useState(false);
   const [isCreditStoreOpen, setIsCreditStoreOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [sharingContent, setSharingContent] = useState<{ content: string; url: string; title?: string } | null>(null);
+  const [sharingContent, setSharingContent] = useState<{ content: string; url: string; title?: string; image?: string } | null>(null);
   
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string}>({ type: 'feed' });
 

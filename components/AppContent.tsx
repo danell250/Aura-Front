@@ -118,6 +118,7 @@ const AppContent: React.FC<AppContentProps> = ({
       return {
         title: sharingContent.title || 'Post on Aura',
         description: sharingContent.content,
+        image: sharingContent.image || 'https://auraradiance.netlify.app/og-image.jpg', // Add image property if available
         url: `${baseUrl}/${sharingContent.url}`,
         type: 'article' as const
       };
@@ -295,8 +296,8 @@ const AppContent: React.FC<AppContentProps> = ({
                 /* Fix: Wrap handleReact to satisfy BirthdayPost's onReact signature requiring only 2 arguments while passing targetType: 'post' internally. */
                 if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} />;
                 return 'content' in item 
-                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`}); }} onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} />
-                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`, title: `${ad.company} on Aura`})} />
+                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl}); }} onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} />
+                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`, title: `${ad.company} on Aura`, image: ad.imageUrl})} />
               })
             )}
           </div>
@@ -339,7 +340,7 @@ const AppContent: React.FC<AppContentProps> = ({
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
       {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={(ad) => setAds([ad, ...ads])} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}
       {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} onCreditsPurchased={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
-      {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} title={sharingContent.title} onClose={() => setSharingContent(null)} />}
+      {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} title={sharingContent.title} image={sharingContent.image} onClose={() => setSharingContent(null)} />}
     </Layout>
   );
 };

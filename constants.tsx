@@ -3,7 +3,38 @@ import { AdPackage, Ad, User, EnergyType, CreditBundle, Post } from './types';
 export const APP_NAME = "Aura";
 export const PRIMARY_COLOR = "emerald-600";
 
-export const CREDIT_BUNDLES: CreditBundle[] = []; // Removed all credit bundles
+export const CREDIT_BUNDLES: CreditBundle[] = [
+  {
+    id: 'bundle-starter',
+    name: 'Starter Bundle',
+    credits: 100,
+    price: '$9.99',
+    numericPrice: 9.99,
+    description: 'Perfect for getting started with Aura features',
+    gradient: 'from-emerald-500 to-teal-500',
+    icon: '💎'
+  },
+  {
+    id: 'bundle-pro',
+    name: 'Pro Bundle',
+    credits: 250,
+    price: '$19.99',
+    numericPrice: 19.99,
+    description: 'Ideal for regular users who want more capabilities',
+    gradient: 'from-purple-500 to-indigo-500',
+    icon: '🔮'
+  },
+  {
+    id: 'bundle-enterprise',
+    name: 'Enterprise Bundle',
+    credits: 500,
+    price: '$29.99',
+    numericPrice: 29.99,
+    description: 'Best for power users and businesses',
+    gradient: 'from-amber-500 to-orange-500',
+    icon: '🏆'
+  }
+];
 
 export const INDUSTRIES = [
   'Technology & Software',

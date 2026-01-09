@@ -144,275 +144,163 @@ const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      // Load users from localStorage - use limited subset for development to avoid quota issues
-      const savedUsers = localStorage.getItem(USERS_KEY);
-      let usersToProcess: User[] = [];
-      
-      if (savedUsers) {
-        try {
-          const parsedUsers = JSON.parse(savedUsers);
-          if (Array.isArray(parsedUsers) && parsedUsers.length > 0) {
-            usersToProcess = parsedUsers;
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Development mode: Using dummy data without localStorage');
+        setAllUsers(MOCK_USERS.slice(0, 10)); // Only use 10 users to be safe
+        setPosts(INITIAL_POSTS.slice(0, 20)); // Only use 20 posts to be safe
+        setAds(INITIAL_ADS); // Ads are small, should be fine
+        
+        // Load and validate session for current user only
+        const { user: sessionUser, isValid } = loadSession();
+        
+        if (isValid && sessionUser) {
+          // Find user in our limited dummy set
+          let refreshedUser = MOCK_USERS.slice(0, 10).find((u: User) => u.id === sessionUser.id);
+          
+          if (refreshedUser) {
+            // Merge session data with dummy user data
+            refreshedUser = {
+              ...refreshedUser,
+              // Preserve session-specific data
+              auraCredits: sessionUser.auraCredits ?? refreshedUser.auraCredits ?? 50,
+              trustScore: sessionUser.trustScore ?? refreshedUser.trustScore ?? 10,
+              activeGlow: sessionUser.activeGlow || refreshedUser.activeGlow || 'none',
+              acquaintances: sessionUser.acquaintances || refreshedUser.acquaintances || [],
+              blockedUsers: sessionUser.blockedUsers || refreshedUser.blockedUsers || [],
+              // Preserve other session data
+              email: sessionUser.email || refreshedUser.email,
+              dob: sessionUser.dob || refreshedUser.dob,
+              bio: sessionUser.bio || refreshedUser.bio,
+            };
           } else {
-            usersToProcess = MOCK_USERS.slice(0, 10); // Only use first 10 users
+            // Session user not in dummy set, create minimal user
+            refreshedUser = {
+              id: sessionUser.id,
+              name: sessionUser.name || 'User',
+              handle: sessionUser.handle || '@user',
+              avatar: sessionUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sessionUser.id}`,
+              email: sessionUser.email || '',
+              trustScore: 10,
+              auraCredits: 50,
+              activeGlow: 'none',
+            };
           }
-        } catch (e) {
-          console.error('Failed to parse users data:', e);
-          usersToProcess = MOCK_USERS.slice(0, 10); // Fallback to limited set
+          
+          setCurrentUser(refreshedUser);
+          setIsAuthenticated(true);
+          console.log('Development mode: User authenticated with dummy data');
+        } else {
+          console.log('Development mode: No valid session found');
+        }
+        
+        // Load theme
+        if (localStorage.getItem('aura_theme') === 'dark') {
+          setIsDarkMode(true);
+          document.documentElement.classList.add('dark');
         }
       } else {
-        // Always use limited dummy data in development to avoid quota issues
-        usersToProcess = MOCK_USERS.slice(0, 10);
-      }
-      
-      try {
-        localStorage.setItem(USERS_KEY, JSON.stringify(usersToProcess));
-      } catch (error) {
-        console.error('Failed to save users to localStorage (initial load):', error);
-        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-          // Clear some space by removing users with minimal data
-          const compactUsers = usersToProcess.map(user => ({
-            id: user.id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            name: user.name,
-            handle: user.handle,
-            avatar: user.avatar,
-            avatarType: user.avatarType,
-            acquaintances: user.acquaintances,
-            blockedUsers: user.blockedUsers,
-            trustScore: user.trustScore,
-            auraCredits: user.auraCredits,
-            activeGlow: user.activeGlow,
-            email: user.email,
-            dob: user.dob,
-            bio: user.bio,
-            notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
-          }));
-          try {
-            localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
-          } catch (compactError) {
-            console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
-            // If still failing, only save essential user data
-            const minimalUsers = usersToProcess.map(user => ({
-              id: user.id,
-              name: user.name,
-              handle: user.handle,
-              avatar: user.avatar,
-              acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
-              trustScore: user.trustScore,
-              auraCredits: user.auraCredits,
-              activeGlow: user.activeGlow,
-            }));
-            localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
-          }
-        }
-      }
-      
-      setAllUsers(usersToProcess);
-
-      // Load and validate session
-      const { user: sessionUser, isValid } = loadSession();
-      
-      if (isValid && sessionUser) {
-        // Find user by ID in latest users list to get fresh profile data
-        let refreshedUser = usersToProcess.find((u: User) => u.id === sessionUser.id);
+        // Production mode - use localStorage with quota management
+        const savedUsers = localStorage.getItem(USERS_KEY);
+        let usersToProcess: User[] = [];
         
-        if (refreshedUser) {
-          // Merge persistent data from session with refreshed user data
-          refreshedUser = {
-            ...refreshedUser,
-            // Preserve avatar and coverImage from session if they exist and are data URLs or custom uploaded ones
-            avatar: (sessionUser.avatar && !sessionUser.avatar.includes('dicebear.com')) ? sessionUser.avatar : refreshedUser.avatar,
-            avatarType: (sessionUser.avatar && !sessionUser.avatar.includes('dicebear.com')) ? sessionUser.avatarType : refreshedUser.avatarType,
-            coverImage: sessionUser.coverImage ? sessionUser.coverImage : refreshedUser.coverImage,
-            coverType: sessionUser.coverType ? sessionUser.coverType : refreshedUser.coverType,
-            // Preserve user-specific data that might have changed
-            auraCredits: sessionUser.auraCredits ?? refreshedUser.auraCredits ?? 50,
-            trustScore: sessionUser.trustScore ?? refreshedUser.trustScore ?? 10,
-            activeGlow: sessionUser.activeGlow || refreshedUser.activeGlow || 'none',
-            acquaintances: sessionUser.acquaintances || refreshedUser.acquaintances || [],
-            blockedUsers: sessionUser.blockedUsers || refreshedUser.blockedUsers || [],
-            // Preserve other session data
-            email: sessionUser.email || refreshedUser.email,
-            dob: sessionUser.dob || refreshedUser.dob,
-            bio: sessionUser.bio || refreshedUser.bio,
-          };
-          
-          // Update user in allUsers array
-          const updatedUsers = usersToProcess.map(u => u.id === refreshedUser!.id ? refreshedUser! : u);
-          setAllUsers(updatedUsers);
+        if (savedUsers) {
           try {
-            localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-          } catch (error) {
-            console.error('Failed to save updated users to localStorage (app init):', error);
-            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-              // Clear some space by removing users with minimal data
-              const compactUsers = updatedUsers.map(user => ({
-                id: user.id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                name: user.name,
-                handle: user.handle,
-                avatar: user.avatar,
-                avatarType: user.avatarType,
-                acquaintances: user.acquaintances,
-                blockedUsers: user.blockedUsers,
-                trustScore: user.trustScore,
-                auraCredits: user.auraCredits,
-                activeGlow: user.activeGlow,
-                email: user.email,
-                dob: user.dob,
-                bio: user.bio,
-                notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
-              }));
-              try {
-                localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
-              } catch (compactError) {
-                console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
-                // If still failing, only save essential user data
-                const minimalUsers = updatedUsers.map(user => ({
-                  id: user.id,
-                  name: user.name,
-                  handle: user.handle,
-                  avatar: user.avatar,
-                  acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
-                  trustScore: user.trustScore,
-                  auraCredits: user.auraCredits,
-                  activeGlow: user.activeGlow,
-                }));
-                localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
-              }
+            usersToProcess = JSON.parse(savedUsers);
+            if (!Array.isArray(usersToProcess)) {
+              console.warn('Invalid users data, resetting...');
+              usersToProcess = MOCK_USERS.slice(0, 10);
             }
+          } catch (e) {
+            console.error('Failed to parse users data:', e);
+            usersToProcess = MOCK_USERS.slice(0, 10);
           }
         } else {
-          // If user not found in usersToProcess, add session user to the list
-          refreshedUser = {
-            ...sessionUser,
-            acquaintances: sessionUser.acquaintances || [],
-            blockedUsers: sessionUser.blockedUsers || [],
-          };
-          const updatedUsers = [...usersToProcess, refreshedUser];
-          setAllUsers(updatedUsers);
-          try {
-            localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-          } catch (error) {
-            console.error('Failed to save new session user to localStorage (app init):', error);
-            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-              // Clear some space by removing users with minimal data
-              const compactUsers = updatedUsers.map(user => ({
-                id: user.id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                name: user.name,
-                handle: user.handle,
-                avatar: user.avatar,
-                avatarType: user.avatarType,
-                acquaintances: user.acquaintances,
-                blockedUsers: user.blockedUsers,
-                trustScore: user.trustScore,
-                auraCredits: user.auraCredits,
-                activeGlow: user.activeGlow,
-                email: user.email,
-                dob: user.dob,
-                bio: user.bio,
-                notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
-              }));
-              try {
-                localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
-              } catch (compactError) {
-                console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
-                // If still failing, only save essential user data
-                const minimalUsers = updatedUsers.map(user => ({
-                  id: user.id,
-                  name: user.name,
-                  handle: user.handle,
-                  avatar: user.avatar,
-                  acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
-                  trustScore: user.trustScore,
-                  auraCredits: user.auraCredits,
-                  activeGlow: user.activeGlow,
-                }));
-                localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
-              }
-            }
-          }
+          usersToProcess = MOCK_USERS.slice(0, 10);
         }
         
-        setCurrentUser(refreshedUser);
-        setIsAuthenticated(true);
-        // Re-save session to ensure it's up to date
-        saveSession(refreshedUser);
-        console.log('User authenticated successfully on app load');
-      } else {
-        console.log('No valid session found - user needs to login');
-      }
+        setAllUsers(usersToProcess);
 
-      // Load posts - always use INITIAL_POSTS for development
-      const savedPosts = localStorage.getItem(POSTS_KEY);
-      // Fallback to INITIAL_POSTS if saved data is invalid, empty, or if we are in development
-      // Also fallback if INITIAL_POSTS has significantly more data (dummy data injection)
-      let postsToUse = INITIAL_POSTS;
-      
-      if (savedPosts) {
-        try {
-          const parsedPosts = JSON.parse(savedPosts);
-          if (Array.isArray(parsedPosts) && parsedPosts.length > 0) {
-             // If we have saved posts, check if we added new dummy data
-             if (process.env.NODE_ENV !== 'production' || parsedPosts.length < INITIAL_POSTS.length) {
-                console.log('Using INITIAL_POSTS due to new data or dev mode');
-                postsToUse = INITIAL_POSTS;
-             } else {
-                postsToUse = parsedPosts;
-             }
-          }
-        } catch (e) {
-          console.error('Failed to parse posts:', e);
-        }
-      }
-      
-      setPosts(postsToUse);
-      try {
-        localStorage.setItem(POSTS_KEY, JSON.stringify(postsToUse));
-      } catch (err) {
-        console.error('Failed to save posts to localStorage:', err);
-      }
-
-      // Load ads - always use INITIAL_ADS for development
-      const savedAds = localStorage.getItem(ADS_KEY);
-      if (savedAds && process.env.NODE_ENV === 'production') {
-        try {
-          const parsedAds = JSON.parse(savedAds);
-          if (Array.isArray(parsedAds)) {
-            // Filter out expired ads and update status
-            const now = Date.now();
-            const validAds = parsedAds.map(ad => {
-              // Auto-expire ads that have passed their expiry date
-              if (ad.expiryDate && ad.expiryDate < now && ad.status === 'active') {
-                return { ...ad, status: 'cancelled' as const };
-              }
-              return ad;
-            });
-            setAds(validAds);
-            // Save cleaned up ads
-            localStorage.setItem(ADS_KEY, JSON.stringify(validAds));
+        // Load and validate session
+        const { user: sessionUser, isValid } = loadSession();
+        
+        if (isValid && sessionUser) {
+          // Find user by ID in latest users list
+          let refreshedUser = usersToProcess.find((u: User) => u.id === sessionUser.id);
+          
+          if (refreshedUser) {
+            // Merge persistent data from session with refreshed user data
+            refreshedUser = {
+              ...refreshedUser,
+              // Preserve avatar and coverImage from session if they exist and are data URLs or custom uploaded ones
+              avatar: (sessionUser.avatar && !sessionUser.avatar.includes('dicebear.com')) ? sessionUser.avatar : refreshedUser.avatar,
+              avatarType: (sessionUser.avatar && !sessionUser.avatar.includes('dicebear.com')) ? sessionUser.avatarType : refreshedUser.avatarType,
+              coverImage: sessionUser.coverImage ? sessionUser.coverImage : refreshedUser.coverImage,
+              coverType: sessionUser.coverType ? sessionUser.coverType : refreshedUser.coverType,
+              // Preserve user-specific data that might have changed
+              auraCredits: sessionUser.auraCredits ?? refreshedUser.auraCredits ?? 50,
+              trustScore: sessionUser.trustScore ?? refreshedUser.trustScore ?? 10,
+              activeGlow: sessionUser.activeGlow || refreshedUser.activeGlow || 'none',
+              acquaintances: sessionUser.acquaintances || refreshedUser.acquaintances || [],
+              blockedUsers: sessionUser.blockedUsers || refreshedUser.blockedUsers || [],
+              // Preserve other session data
+              email: sessionUser.email || refreshedUser.email,
+              dob: sessionUser.dob || refreshedUser.dob,
+              bio: sessionUser.bio || refreshedUser.bio,
+            };
           } else {
+            // If user not found in usersToProcess, use session user as-is
+            refreshedUser = sessionUser;
+          }
+          
+          setCurrentUser(refreshedUser);
+          setIsAuthenticated(true);
+          saveSession(refreshedUser);
+          console.log('User authenticated successfully on app load');
+        } else {
+          console.log('No valid session found - user needs to login');
+        }
+
+        // Load posts with quota management
+        const savedPosts = localStorage.getItem(POSTS_KEY);
+        if (savedPosts) {
+          try {
+            const parsedPosts = JSON.parse(savedPosts);
+            if (Array.isArray(parsedPosts)) {
+              setPosts(parsedPosts);
+            } else {
+              setPosts(INITIAL_POSTS.slice(0, 20)); // Limited for production too
+            }
+          } catch (e) {
+            console.error('Failed to parse posts:', e);
+            setPosts(INITIAL_POSTS.slice(0, 20));
+          }
+        } else {
+          setPosts(INITIAL_POSTS.slice(0, 20));
+        }
+
+        // Load ads
+        const savedAds = localStorage.getItem(ADS_KEY);
+        if (savedAds) {
+          try {
+            const parsedAds = JSON.parse(savedAds);
+            if (Array.isArray(parsedAds)) {
+              setAds(parsedAds);
+            } else {
+              setAds(INITIAL_ADS);
+            }
+          } catch (e) {
+            console.error('Failed to parse ads:', e);
             setAds(INITIAL_ADS);
           }
-        } catch (e) {
-          console.error('Failed to parse ads:', e);
+        } else {
           setAds(INITIAL_ADS);
         }
-      } else {
-        // Always use dummy data in development
-        setAds(INITIAL_ADS);
-        localStorage.setItem(ADS_KEY, JSON.stringify(INITIAL_ADS));
-      }
-      
-      // Load theme
-      if (localStorage.getItem('aura_theme') === 'dark') {
-        setIsDarkMode(true);
-        document.documentElement.classList.add('dark');
+        
+        // Load theme
+        if (localStorage.getItem('aura_theme') === 'dark') {
+          setIsDarkMode(true);
+          document.documentElement.classList.add('dark');
+        }
       }
     } catch (error) {
       console.error('Error during app initialization:', error);

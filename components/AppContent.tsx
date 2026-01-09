@@ -261,7 +261,20 @@ const AppContent: React.FC<AppContentProps> = ({
   return (
     <Layout 
       activeView={view.type} searchQuery={searchQuery} onSearchChange={setSearchQuery} 
-      onLogout={() => { setIsAuthenticated(false); localStorage.removeItem(STORAGE_KEY); }}
+      onLogout={async () => { 
+        setIsAuthenticated(false); 
+        localStorage.removeItem(STORAGE_KEY);
+        // Sign out from Firebase if user logged in with Google
+        try {
+          const { auth, signOut } = await import('../services/firebase');
+          if (auth.currentUser) {
+            await signOut(auth);
+          }
+        } catch (err) {
+          // Firebase not available or error, continue with logout
+          console.log('Firebase sign out skipped:', err);
+        }
+      }}
       currentUser={currentUser} isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode}
       onStartCampaign={() => setIsAdManagerOpen(true)} onViewSettings={() => setIsSettingsOpen(true)} 
       onViewChat={(id) => { setView({ type: 'chat', targetId: id }); navigate(`/chat/${id}`); }} 

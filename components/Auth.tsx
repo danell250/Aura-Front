@@ -54,25 +54,58 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      const [firstName, ...lastNameParts] = (user.displayName || '').split(' ');
-      const lastName = lastNameParts.join(' ') || 'User';
+      
+      if (!user.email) {
+        throw new Error('Google account does not have an email address');
+      }
 
-      const existingUser = allUsers.find(u => u.email.toLowerCase() === user.email?.toLowerCase());
+      // Parse name from displayName
+      const displayName = user.displayName || '';
+      const nameParts = displayName.trim().split(/\s+/);
+      const firstName = nameParts[0] || 'User';
+      const lastName = nameParts.slice(1).join(' ') || 'User';
+      const fullName = displayName || `${firstName} ${lastName}`;
+
+      // Prepare user data for login
+      const userData = {
+        id: user.uid,
+        firstName,
+        lastName,
+        name: fullName,
+        email: user.email.toLowerCase().trim(),
+        avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
+        avatarType: 'image' as const
+      };
+
+      // Check if user already exists
+      const existingUser = allUsers.find(u => 
+        u.email?.toLowerCase().trim() === userData.email
+      );
 
       if (existingUser) {
-        onLogin(existingUser);
-      } else {
+        // Update with latest Google data
         onLogin({
-          firstName,
-          lastName,
-          email: user.email,
-          avatar: user.photoURL,
-          id: user.uid
+          ...userData,
+          id: existingUser.id, // Keep existing ID
+          handle: existingUser.handle, // Keep existing handle
         });
+      } else {
+        // Create new user
+        onLogin(userData);
       }
     } catch (err: any) {
       console.error("Firebase Auth Error:", err);
-      setError(err.message || "Failed to authenticate with Google");
+      
+      // Handle specific error cases
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError("Login cancelled. Please try again.");
+      } else if (err.code === 'auth/popup-blocked') {
+        setError("Popup blocked. Please allow popups for this site and try again.");
+      } else if (err.code === 'auth/network-request-failed') {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError(err.message || "Failed to authenticate with Google. Please try again.");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -84,9 +117,17 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
       setError("Credentials required to log in.");
       return;
     }
+    
+    const identifier = formData.identifier.trim().toLowerCase();
+    
     simulateProcess(() => {
-      // Search in all users (both initial mocks and newly registered ones from LocalStorage)
-      const user = allUsers.find(u => u.email === formData.identifier || u.handle === formData.identifier);
+      // Search in all users by email or handle (case-insensitive)
+      const user = allUsers.find(u => {
+        const uEmail = u.email?.toLowerCase().trim();
+        const uHandle = u.handle?.toLowerCase().trim();
+        return uEmail === identifier || uHandle === identifier;
+      });
+      
       if (user) {
         onLogin(user);
       } else {
@@ -98,20 +139,39 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
   const handleManualSignup = (e: React.FormEvent) => {
     e.preventDefault();
     const { firstName, lastName, phone, dob, email } = formData;
+    
+    // Validate required fields
     if (!firstName || !lastName || !phone || !dob || !email) {
       setError("All fields are required.");
       return;
     }
 
-    // Check if user already exists
-    const existingUser = allUsers.find(u => u.email === email);
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    // Check if user already exists (case-insensitive)
+    const normalizedEmail = email.toLowerCase().trim();
+    const existingUser = allUsers.find(u => 
+      u.email?.toLowerCase().trim() === normalizedEmail
+    );
+    
     if (existingUser) {
       setError("An account with this email already exists. Try logging in.");
       return;
     }
 
     simulateProcess(() => {
-      onLogin({ firstName, lastName, dob, email, phone });
+      onLogin({ 
+        firstName: firstName.trim(), 
+        lastName: lastName.trim(), 
+        dob, 
+        email: normalizedEmail, 
+        phone: phone.trim() 
+      });
     });
   };
 

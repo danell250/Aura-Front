@@ -3,7 +3,7 @@
 // See .env.example for reference
 
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -24,4 +24,4 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-export { app, auth, googleProvider, signInWithPopup, analytics };
+export { app, auth, googleProvider, signInWithPopup, onAuthStateChanged, signOut, analytics };

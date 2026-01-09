@@ -47,6 +47,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
 
   useEffect(() => {
+    // Special user: skip payment step entirely when package is selected
     if (isSpecialUser && step === 1 && selectedPkg) {
       setPaymentVerified(true);
       setStep(3);
@@ -337,15 +338,22 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
       return;
     }
 
-    // Check ad limit
-    const userActiveAds = ads.filter(a => a.ownerId === currentUser.id && a.status === 'active');
-    if (userActiveAds.length >= selectedPkg.adLimit) {
-      alert(`You have reached the limit of ${selectedPkg.adLimit} active ads for ${selectedPkg.name}. Please cancel an existing ad first.`);
-      return;
+    // Check ad limit (skip for special user)
+    if (!isSpecialUser) {
+      const userActiveAds = ads.filter(a => {
+        if (a.ownerId !== currentUser.id || a.status !== 'active') return false;
+        // Also check if ad has expired
+        if (a.expiryDate && a.expiryDate < Date.now()) return false;
+        return true;
+      });
+      if (userActiveAds.length >= selectedPkg.adLimit) {
+        alert(`You have reached the limit of ${selectedPkg.adLimit} active ads for ${selectedPkg.name}. Please cancel an existing ad first.`);
+        return;
+      }
     }
 
-    // Calculate expiry date based on package duration
-    const expiryDate = Date.now() + (selectedPkg.durationDays * 24 * 60 * 60 * 1000);
+    // Calculate expiry date based on package duration (or never expire for special user)
+    const expiryDate = isSpecialUser ? undefined : Date.now() + (selectedPkg.durationDays * 24 * 60 * 60 * 1000);
 
     const finalAd: Ad = {
       id: `ad-${Date.now()}`,
@@ -447,7 +455,38 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
             {step === 2 && (
               <div className="max-w-xl mx-auto py-12 text-center">
                 {!paymentVerified ? (
-                  !showPayPal ? (
+                  isSpecialUser ? (
+                    // Special user: Skip payment entirely
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="w-24 h-24 bg-amber-50 dark:bg-amber-950/30 rounded-[2rem] flex items-center justify-center text-4xl mx-auto mb-8 shadow-xl border border-amber-100 dark:border-amber-800">⭐</div>
+                      <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">Premium Access</h3>
+                      <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-10">Unlimited ads & credits activated</p>
+                      
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 mb-8 text-left relative overflow-hidden">
+                         <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${selectedPkg?.gradient}`}></div>
+                         <div className="flex justify-between items-end mb-2">
+                            <span className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">{selectedPkg?.name}</span>
+                            <span className="text-2xl font-black text-amber-600">FREE</span>
+                         </div>
+                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedPkg?.subtitle}</p>
+                      </div>
+
+                      <div className="flex flex-col gap-4">
+                        <button 
+                          onClick={() => { setPaymentVerified(true); setStep(3); }}
+                          className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all"
+                        >
+                          Continue to Create Ad
+                        </button>
+                        <button 
+                          onClick={() => setStep(1)}
+                          className="w-full py-4 bg-transparent text-slate-400 font-black uppercase rounded-2xl text-[10px] tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-all"
+                        >
+                          Cancel & Go Back
+                        </button>
+                      </div>
+                    </div>
+                  ) : !showPayPal ? (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                       <div className="w-24 h-24 bg-emerald-50 dark:bg-emerald-950/30 rounded-[2rem] flex items-center justify-center text-4xl mx-auto mb-8 shadow-xl border border-emerald-100 dark:border-emerald-800">💎</div>
                       <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">Review Order</h3>

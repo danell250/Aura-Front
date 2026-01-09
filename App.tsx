@@ -247,7 +247,18 @@ const App: React.FC = () => {
         try {
           const parsedAds = JSON.parse(savedAds);
           if (Array.isArray(parsedAds)) {
-            setAds(parsedAds);
+            // Filter out expired ads and update status
+            const now = Date.now();
+            const validAds = parsedAds.map(ad => {
+              // Auto-expire ads that have passed their expiry date
+              if (ad.expiryDate && ad.expiryDate < now && ad.status === 'active') {
+                return { ...ad, status: 'cancelled' as const };
+              }
+              return ad;
+            });
+            setAds(validAds);
+            // Save cleaned up ads
+            localStorage.setItem(ADS_KEY, JSON.stringify(validAds));
           } else {
             setAds(INITIAL_ADS);
           }
@@ -283,7 +294,19 @@ const App: React.FC = () => {
   
   useEffect(() => { 
     if (!loading) {
-      localStorage.setItem(ADS_KEY, JSON.stringify(ads)); 
+      // Clean up expired ads before saving
+      const now = Date.now();
+      const cleanedAds = ads.map(ad => {
+        if (ad.expiryDate && ad.expiryDate < now && ad.status === 'active') {
+          return { ...ad, status: 'cancelled' as const };
+        }
+        return ad;
+      });
+      localStorage.setItem(ADS_KEY, JSON.stringify(cleanedAds));
+      // Update state if any ads were expired
+      if (cleanedAds.some((ad, i) => ad.status !== ads[i]?.status)) {
+        setAds(cleanedAds);
+      }
     }
   }, [ads, loading]);
   useEffect(() => { 
@@ -344,6 +367,8 @@ const App: React.FC = () => {
 
       if (existingUser) {
         console.log('Found existing user, logging in...');
+        const isSpecialUser = normalizedEmail === 'danelloosthuizen3@gmail.com';
+        
         // Update existing user with any new data from login (e.g., updated avatar from Google)
         const updatedUser: User = {
           ...existingUser,
@@ -353,6 +378,8 @@ const App: React.FC = () => {
           firstName: userData.firstName || existingUser.firstName,
           lastName: userData.lastName || existingUser.lastName,
           name: userData.name || existingUser.name || `${existingUser.firstName} ${existingUser.lastName}`.trim(),
+          // Special user gets unlimited credits
+          auraCredits: isSpecialUser ? 999999 : existingUser.auraCredits,
         };
         
         // Update in allUsers array
@@ -383,6 +410,8 @@ const App: React.FC = () => {
         }
       }
 
+      const isSpecialUser = normalizedEmail === 'danelloosthuizen3@gmail.com';
+      
       const newUser: User = {
         id: userId,
         firstName,
@@ -398,7 +427,8 @@ const App: React.FC = () => {
         acquaintances: [],
         blockedUsers: [],
         trustScore: 10,
-        auraCredits: 50,
+        // Special user gets unlimited credits
+        auraCredits: isSpecialUser ? 999999 : 50,
         activeGlow: 'none'
       };
       
@@ -419,6 +449,14 @@ const App: React.FC = () => {
 
   const handleUpdateProfile = (updates: Partial<User>) => {
     if (!currentUser) return;
+    
+    const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
+    
+    // Prevent credits from decreasing for special user
+    if (isSpecialUser && updates.auraCredits !== undefined) {
+      // Always keep credits at max for special user
+      updates.auraCredits = 999999;
+    }
     
     const updatedUser = { ...currentUser, ...updates };
     if (updates.firstName && updates.lastName) updatedUser.name = `${updates.firstName} ${updates.lastName}`;

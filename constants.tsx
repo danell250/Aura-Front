@@ -442,7 +442,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-leadership-vision',
     author: MOCK_USERS[0],
-    content: "The most effective leaders don't just manage change—they architect the future. Today's business landscape requires vision that transcends quarterly reports and embraces transformational thinking. 🎯\n\nWhat's your leadership vision for 2025?\n\n#Leadership #Strategy #Vision",
+    content: "Strategic leadership requires a balance of vision and execution. The most successful leaders don't just set direction—they create systems that sustain momentum through uncertainty. \n\nWhat's your leadership strategy for driving results in volatile markets?\n\n#Leadership #Strategy #BusinessGrowth",
     energy: EnergyType.DEEP_DIVE,
     radiance: 567,
     timestamp: Date.now() - 1200000,
@@ -454,7 +454,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-career-growth',
     author: MOCK_USERS[1],
-    content: "Just helped my 100th client land their dream role! The secret? It's not about polishing your resume—it's about understanding your unique value proposition and communicating it with confidence. 💪\n\nCareer transformation is possible when you align passion with purpose.\n\n#CareerGrowth #ProfessionalDevelopment #JobSearch",
+    content: "Career advancement isn't just about skills—it's about positioning yourself strategically. The professionals who thrive are those who build bridges between departments and anticipate market shifts. \n\nFocus on becoming indispensable, not just qualified.\n\n#CareerDevelopment #ProfessionalGrowth #Leadership",
     mediaUrl: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=800&auto=format&fit=crop',
     mediaType: 'image',
     energy: EnergyType.HIGH_ENERGY,
@@ -465,7 +465,7 @@ export const INITIAL_POSTS: Post[] = [
       {
         id: 'c1',
         author: MOCK_USERS[0],
-        text: "Incredible milestone, Sarah! Your approach to value proposition is game-changing.",
+        text: "Excellent insight! Strategic positioning is crucial for career progression.",
         timestamp: Date.now() - 1800000,
         reactions: { '🤝': 12 },
         userReactions: []
@@ -476,7 +476,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-venture-insights',
     author: MOCK_USERS[2],
-    content: "VC observation: The most successful founders aren't those with the best ideas—they're those who execute relentlessly and adapt quickly. Ideas are cheap; execution is everything. 💡\n\nSeeing amazing pitches in sustainability space this quarter. The future is bright!\n\n#VentureCapital #Startups #Investment",
+    content: "Market analysis reveals: B2B SaaS companies with strong customer success programs grow 3x faster. The future belongs to businesses that prioritize customer outcomes over acquisition. \n\nRetention drives revenue.\n\n#VentureCapital #BusinessStrategy #SaaS",
     energy: EnergyType.CALM,
     radiance: 189,
     timestamp: Date.now() - 5400000,
@@ -487,7 +487,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-innovation-daily',
     author: MOCK_USERS[3],
-    content: "Day 45 of our 100-day AI transformation challenge. The results? 40% increase in productivity, 60% reduction in manual processes, and a team that's actually excited about Monday mornings. 🤖⚡\n\nInnovation isn't about technology—it's about people.\n\n#AI #DigitalTransformation #Innovation",
+    content: "Digital transformation success story: Implemented AI-driven customer service that reduced response time by 80% while increasing satisfaction scores. The key? Human-centered design with machine efficiency. \n\nInnovation that matters solves real problems.\n\n#AI #DigitalTransformation #CustomerExperience",
     mediaUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=800&auto=format&fit=crop',
     mediaType: 'image',
     energy: EnergyType.HIGH_ENERGY,
@@ -501,7 +501,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-strategy-session',
     author: MOCK_USERS[4],
-    content: "Just wrapped up a 3-hour strategy session with a Fortune 500 company. Their biggest challenge? Not competition—it's internal alignment. When leadership teams aren't synchronized, even the best strategies fail. 🎯\n\nAlignment before acceleration.\n\n#BusinessStrategy #Leadership #Consulting",
+    content: "Just concluded a board strategy retreat for a healthcare company. Their transformation roadmap: 1) Patient data analytics, 2) Telemedicine integration, 3) Outcome-based pricing. The future of healthcare is predictive, not reactive. \n\nValue-based care is the next frontier.\n\n#HealthcareStrategy #Innovation #BusinessGrowth",
     energy: EnergyType.DEEP_DIVE,
     radiance: 298,
     timestamp: Date.now() - 7200000,
@@ -512,7 +512,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-team-psychology',
     author: MOCK_USERS[5],
-    content: "Research insight: High-performing teams have 3x more psychological safety than average teams. The cost? Zero. The ROI? Infinite. 🛡️\n\nCreating safe spaces for honest feedback isn't soft—it's strategic.\n\n#TeamDynamics #Leadership #Psychology",
+    content: "Research breakthrough: Teams with diverse cognitive styles outperform homogeneous groups by 42% on complex problem-solving. The secret ingredient? Psychological safety and structured dissent. \n\nCognitive diversity drives innovation.\n\n#TeamDynamics #Leadership #Psychology",
     energy: EnergyType.CALM,
     radiance: 378,
     timestamp: Date.now() - 10800000,
@@ -523,7 +523,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-fintech-future',
     author: MOCK_USERS[6],
-    content: "The future of finance isn't about faster transactions—it's about smarter decisions. We're seeing AI-driven financial planning that's democratizing wealth management. 🏦💡\n\nFinancial literacy + AI = Financial freedom for all.\n\n#FinTech #AI #WealthManagement",
+    content: "The next wave in fintech: Embedded finance solutions that integrate seamlessly into non-financial platforms. We're seeing B2B commerce platforms offering lending, insurance companies providing investment tools. \n\nFinance becomes invisible infrastructure.\n\n#FinTech #EmbeddedFinance #Innovation",
     mediaUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=800&auto=format&fit=crop',
     mediaType: 'image',
     energy: EnergyType.HIGH_ENERGY,
@@ -536,7 +536,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-brand-building',
     author: MOCK_USERS[7],
-    content: "Your brand isn't your logo—it's the promise you keep. In an age of infinite choice, consistency is the ultimate differentiator. 🎯\n\nBuilding brands that matter, one promise at a time.\n\n#Branding #Marketing #BusinessGrowth",
+    content: "Brand differentiation in saturated markets requires authentic purpose. Consumers connect with values, not features. The strongest brands tell stories that align with customer identities. \n\nPurpose drives loyalty.\n\n#BrandStrategy #Marketing #CustomerEngagement",
     energy: EnergyType.HIGH_ENERGY,
     radiance: 345,
     timestamp: Date.now() - 18000000,
@@ -547,7 +547,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-legal-insights',
     author: MOCK_USERS[8],
-    content: "Corporate governance tip: The best contracts prevent disputes before they start. Clear expectations, defined deliverables, and mutual accountability. ⚖️\n\nGood governance is good business.\n\n#CorporateLaw #Governance #Business",
+    content: "Regulatory compliance strategy: Proactive adaptation versus reactive compliance saves 60% in legal costs. Forward-thinking companies embed regulatory intelligence into product development cycles. \n\nCompliance as competitive advantage.\n\n#CorporateLaw #Compliance #RiskManagement",
     energy: EnergyType.DEEP_DIVE,
     radiance: 189,
     timestamp: Date.now() - 86400000,
@@ -558,7 +558,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-talent-development',
     author: MOCK_USERS[9],
-    content: "Investing in employee development isn't an expense—it's an investment in your company's future. The ROI? Higher retention, better performance, and a culture that attracts top talent. 🌱\n\nGrow your people, grow your business.\n\n#HR #TalentDevelopment #Leadership",
+    content: "Internal mobility programs increase retention by 70% and reduce hiring costs. The best companies develop talent pipelines that anticipate future skill needs. \n\nGrow your people, secure your future.\n\n#HRStrategy #TalentDevelopment #EmployeeEngagement",
     energy: EnergyType.CALM,
     radiance: 298,
     timestamp: Date.now() - 95000000,
@@ -569,7 +569,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-manufacturing-innovation',
     author: MOCK_USERS[10],
-    content: "Smart manufacturing isn't about replacing humans—it's about augmenting human capability. Our IoT-enabled factory floor has reduced errors by 73% while increasing job satisfaction. 🏭💡\n\nTechnology serves people, not the other way around.\n\n#Manufacturing #IoT #Innovation",
+    content: "Industry 4.0 implementation: Our smart factory achieved 35% efficiency gains through predictive maintenance and real-time quality monitoring. The ROI came in 18 months instead of the projected 3 years. \n\nSmart manufacturing drives profitability.\n\n#Manufacturing #Industry40 #OperationalExcellence",
     energy: EnergyType.HIGH_ENERGY,
     radiance: 234,
     timestamp: Date.now() - 172800000,
@@ -580,7 +580,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-nonprofit-impact',
     author: MOCK_USERS[11],
-    content: "Social impact measurement is moving from 'feel good' to 'real impact'. We're now tracking 12 specific metrics across education, healthcare, and economic empowerment. Data-driven compassion. 📊❤️\n\nNumbers tell stories; stories drive change.\n\n#NonProfit #SocialImpact #Leadership",
+    content: "Measurable social impact: Our education initiative reached 10,000 students with 89% improvement in standardized test scores. Evidence-based philanthropy creates sustainable community transformation. \n\nData drives meaningful change.\n\n#SocialImpact #Education #Philanthropy",
     energy: EnergyType.DEEP_DIVE,
     radiance: 412,
     timestamp: Date.now() - 200000000,
@@ -591,7 +591,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-consulting-wisdom',
     author: MOCK_USERS[12],
-    content: "20 years of consulting taught me one thing: The smartest solution is rarely the most complex one. Simplicity scales, complexity breaks. 🎯\n\nElegance in execution beats brilliance in theory.\n\n#Consulting #Strategy #Business",
+    content: "25 years in strategy consulting revealed: The most successful transformations begin with culture, not process. Technical changes succeed when aligned with human motivations. \n\nPeople execute strategy.\n\n#ChangeManagement #Leadership #Strategy",
     energy: EnergyType.CALM,
     radiance: 278,
     timestamp: Date.now() - 250000000,
@@ -602,7 +602,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-education-future',
     author: MOCK_USERS[13],
-    content: "The future of education isn't online vs. classroom—it's personalized learning paths that adapt to individual needs. We're seeing 40% better outcomes with AI-driven curriculum customization. 🎓🤖\n\nEducation should fit the student, not the other way around.\n\n#Education #AI #FutureOfWork",
+    content: "Skills-based hiring is transforming recruitment: 75% of talent leaders report better performance from skills-focused candidates versus degree-focused ones. The future rewards competency over credentials. \n\nSkills matter more than pedigree.\n\n#Recruitment #SkillsBasedHiring #TalentStrategy",
     energy: EnergyType.HIGH_ENERGY,
     radiance: 356,
     timestamp: Date.now() - 432000000,
@@ -613,7 +613,7 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-startup-reality',
     author: MOCK_USERS[14],
-    content: "Startup truth: 80% of success is showing up consistently. The other 20% is having something worth showing up for. Persistence beats perfection every single time. 🚀\n\nBuild in public, fail forward, succeed eventually.\n\n#Startups #Entrepreneurship #Growth",
+    content: "Series A insights: Companies with unit economics clarity raise 40% faster and achieve 60% higher valuations. Investors reward businesses that understand profitability drivers early. \n\nUnit economics drives investor confidence.\n\n#Startups #Fundraising #UnitEconomics",
     energy: EnergyType.HIGH_ENERGY,
     radiance: 423,
     timestamp: Date.now() - 172800000,
@@ -624,11 +624,175 @@ export const INITIAL_POSTS: Post[] = [
   {
     id: 'post-leadership-morning',
     author: MOCK_USERS[0],
-    content: "Morning leadership routine: 30 mins reading industry trends, 15 mins meditation, 10 mins team check-ins, 5 mins setting daily intentions. Start the day with clarity, end it with impact. ☕🎯\n\nHow do you prepare for leadership success?\n\n#Leadership #Productivity #MorningRoutine",
+    content: "Executive routine optimization: Time-blocked strategic thinking sessions yield 3x more innovative solutions than reactive meetings. The best leaders protect thinking time like calendar gold. \n\nStrategy requires solitude.\n\n#Leadership #TimeManagement #ExecutiveExcellence",
     energy: EnergyType.CALM,
     radiance: 389,
     timestamp: Date.now() - 300000000,
     reactions: { '☕': 234, '🎯': 189, '💡': 123 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-global-markets',
+    author: MOCK_USERS[1],
+    content: "International expansion strategy: Companies entering 3+ markets simultaneously grow 2.5x faster than those expanding linearly. Success requires local adaptation within global frameworks. \n\nThink globally, act locally.\n\n#GlobalExpansion #InternationalBusiness #Strategy",
+    energy: EnergyType.DEEP_DIVE,
+    radiance: 324,
+    timestamp: Date.now() - 360000000,
+    reactions: { '🌍': 201, '📈': 145, '💡': 98 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-esg-integration',
+    author: MOCK_USERS[2],
+    content: "ESG integration drives performance: Companies with strong ESG practices show 25% better risk-adjusted returns. Sustainability isn't just ethical—it's profitable. \n\nPurpose and profit align.\n\n#ESG #SustainableBusiness #Investment",
+    mediaUrl: 'https://images.unsplash.com/photo-1444464666168-49d633b85bb0?q=80&w=800&auto=format&fit=crop',
+    mediaType: 'image',
+    energy: EnergyType.HIGH_ENERGY,
+    radiance: 287,
+    timestamp: Date.now() - 420000000,
+    reactions: { '🌱': 189, '♻️': 156, '💰': 123 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-customer-success',
+    author: MOCK_USERS[3],
+    content: "Customer success metrics reveal: NPS scores correlate 73% with retention rates. Companies investing in customer success see 3x higher lifetime value. \n\nHappy customers drive growth.\n\n#CustomerSuccess #Retention #Growth",
+    energy: EnergyType.DEEP_DIVE,
+    radiance: 356,
+    timestamp: Date.now() - 480000000,
+    reactions: { '😊': 234, '📈': 178, '🤝': 156 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-product-innovation',
+    author: MOCK_USERS[4],
+    content: "Design thinking methodology: Cross-functional teams using rapid prototyping reduce time-to-market by 45%. The key? Fail fast, learn faster. \n\nInnovation through iteration.\n\n#ProductDevelopment #DesignThinking #Innovation",
+    mediaUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=800&auto=format&fit=crop',
+    mediaType: 'image',
+    energy: EnergyType.HIGH_ENERGY,
+    radiance: 298,
+    timestamp: Date.now() - 540000000,
+    reactions: { '🧪': 189, '⚡': 167, '💡': 145 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-data-analytics',
+    author: MOCK_USERS[5],
+    content: "Business intelligence evolution: Predictive analytics adoption increased 340% last year. The companies leveraging data for foresight, not just reporting, lead their industries. \n\nPredict the future with data.\n\n#Analytics #DataScience #BusinessIntelligence",
+    energy: EnergyType.CALM,
+    radiance: 378,
+    timestamp: Date.now() - 600000000,
+    reactions: { '📊': 234, '🔮': 189, '🧠': 167 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-corporate-culture',
+    author: MOCK_USERS[6],
+    content: "Culture transformation results: Organizations prioritizing employee experience report 40% higher customer satisfaction. Culture isn't soft—it's the foundation of performance. \n\nGreat culture drives great results.\n\n#CorporateCulture #EmployeeExperience #Performance",
+    energy: EnergyType.DEEP_DIVE,
+    radiance: 312,
+    timestamp: Date.now() - 660000000,
+    reactions: { '🏛️': 210, '👥': 189, '🌟': 156 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-supply-chain',
+    author: MOCK_USERS[7],
+    content: "Supply chain resilience: Companies with diversified supplier networks experienced 60% less disruption during recent challenges. Geographic diversification reduces systemic risk. \n\nResilience through diversification.\n\n#SupplyChain #RiskManagement #Operations",
+    mediaUrl: 'https://images.unsplash.com/photo-1503358846374-3df39d68a0a7?q=80&w=800&auto=format&fit=crop',
+    mediaType: 'image',
+    energy: EnergyType.HIGH_ENERGY,
+    radiance: 267,
+    timestamp: Date.now() - 720000000,
+    reactions: { '🚛': 178, '🌐': 156, '🛡️': 134 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-remote-work',
+    author: MOCK_USERS[8],
+    content: "Remote work productivity study: Hybrid models increase engagement by 35% compared to fully remote or in-office. The future is flexible, not fixed. \n\nFlexibility drives performance.\n\n#RemoteWork #HybridModel #Productivity",
+    energy: EnergyType.CALM,
+    radiance: 289,
+    timestamp: Date.now() - 780000000,
+    reactions: { '🏠': 201, '💻': 178, '⚖️': 145 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-executive-coaching',
+    author: MOCK_USERS[9],
+    content: "Leadership development ROI: Executives receiving coaching show 50% improvement in team performance metrics. The investment in leadership pays dividends across organizations. \n\nDevelop leaders, develop results.\n\n#ExecutiveCoaching #LeadershipDevelopment #TeamPerformance",
+    energy: EnergyType.DEEP_DIVE,
+    radiance: 345,
+    timestamp: Date.now() - 840000000,
+    reactions: { '👨‍🏫': 223, '📈': 189, '🎯': 167 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-mergers-acquisitions',
+    author: MOCK_USERS[10],
+    content: "M&A integration success factors: Cultural alignment accounts for 70% of successful integrations. The deal is legal—success is human. \n\nCulture drives M&A outcomes.\n\n#MergersAcquisitions #Integration #CorporateStrategy",
+    mediaUrl: 'https://images.unsplash.com/photo-1559136555-9304baeaac28?q=80&w=800&auto=format&fit=crop',
+    mediaType: 'image',
+    energy: EnergyType.HIGH_ENERGY,
+    radiance: 278,
+    timestamp: Date.now() - 900000000,
+    reactions: { '🤝': 189, '🏢': 167, '💼': 145 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-entrepreneurial-mindset',
+    author: MOCK_USERS[11],
+    content: "Entrepreneurial success patterns: Resilience, adaptability, and customer obsession distinguish top performers. The mindset matters more than the idea. \n\nThink like an entrepreneur.\n\n#Entrepreneurship #Mindset #Success",
+    energy: EnergyType.CALM,
+    radiance: 301,
+    timestamp: Date.now() - 960000000,
+    reactions: { '🚀': 234, '💪': 189, '🧠': 156 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-board-governance',
+    author: MOCK_USERS[12],
+    content: "Board effectiveness research: Diverse boards with industry expertise drive 42% better strategic outcomes. Composition influences performance. \n\nDiversity strengthens governance.\n\n#BoardGovernance #Diversity #StrategicOutcomes",
+    energy: EnergyType.DEEP_DIVE,
+    radiance: 287,
+    timestamp: Date.now() - 1020000000,
+    reactions: { '⚖️': 189, '👥': 167, '🎯': 145 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-competitive-analysis',
+    author: MOCK_USERS[13],
+    content: "Competitive intelligence reveals: Market leaders invest 23% more in R&D than followers. Innovation spending correlates with market share growth. \n\nInvest in innovation.\n\n#CompetitiveAnalysis #Innovation #RnD",
+    mediaUrl: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?q=80&w=800&auto=format&fit=crop',
+    mediaType: 'image',
+    energy: EnergyType.HIGH_ENERGY,
+    radiance: 256,
+    timestamp: Date.now() - 1080000000,
+    reactions: { '🔍': 178, '🔬': 156, '📈': 134 },
+    comments: [],
+    userReactions: []
+  },
+  {
+    id: 'post-scaling-strategies',
+    author: MOCK_USERS[14],
+    content: "Scaling fundamentals: Successful companies build scalable processes before adding headcount. Systems enable growth; people execute it. \n\nScale through systems.\n\n#Scaling #Systems #Growth",
+    energy: EnergyType.CALM,
+    radiance: 298,
+    timestamp: Date.now() - 1140000000,
+    reactions: { '📈': 210, '⚙️': 189, '🚀': 167 },
     comments: [],
     userReactions: []
   }

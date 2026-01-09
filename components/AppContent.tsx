@@ -36,7 +36,7 @@ interface BirthdayAnnouncement {
 
 interface AppContentProps {
   isAuthenticated: boolean;
-  currentUser: User;
+  currentUser: User | null;
   allUsers: User[];
   posts: Post[];
   ads: Ad[];
@@ -53,7 +53,7 @@ interface AppContentProps {
   sharingContent: { content: string; url: string; title?: string } | null;
   view: {type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string};
   setIsAuthenticated: (value: boolean) => void;
-  setCurrentUser: (user: User) => void;
+  setCurrentUser: (user: User | null) => void;
   setAllUsers: (users: User[]) => void;
   setPosts: (posts: Post[]) => void;
   setAds: (ads: Ad[]) => void;

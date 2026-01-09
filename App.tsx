@@ -1,13 +1,57 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AppContent from './components/AppContent';
-import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS } from './constants';
+import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
 const ADS_KEY = 'aura_ads_data';
 const USERS_KEY = 'aura_all_users';
+
+// Session management utilities
+const saveSession = (user: User) => {
+  try {
+    const sessionData = {
+      user,
+      timestamp: Date.now(),
+      version: '1.0'
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+    console.log('Session saved successfully:', sessionData);
+  } catch (error) {
+    console.error('Failed to save session:', error);
+  }
+};
+
+const loadSession = (): { user: User | null; isValid: boolean } => {
+  try {
+    const sessionData = localStorage.getItem(STORAGE_KEY);
+    if (!sessionData) {
+      console.log('No session found in localStorage');
+      return { user: null, isValid: false };
+    }
+
+    const parsed = JSON.parse(sessionData);
+    
+    // Check session age (30 days expiration)
+    const sessionAge = Date.now() - parsed.timestamp;
+    const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+    
+    if (sessionAge > maxAge) {
+      console.log('Session expired, removing...');
+      localStorage.removeItem(STORAGE_KEY);
+      return { user: null, isValid: false };
+    }
+
+    console.log('Valid session loaded:', parsed.user);
+    return { user: parsed.user, isValid: true };
+  } catch (error) {
+    console.error('Failed to load session:', error);
+    localStorage.removeItem(STORAGE_KEY);
+    return { user: null, isValid: false };
+  }
+};
 
 interface BirthdayAnnouncement {
   id: string;
@@ -19,7 +63,7 @@ interface BirthdayAnnouncement {
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User>(CURRENT_USER);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>(MOCK_USERS);
   const [posts, setPosts] = useState<Post[]>([]);
   const [ads, setAds] = useState<Ad[]>([]);
@@ -42,40 +86,39 @@ const App: React.FC = () => {
     const usersToProcess = savedUsers ? JSON.parse(savedUsers) : MOCK_USERS;
     setAllUsers(usersToProcess);
 
-    const savedSession = localStorage.getItem(STORAGE_KEY);
-    if (savedSession) {
-      try {
-        const user = JSON.parse(savedSession);
-        // Find user by ID in the latest users list to get fresh profile data (avatar etc)
-        let refreshedUser = usersToProcess.find((u: User) => u.id === user.id);
-        
-        if (refreshedUser) {
-          // Merge the persistent data from the session with the refreshed user data
-          refreshedUser = {
-            ...refreshedUser,
-            // Preserve the avatar and coverImage from the session if they exist and are data URLs or custom uploaded ones
-            avatar: (user.avatar && !user.avatar.includes('dicebear.com')) ? user.avatar : refreshedUser.avatar,
-            avatarType: (user.avatar && !user.avatar.includes('dicebear.com')) ? user.avatarType : refreshedUser.avatarType,
-            coverImage: user.coverImage ? user.coverImage : refreshedUser.coverImage,
-            coverType: user.coverType ? user.coverType : refreshedUser.coverType,
-            // Preserve user-specific data that might have changed
-            auraCredits: user.auraCredits || refreshedUser.auraCredits,
-            trustScore: user.trustScore || refreshedUser.trustScore,
-            activeGlow: user.activeGlow || refreshedUser.activeGlow,
-            acquaintances: user.acquaintances || refreshedUser.acquaintances,
-            blockedUsers: user.blockedUsers || refreshedUser.blockedUsers,
-          };
-        } else {
-          // If user not found in usersToProcess, use the session user as-is
-          refreshedUser = user;
-        }
-        
-        setCurrentUser(refreshedUser);
-        setIsAuthenticated(true);
-      } catch (e) { 
-        console.error('Failed to parse user session:', e);
-        localStorage.removeItem(STORAGE_KEY); 
+    // Load and validate session
+    const { user: sessionUser, isValid } = loadSession();
+    
+    if (isValid && sessionUser) {
+      // Find user by ID in latest users list to get fresh profile data
+      let refreshedUser = usersToProcess.find((u: User) => u.id === sessionUser.id);
+      
+      if (refreshedUser) {
+        // Merge persistent data from session with refreshed user data
+        refreshedUser = {
+          ...refreshedUser,
+          // Preserve avatar and coverImage from session if they exist and are data URLs or custom uploaded ones
+          avatar: (sessionUser.avatar && !sessionUser.avatar.includes('dicebear.com')) ? sessionUser.avatar : refreshedUser.avatar,
+          avatarType: (sessionUser.avatar && !sessionUser.avatar.includes('dicebear.com')) ? sessionUser.avatarType : refreshedUser.avatarType,
+          coverImage: sessionUser.coverImage ? sessionUser.coverImage : refreshedUser.coverImage,
+          coverType: sessionUser.coverType ? sessionUser.coverType : refreshedUser.coverType,
+          // Preserve user-specific data that might have changed
+          auraCredits: sessionUser.auraCredits || refreshedUser.auraCredits,
+          trustScore: sessionUser.trustScore || refreshedUser.trustScore,
+          activeGlow: sessionUser.activeGlow || refreshedUser.activeGlow,
+          acquaintances: sessionUser.acquaintances || refreshedUser.acquaintances,
+          blockedUsers: sessionUser.blockedUsers || refreshedUser.blockedUsers,
+        };
+      } else {
+        // If user not found in usersToProcess, use the session user as-is
+        refreshedUser = sessionUser;
       }
+      
+      setCurrentUser(refreshedUser);
+      setIsAuthenticated(true);
+      console.log('User authenticated successfully on app load');
+    } else {
+      console.log('No valid session found - user needs to login');
     }
 
     const savedPosts = localStorage.getItem(POSTS_KEY);
@@ -115,6 +158,8 @@ const App: React.FC = () => {
   };
 
   const handleLogin = (userData: any) => {
+    console.log('Login attempt:', userData);
+    
     const existingUser = allUsers.find(u => 
       (userData.email && u.email.toLowerCase() === userData.email.toLowerCase()) || 
       (userData.handle && u.handle.toLowerCase() === userData.handle.toLowerCase()) || 
@@ -122,9 +167,10 @@ const App: React.FC = () => {
     );
 
     if (existingUser) {
+      console.log('Found existing user:', existingUser);
       setCurrentUser(existingUser);
       setIsAuthenticated(true);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(existingUser));
+      saveSession(existingUser);
       return;
     }
 
@@ -142,16 +188,20 @@ const App: React.FC = () => {
       activeGlow: 'none'
     };
     
+    console.log('Creating new user:', newUser);
     const updatedUsers = [...allUsers, newUser];
     setAllUsers(updatedUsers);
     setCurrentUser(newUser);
     setNotifications([]);
     setIsAuthenticated(true);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+    saveSession(newUser);
     localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+    console.log('New user created and session saved');
   };
 
   const handleUpdateProfile = (updates: Partial<User>) => {
+    if (!currentUser) return;
+    
     const updatedUser = { ...currentUser, ...updates };
     if (updates.firstName && updates.lastName) updatedUser.name = `${updates.firstName} ${updates.lastName}`;
     setCurrentUser(updatedUser);
@@ -174,22 +224,13 @@ const App: React.FC = () => {
       return updatedUsers;
     });
     
-    // Save current user session with quota error handling
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
-    } catch (error) {
-      console.error('Failed to save user session:', error);
-      // Try to save with reduced data if quota exceeded
-      const reducedUser = {
-        ...updatedUser,
-        avatar: updatedUser.avatar?.includes('data:') ? undefined : updatedUser.avatar,
-        coverImage: updatedUser.coverImage?.includes('data:') ? undefined : updatedUser.coverImage
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(reducedUser));
-    }
+    // Save updated session
+    saveSession(updatedUser);
   };
 
   const handlePost = (content: string, mediaUrl?: string, mediaType?: any, taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => {
+    if (!currentUser) return;
+    
     const newPost: Post = {
       id: `p-${Date.now()}`, author: currentUser, content, mediaUrl, mediaType, energy: energy || EnergyType.NEUTRAL,
       radiance: 0, timestamp: Date.now(), reactions: {}, comments: [], userReactions: [], isBoosted: false

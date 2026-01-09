@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import AuraShareModal from './AuraShareModal';
 
 interface ShareModalProps {
   content: string;
@@ -8,13 +7,11 @@ interface ShareModalProps {
   image?: string;
   onClose: () => void;
   currentUser?: any;
-  allUsers?: any[];
-  onAuraShare?: (selectedUsers: any[]) => void;
+  onAuraShare?: (sharedPost: any) => void;
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onClose, currentUser, allUsers, onAuraShare }) => {
+const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onClose, currentUser, onAuraShare }) => {
   const [copied, setCopied] = useState(false);
-  const [showAuraShare, setShowAuraShare] = useState(false);
   const baseUrl = 'https://auraradiance.netlify.app';
   const shareUrl = `${baseUrl}/${url}`;
   const shareTitle = title || 'Check out this post on Aura';
@@ -26,32 +23,32 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onC
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleAuraShare = (selectedUsers: any[]) => {
-    // Create notifications for each selected user
-    selectedUsers.forEach(user => {
-      const notification = {
-        id: `share-${Date.now()}-${user.id}`,
-        type: 'shared_post' as const,
-        fromUser: currentUser,
-        message: `shared a post with you: "${content.substring(0, 50)}..."`,
-        timestamp: Date.now(),
-        isRead: false,
-        sharedPost: {
-          content,
-          url,
-          title
-        }
-      };
-      
-      // In a real app, this would be sent to the backend
-      console.log('Sharing post with user:', user.name, notification);
-    });
+  const handleAuraShare = () => {
+    // Create a new post in the Aura feed with shared content
+    const sharedPost = {
+      id: `shared-${Date.now()}`,
+      content: `🔄 Shared Post:\n\n${content}`,
+      author: currentUser,
+      timestamp: Date.now(),
+      reactions: {},
+      comments: [],
+      userReactions: [],
+      isBoosted: false,
+      radiance: 0,
+      energy: 'NEUTRAL' as const,
+      mediaUrl: image,
+      mediaType: image ? 'image' as const : undefined,
+      originalPost: {
+        content,
+        url,
+        title
+      }
+    };
     
     if (onAuraShare) {
-      onAuraShare(selectedUsers);
+      onAuraShare(sharedPost);
     }
     
-    setShowAuraShare(false);
     onClose();
   };
 
@@ -118,7 +115,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onC
                 if (platform.action === 'copy') {
                   copyToClipboard();
                 } else if (platform.action === 'aura') {
-                  setShowAuraShare(true);
+                  handleAuraShare();
                 } else {
                   window.open(platform.link, '_blank', 'noopener,noreferrer');
                 }
@@ -150,18 +147,6 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onC
 
         <p className="mt-10 text-center text-[9px] font-black uppercase tracking-[0.4em] text-slate-300 dark:text-slate-600">Aura Global Broadcast Protocol</p>
       </div>
-      
-      {showAuraShare && (
-        <AuraShareModal
-          isOpen={showAuraShare}
-          onClose={() => setShowAuraShare(false)}
-          postContent={content}
-          postUrl={url}
-          currentUser={currentUser}
-          allUsers={allUsers}
-          onShare={handleAuraShare}
-        />
-      )}
     </div>
   );
 };

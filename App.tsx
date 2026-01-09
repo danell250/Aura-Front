@@ -205,24 +205,13 @@ const App: React.FC = () => {
     setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, trustScore: Math.min(100, u.trustScore + 10), auraCredits: u.auraCredits + 50 } : u));
   }, [currentUser.auraCredits, currentUser.email]);
 
-  const handleAuraShare = useCallback((selectedUsers: User[]) => {
-    // Create notifications for each selected user
-    selectedUsers.forEach(user => {
-      const newNotification: Notification = {
-        id: `share-${Date.now()}-${user.id}`,
-        type: 'shared_post' as any,
-        fromUser: currentUser,
-        message: `shared a post with you: "${sharingContent?.content?.substring(0, 50)}..."`,
-        timestamp: Date.now(),
-        isRead: false
-      };
-      
-      setNotifications(prev => [newNotification, ...(prev || [])]);
-    });
+  const handleAuraShare = useCallback((sharedPost: any) => {
+    // Add the shared post to the feed
+    setPosts(prev => [sharedPost, ...prev]);
     
     // Show success message
-    alert(`Post shared with ${selectedUsers.length} user${selectedUsers.length !== 1 ? 's' : ''} on Aura!`);
-  }, [currentUser, sharingContent, setNotifications]);
+    alert('Post shared to Aura feed successfully!');
+  }, [setPosts]);
 
   const handlePurchaseCredits = (bundle: CreditBundle) => {
     const updatedCredits = currentUser.auraCredits + bundle.credits;

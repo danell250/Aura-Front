@@ -370,6 +370,7 @@ export const INITIAL_ADS: Ad[] = [
     subscriptionTier: 'Career Growth',
     reactions: { '🚀': 67, '💡': 34 }
   },
+    
   {
     id: 'ad-venture-fund',
     ownerId: '3',

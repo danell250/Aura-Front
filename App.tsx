@@ -307,6 +307,7 @@ const App: React.FC = () => {
   };
 
   initializeApp();
+}, []);
 
   useEffect(() => { 
     if (!loading) {

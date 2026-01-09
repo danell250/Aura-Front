@@ -436,7 +436,23 @@ export const INITIAL_ADS: Ad[] = [
   }
 ];
 
-export const CURRENT_USER = null;
+export const CURRENT_USER = MOCK_USERS[0] || {
+  id: '',
+  firstName: '',
+  lastName: '',
+  name: '',
+  handle: '',
+  avatar: '',
+  acquaintances: [],
+  email: '',
+  dob: '',
+  blockedUsers: [],
+  trustScore: 0,
+  auraCredits: 0,
+  activeGlow: 'none' as const,
+  bio: '',
+  zodiacSign: ''
+};
 
 export const INITIAL_POSTS: Post[] = [
   {

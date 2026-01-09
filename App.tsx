@@ -312,6 +312,8 @@ const App: React.FC = () => {
   };
 
   const handleComment = useCallback((postId: string, text: string, parentId?: string) => {
+    if (!currentUser) return;
+    
     const newComment: Comment = { id: `c-${Date.now()}`, author: currentUser, text, timestamp: Date.now(), parentId, reactions: {}, userReactions: [] };
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p));
   }, [currentUser]);
@@ -353,6 +355,8 @@ const App: React.FC = () => {
   }, []);
 
   const handleAddAcquaintance = useCallback((targetUser: User) => {
+    if (!currentUser) return;
+    
     if (currentUser.id === targetUser.id) return;
     
     if (currentUser.acquaintances?.includes(targetUser.id)) return;
@@ -391,6 +395,8 @@ const App: React.FC = () => {
   }, [currentUser]);
 
   const handleAcceptConnection = useCallback((notification: Notification) => {
+    if (!currentUser) return;
+    
     const requesterId = notification.fromUser.id;
     
     const updatedCurrentUser = {
@@ -422,6 +428,8 @@ const App: React.FC = () => {
   }, [currentUser]);
 
   const handleRemoveAcquaintance = useCallback((userId: string) => {
+    if (!currentUser) return;
+    
     const updatedAcquaintances = (currentUser.acquaintances || []).filter(id => id !== userId);
     const updatedUser = { ...currentUser, acquaintances: updatedAcquaintances };
     

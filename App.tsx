@@ -144,25 +144,25 @@ const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      // Load users from localStorage - always use MOCK_USERS for development
+      // Load users from localStorage - use limited subset for development to avoid quota issues
       const savedUsers = localStorage.getItem(USERS_KEY);
-      let usersToProcess: User[] = MOCK_USERS;
+      let usersToProcess: User[] = [];
       
       if (savedUsers) {
         try {
           const parsedUsers = JSON.parse(savedUsers);
           if (Array.isArray(parsedUsers) && parsedUsers.length > 0) {
-            // Check if MOCK_USERS has more data (new dummy data added)
-            if (process.env.NODE_ENV !== 'production' || parsedUsers.length < MOCK_USERS.length) {
-               console.log('Using MOCK_USERS due to new data or dev mode');
-               usersToProcess = MOCK_USERS;
-            } else {
-               usersToProcess = parsedUsers;
-            }
+            usersToProcess = parsedUsers;
+          } else {
+            usersToProcess = MOCK_USERS.slice(0, 10); // Only use first 10 users
           }
         } catch (e) {
           console.error('Failed to parse users data:', e);
+          usersToProcess = MOCK_USERS.slice(0, 10); // Fallback to limited set
         }
+      } else {
+        // Always use limited dummy data in development to avoid quota issues
+        usersToProcess = MOCK_USERS.slice(0, 10);
       }
       
       try {

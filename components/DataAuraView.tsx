@@ -62,7 +62,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
                 <span className="text-2xl">💎</span>
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Neural Credits</p>
-                  <p className="text-xl font-black">{currentUser.auraCredits.toLocaleString()}</p>
+                  <p className="text-xl font-black">{currentUser?.auraCredits?.toLocaleString() || '0'}</p>
                 </div>
               </div>
             </div>

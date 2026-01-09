@@ -261,36 +261,40 @@ const App: React.FC = () => {
   }, []);
 
   const handleBoostPost = useCallback((postId: string) => {
+    if (!currentUser) return;
+    
     const boostCost = 50;
     const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
     
-    if (!isSpecialUser && currentUser.auraCredits < boostCost) {
+    if (!isSpecialUser && (currentUser.auraCredits || 0) < boostCost) {
       setIsCreditStoreOpen(true);
       return;
     }
     
     if (!isSpecialUser) {
-      handleUpdateProfile({ auraCredits: currentUser.auraCredits - boostCost });
+      handleUpdateProfile({ auraCredits: (currentUser.auraCredits || 0) - boostCost });
     }
     
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, radiance: p.radiance + 100, isBoosted: true } : p));
-  }, [currentUser.auraCredits, currentUser.email]);
+  }, [currentUser?.auraCredits, currentUser?.email, handleUpdateProfile]);
 
   const handleBoostUser = useCallback((userId: string) => {
+    if (!currentUser) return;
+    
     const boostCost = 200;
     const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
-
-    if (!isSpecialUser && currentUser.auraCredits < boostCost) {
+    
+    if (!isSpecialUser && (currentUser.auraCredits || 0) < boostCost) {
       setIsCreditStoreOpen(true);
       return;
     }
     
     if (!isSpecialUser) {
-      handleUpdateProfile({ auraCredits: currentUser.auraCredits - boostCost });
+      handleUpdateProfile({ auraCredits: (currentUser.auraCredits || 0) - boostCost });
     }
     
     setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, trustScore: Math.min(100, u.trustScore + 10), auraCredits: u.auraCredits + 50 } : u));
-  }, [currentUser.auraCredits, currentUser.email]);
+  }, [currentUser?.auraCredits, currentUser?.email, handleUpdateProfile]);
 
   const handleAuraShare = useCallback((sharedPost: any) => {
     // Add the shared post to the feed
@@ -301,7 +305,9 @@ const App: React.FC = () => {
   }, [setPosts]);
 
   const handlePurchaseCredits = (bundle: CreditBundle) => {
-    const updatedCredits = currentUser.auraCredits + bundle.credits;
+    if (!currentUser) return;
+    
+    const updatedCredits = (currentUser.auraCredits || 0) + bundle.credits;
     handleUpdateProfile({ auraCredits: updatedCredits });
   };
 

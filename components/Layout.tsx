@@ -118,7 +118,7 @@ const Layout: React.FC<LayoutProps> = ({
         <aside className="hidden xl:flex flex-col w-80 space-y-8 sticky top-28 self-start">
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-6">Neural Credits</h3>
-            <p className="text-3xl font-black text-slate-900 dark:text-white">💎 {currentUser.auraCredits.toLocaleString()}</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-white">💎 {currentUser?.auraCredits?.toLocaleString() || '0'}</p>
             <button onClick={onOpenCreditStore} className="mt-6 w-full py-4 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 font-black uppercase text-[10px] tracking-widest rounded-2xl border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-600 hover:text-white transition-all shadow-sm">Sync Credits</button>
           </div>
           

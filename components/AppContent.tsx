@@ -17,7 +17,7 @@ import CreditStoreModal from './CreditStoreModal';
 import FeedFilters from './FeedFilters';
 import Logo from './Logo';
 import { useMetaTags } from '../hooks/useMetaTags';
-import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from '../constants';
+import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from '../constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from '../types';
 import { geminiService } from '../services/gemini';
 

@@ -145,126 +145,81 @@ const App: React.FC = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        let loadedUsers: User[] = [];
+        let loadedPosts: Post[] = [];
+        let loadedAds: Ad[] = [];
+
         // In development mode, use dummy data directly without localStorage to avoid quota issues
         if (process.env.NODE_ENV !== 'production') {
           console.log('Development mode: Using dummy data without localStorage');
-          setAllUsers(MOCK_USERS.slice(0, 10)); // Only use 10 users to be safe
-          setPosts(INITIAL_POSTS.slice(0, 20)); // Only use 20 posts to be safe
-          setAds(INITIAL_ADS); // Ads are small, should be fine
-        
-          // Load and validate session for current user only
-          const { user: sessionUser, isValid } = loadSession();
+          loadedUsers = MOCK_USERS.slice(0, 10); // Only use 10 users to be safe
+          loadedPosts = INITIAL_POSTS.slice(0, 20); // Only use 20 posts to be safe
+          loadedAds = INITIAL_ADS; // Ads are small, should be fine
+        } else {
+          // Production mode - try backend API first, fall back to mock data if not available
+          console.log('Production mode: Trying backend API, falling back to mock data if needed');
           
-          if (isValid && sessionUser) {
-            // Find user in our limited dummy set
-            let refreshedUser = MOCK_USERS.slice(0, 10).find((u: User) => u.id === sessionUser.id);
-            
-            if (refreshedUser) {
-              // Merge session data with dummy user data
-              refreshedUser = {
-                ...refreshedUser,
-                // Preserve session-specific data
-                auraCredits: sessionUser.auraCredits ?? refreshedUser.auraCredits ?? 50,
-                trustScore: sessionUser.trustScore ?? refreshedUser.trustScore ?? 10,
-                activeGlow: sessionUser.activeGlow || refreshedUser.activeGlow || 'none',
-                acquaintances: sessionUser.acquaintances || refreshedUser.acquaintances || [],
-                blockedUsers: sessionUser.blockedUsers || refreshedUser.blockedUsers || [],
-                // Preserve other session data
-                email: sessionUser.email || refreshedUser.email,
-                dob: sessionUser.dob || refreshedUser.dob,
-                bio: sessionUser.bio || refreshedUser.bio,
-              };
+          // Load users from backend API, fall back to mock data
+          try {
+            const response = await fetch('https://aura-back-s1bw.onrender.com/api/users');
+            if (response.ok) {
+              const users = await response.json();
+              loadedUsers = Array.isArray(users) ? users : MOCK_USERS;
             } else {
-              // Session user not in dummy set, create minimal user
-              refreshedUser = {
-                id: sessionUser.id,
-                firstName: sessionUser.firstName || 'User',
-                lastName: sessionUser.lastName || '',
-                name: sessionUser.name || 'User',
-                handle: sessionUser.handle || '@user',
-                avatar: sessionUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sessionUser.id}`,
-                avatarType: sessionUser.avatarType || 'image',
-                email: sessionUser.email || '',
-                trustScore: 10,
-                auraCredits: 50,
-                activeGlow: 'none',
-                acquaintances: [],
-                blockedUsers: [],
-                bio: sessionUser.bio || '',
-                dob: sessionUser.dob || '',
-              };
+              console.log('Backend users endpoint not available, using mock data');
+              loadedUsers = MOCK_USERS;
             }
-            
-            setCurrentUser(refreshedUser);
-            setIsAuthenticated(true);
-            console.log('Development mode: User authenticated with dummy data');
-          } else {
-            console.log('Development mode: No valid session found');
+          } catch (error) {
+            console.log('Backend users endpoint not available, using mock data:', error.message);
+            loadedUsers = MOCK_USERS;
           }
-        
-        // Load theme
-        if (localStorage.getItem('aura_theme') === 'dark') {
-          setIsDarkMode(true);
-          document.documentElement.classList.add('dark');
-        }
-      } else {
-        // Production mode - use backend API instead of localStorage for data persistence
-        console.log('Production mode: Using backend for data storage');
-        
-        // Load users from backend API
-        try {
-          const response = await fetch('https://aura-back-s1bw.onrender.com/api/users');
-          if (response.ok) {
-            const users = await response.json();
-            setAllUsers(Array.isArray(users) ? users : []);
-          } else {
-            console.error('Failed to load users from backend');
-            setAllUsers([]);
+
+          // Load posts from backend API, fall back to mock data
+          try {
+            const response = await fetch('https://aura-back-s1bw.onrender.com/api/posts');
+            if (response.ok) {
+              const data = await response.json();
+              const posts = data.posts || data;
+              loadedPosts = Array.isArray(posts) ? posts : INITIAL_POSTS;
+            } else {
+              console.log('Backend posts endpoint not available, using mock data');
+              loadedPosts = INITIAL_POSTS;
+            }
+          } catch (error) {
+            console.log('Backend posts endpoint not available, using mock data:', error.message);
+            loadedPosts = INITIAL_POSTS;
           }
-        } catch (error) {
-          console.error('Error loading users from backend:', error);
-          setAllUsers([]);
+
+          // Load ads from backend API, fall back to mock data
+          try {
+            const response = await fetch('https://aura-back-s1bw.onrender.com/api/ads');
+            if (response.ok) {
+              const ads = await response.json();
+              loadedAds = Array.isArray(ads) ? ads : INITIAL_ADS;
+            } else {
+              console.log('Backend ads endpoint not available, using mock data');
+              loadedAds = INITIAL_ADS;
+            }
+          } catch (error) {
+            console.log('Backend ads endpoint not available, using mock data:', error.message);
+            loadedAds = INITIAL_ADS;
+          }
         }
 
-        // Load posts from backend API
-        try {
-          const response = await fetch('https://aura-back-s1bw.onrender.com/api/posts');
-          if (response.ok) {
-            const posts = await response.json();
-            setPosts(Array.isArray(posts) ? posts : []);
-          } else {
-            console.error('Failed to load posts from backend');
-            setPosts([]);
-          }
-        } catch (error) {
-          console.error('Error loading posts from backend:', error);
-          setPosts([]);
-        }
+        // Set the loaded data
+        setAllUsers(loadedUsers);
+        setPosts(loadedPosts);
+        setAds(loadedAds);
 
-        // Load ads from backend API
-        try {
-          const response = await fetch('https://aura-back-s1bw.onrender.com/api/ads');
-          if (response.ok) {
-            const ads = await response.json();
-            setAds(Array.isArray(ads) ? ads : []);
-          } else {
-            console.error('Failed to load ads from backend');
-            setAds([]);
-          }
-        } catch (error) {
-          console.error('Error loading ads from backend:', error);
-          setAds([]);
-        }
-
-        // Load and validate session (still use localStorage for session in production)
+        // Load and validate session for current user
         const { user: sessionUser, isValid } = loadSession();
         
         if (isValid && sessionUser) {
-          // In production, we need to find user in the loaded users from backend
-          let refreshedUser = allUsers.find((u: User) => u.id === sessionUser.id);
+          // Find user in our loaded data
+          let refreshedUser = loadedUsers.find((u: User) => u.id === sessionUser.id);
           
           if (refreshedUser) {
-            // Merge session data with backend user data
+            // Merge session data with loaded user data
             refreshedUser = {
               ...refreshedUser,
               // Preserve session-specific data
@@ -279,16 +234,31 @@ const App: React.FC = () => {
               bio: sessionUser.bio || refreshedUser.bio,
             };
           } else {
-            // Session user not found in backend users, use session user as-is
-            refreshedUser = sessionUser;
+            // Session user not in loaded data, create minimal user
+            refreshedUser = {
+              id: sessionUser.id,
+              firstName: sessionUser.firstName || 'User',
+              lastName: sessionUser.lastName || '',
+              name: sessionUser.name || 'User',
+              handle: sessionUser.handle || '@user',
+              avatar: sessionUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sessionUser.id}`,
+              avatarType: sessionUser.avatarType || 'image',
+              email: sessionUser.email || '',
+              trustScore: 10,
+              auraCredits: 50,
+              activeGlow: 'none',
+              acquaintances: [],
+              blockedUsers: [],
+              bio: sessionUser.bio || '',
+              dob: sessionUser.dob || '',
+            };
           }
           
           setCurrentUser(refreshedUser);
           setIsAuthenticated(true);
-          saveSession(refreshedUser); // Still use localStorage for session
-          console.log('Production mode: User authenticated with backend data');
+          console.log('User authenticated with loaded data');
         } else {
-          console.log('Production mode: No valid session found');
+          console.log('No valid session found');
         }
         
         // Load theme
@@ -296,18 +266,17 @@ const App: React.FC = () => {
           setIsDarkMode(true);
           document.documentElement.classList.add('dark');
         }
+      } catch (error) {
+        console.error('Error during app initialization:', error);
+      } finally {
+        setTimeout(() => {
+          setLoading(false);
+        }, 500);
       }
-    } catch (error) {
-      console.error('Error during app initialization:', error);
-    } finally {
-      setTimeout(() => {
-        setLoading(false);
-      }, 500);
-    }
-  };
+    };
 
-  initializeApp();
-}, []);
+    initializeApp();
+  }, []);
 
   useEffect(() => { 
     if (!loading) {

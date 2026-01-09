@@ -178,13 +178,20 @@ const App: React.FC = () => {
               // Session user not in dummy set, create minimal user
               refreshedUser = {
                 id: sessionUser.id,
+                firstName: sessionUser.firstName || 'User',
+                lastName: sessionUser.lastName || '',
                 name: sessionUser.name || 'User',
                 handle: sessionUser.handle || '@user',
                 avatar: sessionUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sessionUser.id}`,
+                avatarType: sessionUser.avatarType || 'image',
                 email: sessionUser.email || '',
                 trustScore: 10,
                 auraCredits: 50,
                 activeGlow: 'none',
+                acquaintances: [],
+                blockedUsers: [],
+                bio: sessionUser.bio || '',
+                dob: sessionUser.dob || '',
               };
             }
             
@@ -1255,12 +1262,12 @@ const App: React.FC = () => {
         }
       }
     }
-  }, [currentUser]);
+  }, [currentUser, allUsers]);
 
   useEffect(() => {
-    (window as any).handleAcceptConnection = handleAcceptConnection;
-    return () => { delete (window as any).handleAcceptConnection; };
-  }, [handleAcceptConnection]);
+    (window as any).handleRemoveAcquaintance = handleRemoveAcquaintance;
+    return () => { delete (window as any).handleRemoveAcquaintance; };
+  }, [handleRemoveAcquaintance]);
 
   return (
     <Router>
@@ -1322,6 +1329,6 @@ const App: React.FC = () => {
       </Routes>
     </Router>
   );
-};
+}
 
 export default App;

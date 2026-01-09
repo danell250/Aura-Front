@@ -143,22 +143,121 @@ const App: React.FC = () => {
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string}>({ type: 'feed' });
 
   useEffect(() => {
-    try {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Development mode: Using dummy data without localStorage');
-        setAllUsers(MOCK_USERS.slice(0, 10)); // Only use 10 users to be safe
-        setPosts(INITIAL_POSTS.slice(0, 20)); // Only use 20 posts to be safe
-        setAds(INITIAL_ADS); // Ads are small, should be fine
+    const initializeApp = async () => {
+      try {
+        // In development mode, use dummy data directly without localStorage to avoid quota issues
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('Development mode: Using dummy data without localStorage');
+          setAllUsers(MOCK_USERS.slice(0, 10)); // Only use 10 users to be safe
+          setPosts(INITIAL_POSTS.slice(0, 20)); // Only use 20 posts to be safe
+          setAds(INITIAL_ADS); // Ads are small, should be fine
         
-        // Load and validate session for current user only
+          // Load and validate session for current user only
+          const { user: sessionUser, isValid } = loadSession();
+          
+          if (isValid && sessionUser) {
+            // Find user in our limited dummy set
+            let refreshedUser = MOCK_USERS.slice(0, 10).find((u: User) => u.id === sessionUser.id);
+            
+            if (refreshedUser) {
+              // Merge session data with dummy user data
+              refreshedUser = {
+                ...refreshedUser,
+                // Preserve session-specific data
+                auraCredits: sessionUser.auraCredits ?? refreshedUser.auraCredits ?? 50,
+                trustScore: sessionUser.trustScore ?? refreshedUser.trustScore ?? 10,
+                activeGlow: sessionUser.activeGlow || refreshedUser.activeGlow || 'none',
+                acquaintances: sessionUser.acquaintances || refreshedUser.acquaintances || [],
+                blockedUsers: sessionUser.blockedUsers || refreshedUser.blockedUsers || [],
+                // Preserve other session data
+                email: sessionUser.email || refreshedUser.email,
+                dob: sessionUser.dob || refreshedUser.dob,
+                bio: sessionUser.bio || refreshedUser.bio,
+              };
+            } else {
+              // Session user not in dummy set, create minimal user
+              refreshedUser = {
+                id: sessionUser.id,
+                name: sessionUser.name || 'User',
+                handle: sessionUser.handle || '@user',
+                avatar: sessionUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sessionUser.id}`,
+                email: sessionUser.email || '',
+                trustScore: 10,
+                auraCredits: 50,
+                activeGlow: 'none',
+              };
+            }
+            
+            setCurrentUser(refreshedUser);
+            setIsAuthenticated(true);
+            console.log('Development mode: User authenticated with dummy data');
+          } else {
+            console.log('Development mode: No valid session found');
+          }
+        
+        // Load theme
+        if (localStorage.getItem('aura_theme') === 'dark') {
+          setIsDarkMode(true);
+          document.documentElement.classList.add('dark');
+        }
+      } else {
+        // Production mode - use backend API instead of localStorage for data persistence
+        console.log('Production mode: Using backend for data storage');
+        
+        // Load users from backend API
+        try {
+          const response = await fetch('https://aura-back-s1bw.onrender.com/api/users');
+          if (response.ok) {
+            const users = await response.json();
+            setAllUsers(Array.isArray(users) ? users : []);
+          } else {
+            console.error('Failed to load users from backend');
+            setAllUsers([]);
+          }
+        } catch (error) {
+          console.error('Error loading users from backend:', error);
+          setAllUsers([]);
+        }
+
+        // Load posts from backend API
+        try {
+          const response = await fetch('https://aura-back-s1bw.onrender.com/api/posts');
+          if (response.ok) {
+            const posts = await response.json();
+            setPosts(Array.isArray(posts) ? posts : []);
+          } else {
+            console.error('Failed to load posts from backend');
+            setPosts([]);
+          }
+        } catch (error) {
+          console.error('Error loading posts from backend:', error);
+          setPosts([]);
+        }
+
+        // Load ads from backend API
+        try {
+          const response = await fetch('https://aura-back-s1bw.onrender.com/api/ads');
+          if (response.ok) {
+            const ads = await response.json();
+            setAds(Array.isArray(ads) ? ads : []);
+          } else {
+            console.error('Failed to load ads from backend');
+            setAds([]);
+          }
+        } catch (error) {
+          console.error('Error loading ads from backend:', error);
+          setAds([]);
+        }
+
+        // Load and validate session (still use localStorage for session in production)
         const { user: sessionUser, isValid } = loadSession();
         
         if (isValid && sessionUser) {
-          // Find user in our limited dummy set
-          let refreshedUser = MOCK_USERS.slice(0, 10).find((u: User) => u.id === sessionUser.id);
+          // In production, we need to find user in the loaded users from backend
+          let refreshedUser = allUsers.find((u: User) => u.id === sessionUser.id);
           
           if (refreshedUser) {
-            // Merge session data with dummy user data
+            // Merge session data with backend user data
             refreshedUser = {
               ...refreshedUser,
               // Preserve session-specific data
@@ -173,127 +272,16 @@ const App: React.FC = () => {
               bio: sessionUser.bio || refreshedUser.bio,
             };
           } else {
-            // Session user not in dummy set, create minimal user
-            refreshedUser = {
-              id: sessionUser.id,
-              name: sessionUser.name || 'User',
-              handle: sessionUser.handle || '@user',
-              avatar: sessionUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sessionUser.id}`,
-              email: sessionUser.email || '',
-              trustScore: 10,
-              auraCredits: 50,
-              activeGlow: 'none',
-            };
-          }
-          
-          setCurrentUser(refreshedUser);
-          setIsAuthenticated(true);
-          console.log('Development mode: User authenticated with dummy data');
-        } else {
-          console.log('Development mode: No valid session found');
-        }
-        
-        // Load theme
-        if (localStorage.getItem('aura_theme') === 'dark') {
-          setIsDarkMode(true);
-          document.documentElement.classList.add('dark');
-        }
-      } else {
-        // Production mode - use localStorage with quota management
-        const savedUsers = localStorage.getItem(USERS_KEY);
-        let usersToProcess: User[] = [];
-        
-        if (savedUsers) {
-          try {
-            usersToProcess = JSON.parse(savedUsers);
-            if (!Array.isArray(usersToProcess)) {
-              console.warn('Invalid users data, resetting...');
-              usersToProcess = MOCK_USERS.slice(0, 10);
-            }
-          } catch (e) {
-            console.error('Failed to parse users data:', e);
-            usersToProcess = MOCK_USERS.slice(0, 10);
-          }
-        } else {
-          usersToProcess = MOCK_USERS.slice(0, 10);
-        }
-        
-        setAllUsers(usersToProcess);
-
-        // Load and validate session
-        const { user: sessionUser, isValid } = loadSession();
-        
-        if (isValid && sessionUser) {
-          // Find user by ID in latest users list
-          let refreshedUser = usersToProcess.find((u: User) => u.id === sessionUser.id);
-          
-          if (refreshedUser) {
-            // Merge persistent data from session with refreshed user data
-            refreshedUser = {
-              ...refreshedUser,
-              // Preserve avatar and coverImage from session if they exist and are data URLs or custom uploaded ones
-              avatar: (sessionUser.avatar && !sessionUser.avatar.includes('dicebear.com')) ? sessionUser.avatar : refreshedUser.avatar,
-              avatarType: (sessionUser.avatar && !sessionUser.avatar.includes('dicebear.com')) ? sessionUser.avatarType : refreshedUser.avatarType,
-              coverImage: sessionUser.coverImage ? sessionUser.coverImage : refreshedUser.coverImage,
-              coverType: sessionUser.coverType ? sessionUser.coverType : refreshedUser.coverType,
-              // Preserve user-specific data that might have changed
-              auraCredits: sessionUser.auraCredits ?? refreshedUser.auraCredits ?? 50,
-              trustScore: sessionUser.trustScore ?? refreshedUser.trustScore ?? 10,
-              activeGlow: sessionUser.activeGlow || refreshedUser.activeGlow || 'none',
-              acquaintances: sessionUser.acquaintances || refreshedUser.acquaintances || [],
-              blockedUsers: sessionUser.blockedUsers || refreshedUser.blockedUsers || [],
-              // Preserve other session data
-              email: sessionUser.email || refreshedUser.email,
-              dob: sessionUser.dob || refreshedUser.dob,
-              bio: sessionUser.bio || refreshedUser.bio,
-            };
-          } else {
-            // If user not found in usersToProcess, use session user as-is
+            // Session user not found in backend users, use session user as-is
             refreshedUser = sessionUser;
           }
           
           setCurrentUser(refreshedUser);
           setIsAuthenticated(true);
-          saveSession(refreshedUser);
-          console.log('User authenticated successfully on app load');
+          saveSession(refreshedUser); // Still use localStorage for session
+          console.log('Production mode: User authenticated with backend data');
         } else {
-          console.log('No valid session found - user needs to login');
-        }
-
-        // Load posts with quota management
-        const savedPosts = localStorage.getItem(POSTS_KEY);
-        if (savedPosts) {
-          try {
-            const parsedPosts = JSON.parse(savedPosts);
-            if (Array.isArray(parsedPosts)) {
-              setPosts(parsedPosts);
-            } else {
-              setPosts(INITIAL_POSTS.slice(0, 20)); // Limited for production too
-            }
-          } catch (e) {
-            console.error('Failed to parse posts:', e);
-            setPosts(INITIAL_POSTS.slice(0, 20));
-          }
-        } else {
-          setPosts(INITIAL_POSTS.slice(0, 20));
-        }
-
-        // Load ads
-        const savedAds = localStorage.getItem(ADS_KEY);
-        if (savedAds) {
-          try {
-            const parsedAds = JSON.parse(savedAds);
-            if (Array.isArray(parsedAds)) {
-              setAds(parsedAds);
-            } else {
-              setAds(INITIAL_ADS);
-            }
-          } catch (e) {
-            console.error('Failed to parse ads:', e);
-            setAds(INITIAL_ADS);
-          }
-        } else {
-          setAds(INITIAL_ADS);
+          console.log('Production mode: No valid session found');
         }
         
         // Load theme
@@ -309,7 +297,9 @@ const App: React.FC = () => {
         setLoading(false);
       }, 500);
     }
-  }, []);
+  };
+
+  initializeApp();
 
   useEffect(() => { 
     if (!loading) {

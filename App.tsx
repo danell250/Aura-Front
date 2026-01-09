@@ -60,6 +60,7 @@ const App: React.FC = () => {
         setCurrentUser(refreshedUser);
         setIsAuthenticated(true);
       } catch (e) { 
+        console.error('Failed to parse user session:', e);
         localStorage.removeItem(STORAGE_KEY); 
       }
     }
@@ -142,16 +143,37 @@ const App: React.FC = () => {
     if (updates.firstName && updates.lastName) updatedUser.name = `${updates.firstName} ${updates.lastName}`;
     setCurrentUser(updatedUser);
     
-    // Update in allUsers array
+    // Update in allUsers array with quota error handling
     setAllUsers(prev => {
       const updatedUsers = prev.map(u => u.id === currentUser.id ? updatedUser : u);
-      // Save to localStorage immediately
-      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      try {
+        localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      } catch (error) {
+        console.error('Failed to save users to localStorage:', error);
+        // Try to save with reduced data if quota exceeded
+        const reducedUsers = updatedUsers.map(u => ({
+          ...u,
+          avatar: u.avatar?.includes('data:') ? undefined : u.avatar,
+          coverImage: u.coverImage?.includes('data:') ? undefined : u.coverImage
+        }));
+        localStorage.setItem(USERS_KEY, JSON.stringify(reducedUsers));
+      }
       return updatedUsers;
     });
     
-    // Save current user session immediately
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    // Save current user session with quota error handling
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Failed to save user session:', error);
+      // Try to save with reduced data if quota exceeded
+      const reducedUser = {
+        ...updatedUser,
+        avatar: updatedUser.avatar?.includes('data:') ? undefined : updatedUser.avatar,
+        coverImage: updatedUser.coverImage?.includes('data:') ? undefined : updatedUser.coverImage
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(reducedUser));
+    }
   };
 
   const handlePost = (content: string, mediaUrl?: string, mediaType?: any, taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => {

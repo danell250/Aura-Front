@@ -167,8 +167,46 @@ const App: React.FC = () => {
       
       try {
         localStorage.setItem(USERS_KEY, JSON.stringify(usersToProcess));
-      } catch (err) {
-        console.error('Failed to save users to localStorage (QuotaExceeded):', err);
+      } catch (error) {
+        console.error('Failed to save users to localStorage (initial load):', error);
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          // Clear some space by removing users with minimal data
+          const compactUsers = usersToProcess.map(user => ({
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            name: user.name,
+            handle: user.handle,
+            avatar: user.avatar,
+            avatarType: user.avatarType,
+            acquaintances: user.acquaintances,
+            blockedUsers: user.blockedUsers,
+            trustScore: user.trustScore,
+            auraCredits: user.auraCredits,
+            activeGlow: user.activeGlow,
+            email: user.email,
+            dob: user.dob,
+            bio: user.bio,
+            notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+          }));
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+          } catch (compactError) {
+            console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+            // If still failing, only save essential user data
+            const minimalUsers = usersToProcess.map(user => ({
+              id: user.id,
+              name: user.name,
+              handle: user.handle,
+              avatar: user.avatar,
+              acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+              trustScore: user.trustScore,
+              auraCredits: user.auraCredits,
+              activeGlow: user.activeGlow,
+            }));
+            localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+          }
+        }
       }
       
       setAllUsers(usersToProcess);
@@ -206,8 +244,46 @@ const App: React.FC = () => {
           setAllUsers(updatedUsers);
           try {
             localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-          } catch (err) {
-            console.error('Failed to save updated users to localStorage:', err);
+          } catch (error) {
+            console.error('Failed to save updated users to localStorage (app init):', error);
+            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+              // Clear some space by removing users with minimal data
+              const compactUsers = updatedUsers.map(user => ({
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                name: user.name,
+                handle: user.handle,
+                avatar: user.avatar,
+                avatarType: user.avatarType,
+                acquaintances: user.acquaintances,
+                blockedUsers: user.blockedUsers,
+                trustScore: user.trustScore,
+                auraCredits: user.auraCredits,
+                activeGlow: user.activeGlow,
+                email: user.email,
+                dob: user.dob,
+                bio: user.bio,
+                notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+              }));
+              try {
+                localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+              } catch (compactError) {
+                console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+                // If still failing, only save essential user data
+                const minimalUsers = updatedUsers.map(user => ({
+                  id: user.id,
+                  name: user.name,
+                  handle: user.handle,
+                  avatar: user.avatar,
+                  acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+                  trustScore: user.trustScore,
+                  auraCredits: user.auraCredits,
+                  activeGlow: user.activeGlow,
+                }));
+                localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+              }
+            }
           }
         } else {
           // If user not found in usersToProcess, add session user to the list
@@ -220,8 +296,46 @@ const App: React.FC = () => {
           setAllUsers(updatedUsers);
           try {
             localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-          } catch (err) {
-            console.error('Failed to save new session user to localStorage:', err);
+          } catch (error) {
+            console.error('Failed to save new session user to localStorage (app init):', error);
+            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+              // Clear some space by removing users with minimal data
+              const compactUsers = updatedUsers.map(user => ({
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                name: user.name,
+                handle: user.handle,
+                avatar: user.avatar,
+                avatarType: user.avatarType,
+                acquaintances: user.acquaintances,
+                blockedUsers: user.blockedUsers,
+                trustScore: user.trustScore,
+                auraCredits: user.auraCredits,
+                activeGlow: user.activeGlow,
+                email: user.email,
+                dob: user.dob,
+                bio: user.bio,
+                notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+              }));
+              try {
+                localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+              } catch (compactError) {
+                console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+                // If still failing, only save essential user data
+                const minimalUsers = updatedUsers.map(user => ({
+                  id: user.id,
+                  name: user.name,
+                  handle: user.handle,
+                  avatar: user.avatar,
+                  acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+                  trustScore: user.trustScore,
+                  auraCredits: user.auraCredits,
+                  activeGlow: user.activeGlow,
+                }));
+                localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+              }
+            }
           }
         }
         
@@ -338,7 +452,49 @@ const App: React.FC = () => {
   }, [ads, loading]);
   useEffect(() => { 
     if (!loading) {
-      localStorage.setItem(USERS_KEY, JSON.stringify(allUsers)); 
+      try {
+        localStorage.setItem(USERS_KEY, JSON.stringify(allUsers)); 
+      } catch (error) {
+        console.error('Failed to save users to localStorage:', error);
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          // Clear some space by removing users with minimal data
+          const compactUsers = allUsers.map(user => ({
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            name: user.name,
+            handle: user.handle,
+            avatar: user.avatar,
+            avatarType: user.avatarType,
+            acquaintances: user.acquaintances,
+            blockedUsers: user.blockedUsers,
+            trustScore: user.trustScore,
+            auraCredits: user.auraCredits,
+            activeGlow: user.activeGlow,
+            email: user.email,
+            dob: user.dob,
+            bio: user.bio,
+            notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+          }));
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+          } catch (compactError) {
+            console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+            // If still failing, only save essential user data
+            const minimalUsers = allUsers.map(user => ({
+              id: user.id,
+              name: user.name,
+              handle: user.handle,
+              avatar: user.avatar,
+              acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+              trustScore: user.trustScore,
+              auraCredits: user.auraCredits,
+              activeGlow: user.activeGlow,
+            }));
+            localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+          }
+        }
+      }
     }
   }, [allUsers, loading]);
 
@@ -417,7 +573,49 @@ const App: React.FC = () => {
         setCurrentUser(updatedUser);
         setIsAuthenticated(true);
         saveSession(updatedUser);
-        localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+        try {
+          localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+        } catch (error) {
+          console.error('Failed to save users to localStorage (handleLogin - existing user):', error);
+          if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+            // Clear some space by removing users with minimal data
+            const compactUsers = updatedUsers.map(user => ({
+              id: user.id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              name: user.name,
+              handle: user.handle,
+              avatar: user.avatar,
+              avatarType: user.avatarType,
+              acquaintances: user.acquaintances,
+              blockedUsers: user.blockedUsers,
+              trustScore: user.trustScore,
+              auraCredits: user.auraCredits,
+              activeGlow: user.activeGlow,
+              email: user.email,
+              dob: user.dob,
+              bio: user.bio,
+              notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+            }));
+            try {
+              localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+            } catch (compactError) {
+              console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+              // If still failing, only save essential user data
+              const minimalUsers = updatedUsers.map(user => ({
+                id: user.id,
+                name: user.name,
+                handle: user.handle,
+                avatar: user.avatar,
+                acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+                trustScore: user.trustScore,
+                auraCredits: user.auraCredits,
+                activeGlow: user.activeGlow,
+              }));
+              localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+            }
+          }
+        }
         return;
       }
 
@@ -468,7 +666,49 @@ const App: React.FC = () => {
       setNotifications([]);
       setIsAuthenticated(true);
       saveSession(newUser);
-      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      try {
+        localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      } catch (error) {
+        console.error('Failed to save users to localStorage (handleLogin - new user):', error);
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          // Clear some space by removing users with minimal data
+          const compactUsers = updatedUsers.map(user => ({
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            name: user.name,
+            handle: user.handle,
+            avatar: user.avatar,
+            avatarType: user.avatarType,
+            acquaintances: user.acquaintances,
+            blockedUsers: user.blockedUsers,
+            trustScore: user.trustScore,
+            auraCredits: user.auraCredits,
+            activeGlow: user.activeGlow,
+            email: user.email,
+            dob: user.dob,
+            bio: user.bio,
+            notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+          }));
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+          } catch (compactError) {
+            console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+            // If still failing, only save essential user data
+            const minimalUsers = updatedUsers.map(user => ({
+              id: user.id,
+              name: user.name,
+              handle: user.handle,
+              avatar: user.avatar,
+              acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+              trustScore: user.trustScore,
+              auraCredits: user.auraCredits,
+              activeGlow: user.activeGlow,
+            }));
+            localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+          }
+        }
+      }
       console.log('New user created and session saved');
     } catch (error) {
       console.error('Error during login:', error);
@@ -498,13 +738,52 @@ const App: React.FC = () => {
         localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
       } catch (error) {
         console.error('Failed to save users to localStorage:', error);
-        // Try to save with reduced data if quota exceeded
-        const reducedUsers = updatedUsers.map(u => ({
-          ...u,
-          avatar: u.avatar?.includes('data:') ? undefined : u.avatar,
-          coverImage: u.coverImage?.includes('data:') ? undefined : u.coverImage
-        }));
-        localStorage.setItem(USERS_KEY, JSON.stringify(reducedUsers));
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          // Clear some space by removing users with minimal data
+          const compactUsers = updatedUsers.map(user => ({
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            name: user.name,
+            handle: user.handle,
+            avatar: user.avatar,
+            avatarType: user.avatarType,
+            acquaintances: user.acquaintances,
+            blockedUsers: user.blockedUsers,
+            trustScore: user.trustScore,
+            auraCredits: user.auraCredits,
+            activeGlow: user.activeGlow,
+            email: user.email,
+            dob: user.dob,
+            bio: user.bio,
+            notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+          }));
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+          } catch (compactError) {
+            console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+            // If still failing, only save essential user data
+            const minimalUsers = updatedUsers.map(user => ({
+              id: user.id,
+              name: user.name,
+              handle: user.handle,
+              avatar: user.avatar,
+              acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+              trustScore: user.trustScore,
+              auraCredits: user.auraCredits,
+              activeGlow: user.activeGlow,
+            }));
+            localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+          }
+        } else {
+          // Try to save with reduced data if other error
+          const reducedUsers = updatedUsers.map(u => ({
+            ...u,
+            avatar: u.avatar?.includes('data:') ? undefined : u.avatar,
+            coverImage: u.coverImage?.includes('data:') ? undefined : u.coverImage
+          }));
+          localStorage.setItem(USERS_KEY, JSON.stringify(reducedUsers));
+        }
       }
       return updatedUsers;
     });
@@ -573,7 +852,49 @@ const App: React.FC = () => {
             }
             return u;
           });
-          localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+          } catch (error) {
+            console.error('Failed to save users to localStorage (handleLike):', error);
+            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+              // Clear some space by removing users with minimal data
+              const compactUsers = updatedUsers.map(user => ({
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                name: user.name,
+                handle: user.handle,
+                avatar: user.avatar,
+                avatarType: user.avatarType,
+                acquaintances: user.acquaintances,
+                blockedUsers: user.blockedUsers,
+                trustScore: user.trustScore,
+                auraCredits: user.auraCredits,
+                activeGlow: user.activeGlow,
+                email: user.email,
+                dob: user.dob,
+                bio: user.bio,
+                notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+              }));
+              try {
+                localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+              } catch (compactError) {
+                console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+                // If still failing, only save essential user data
+                const minimalUsers = updatedUsers.map(user => ({
+                  id: user.id,
+                  name: user.name,
+                  handle: user.handle,
+                  avatar: user.avatar,
+                  acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+                  trustScore: user.trustScore,
+                  auraCredits: user.auraCredits,
+                  activeGlow: user.activeGlow,
+                }));
+                localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+              }
+            }
+          }
           return updatedUsers;
         });
       }
@@ -652,7 +973,49 @@ const App: React.FC = () => {
           }
           return u;
         });
-        localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+        try {
+          localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+        } catch (error) {
+          console.error('Failed to save users to localStorage (handleAuraShare):', error);
+          if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+            // Clear some space by removing users with minimal data
+            const compactUsers = updatedUsers.map(user => ({
+              id: user.id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              name: user.name,
+              handle: user.handle,
+              avatar: user.avatar,
+              avatarType: user.avatarType,
+              acquaintances: user.acquaintances,
+              blockedUsers: user.blockedUsers,
+              trustScore: user.trustScore,
+              auraCredits: user.auraCredits,
+              activeGlow: user.activeGlow,
+              email: user.email,
+              dob: user.dob,
+              bio: user.bio,
+              notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+            }));
+            try {
+              localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+            } catch (compactError) {
+              console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+              // If still failing, only save essential user data
+              const minimalUsers = updatedUsers.map(user => ({
+                id: user.id,
+                name: user.name,
+                handle: user.handle,
+                avatar: user.avatar,
+                acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+                trustScore: user.trustScore,
+                auraCredits: user.auraCredits,
+                activeGlow: user.activeGlow,
+              }));
+              localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+            }
+          }
+        }
         return updatedUsers;
       });
     }
@@ -705,7 +1068,49 @@ const App: React.FC = () => {
             }
             return u;
           });
-          localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+          } catch (error) {
+            console.error('Failed to save users to localStorage (handleComment):', error);
+            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+              // Clear some space by removing users with minimal data
+              const compactUsers = updatedUsers.map(user => ({
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                name: user.name,
+                handle: user.handle,
+                avatar: user.avatar,
+                avatarType: user.avatarType,
+                acquaintances: user.acquaintances,
+                blockedUsers: user.blockedUsers,
+                trustScore: user.trustScore,
+                auraCredits: user.auraCredits,
+                activeGlow: user.activeGlow,
+                email: user.email,
+                dob: user.dob,
+                bio: user.bio,
+                notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+              }));
+              try {
+                localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+              } catch (compactError) {
+                console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+                // If still failing, only save essential user data
+                const minimalUsers = updatedUsers.map(user => ({
+                  id: user.id,
+                  name: user.name,
+                  handle: user.handle,
+                  avatar: user.avatar,
+                  acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+                  trustScore: user.trustScore,
+                  auraCredits: user.auraCredits,
+                  activeGlow: user.activeGlow,
+                }));
+                localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+              }
+            }
+          }
           return updatedUsers;
         });
       }
@@ -789,7 +1194,49 @@ const App: React.FC = () => {
         }
         return u;
       });
-      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      try {
+        localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      } catch (error) {
+        console.error('Failed to save users to localStorage (handleAddAcquaintance):', error);
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          // Clear some space by removing users with minimal data
+          const compactUsers = updatedUsers.map(user => ({
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            name: user.name,
+            handle: user.handle,
+            avatar: user.avatar,
+            avatarType: user.avatarType,
+            acquaintances: user.acquaintances,
+            blockedUsers: user.blockedUsers,
+            trustScore: user.trustScore,
+            auraCredits: user.auraCredits,
+            activeGlow: user.activeGlow,
+            email: user.email,
+            dob: user.dob,
+            bio: user.bio,
+            notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+          }));
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+          } catch (compactError) {
+            console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+            // If still failing, only save essential user data
+            const minimalUsers = updatedUsers.map(user => ({
+              id: user.id,
+              name: user.name,
+              handle: user.handle,
+              avatar: user.avatar,
+              acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+              trustScore: user.trustScore,
+              auraCredits: user.auraCredits,
+              activeGlow: user.activeGlow,
+            }));
+            localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+          }
+        }
+      }
       return updatedUsers;
     });
   }, [currentUser]);
@@ -820,7 +1267,49 @@ const App: React.FC = () => {
         }
         return u;
       });
-      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      try {
+        localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      } catch (error) {
+        console.error('Failed to save users to localStorage (handleAcceptConnection):', error);
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          // Clear some space by removing users with minimal data
+          const compactUsers = updatedUsers.map(user => ({
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            name: user.name,
+            handle: user.handle,
+            avatar: user.avatar,
+            avatarType: user.avatarType,
+            acquaintances: user.acquaintances,
+            blockedUsers: user.blockedUsers,
+            trustScore: user.trustScore,
+            auraCredits: user.auraCredits,
+            activeGlow: user.activeGlow,
+            email: user.email,
+            dob: user.dob,
+            bio: user.bio,
+            notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+          }));
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+          } catch (compactError) {
+            console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+            // If still failing, only save essential user data
+            const minimalUsers = updatedUsers.map(user => ({
+              id: user.id,
+              name: user.name,
+              handle: user.handle,
+              avatar: user.avatar,
+              acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+              trustScore: user.trustScore,
+              auraCredits: user.auraCredits,
+              activeGlow: user.activeGlow,
+            }));
+            localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+          }
+        }
+      }
       return updatedUsers;
     });
 
@@ -845,7 +1334,49 @@ const App: React.FC = () => {
       return u;
     }));
     
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Failed to save user to localStorage (handleRemoveAcquaintance):', error);
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        // Clear some space by removing users with minimal data
+        const compactUsers = allUsers.map(user => ({
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          name: user.name,
+          handle: user.handle,
+          avatar: user.avatar,
+          avatarType: user.avatarType,
+          acquaintances: user.acquaintances,
+          blockedUsers: user.blockedUsers,
+          trustScore: user.trustScore,
+          auraCredits: user.auraCredits,
+          activeGlow: user.activeGlow,
+          email: user.email,
+          dob: user.dob,
+          bio: user.bio,
+          notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
+        }));
+        try {
+          localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
+        } catch (compactError) {
+          console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
+          // If still failing, only save essential user data
+          const minimalUsers = allUsers.map(user => ({
+            id: user.id,
+            name: user.name,
+            handle: user.handle,
+            avatar: user.avatar,
+            acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
+            trustScore: user.trustScore,
+            auraCredits: user.auraCredits,
+            activeGlow: user.activeGlow,
+          }));
+          localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
+        }
+      }
+    }
   }, [currentUser]);
 
   useEffect(() => {

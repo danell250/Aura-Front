@@ -46,12 +46,18 @@ const App: React.FC = () => {
     if (savedSession) {
       try {
         const user = JSON.parse(savedSession);
+        // Find user by ID in the latest users list to get fresh profile data (avatar etc)
         const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
+        // Preserve the avatar and coverImage from the session if they exist and are data URLs or custom uploaded ones
         if (user.avatar && !user.avatar.includes('dicebear.com')) {
-          setCurrentUser({ ...refreshedUser, avatar: user.avatar, avatarType: user.avatarType });
-        } else {
-          setCurrentUser(refreshedUser);
+          refreshedUser.avatar = user.avatar;
+          refreshedUser.avatarType = user.avatarType;
         }
+        if (user.coverImage) {
+          refreshedUser.coverImage = user.coverImage;
+          refreshedUser.coverType = user.coverType;
+        }
+        setCurrentUser(refreshedUser);
         setIsAuthenticated(true);
       } catch (e) { 
         localStorage.removeItem(STORAGE_KEY); 
@@ -135,11 +141,16 @@ const App: React.FC = () => {
     const updatedUser = { ...currentUser, ...updates };
     if (updates.firstName && updates.lastName) updatedUser.name = `${updates.firstName} ${updates.lastName}`;
     setCurrentUser(updatedUser);
+    
+    // Update in allUsers array
     setAllUsers(prev => {
       const updatedUsers = prev.map(u => u.id === currentUser.id ? updatedUser : u);
+      // Save to localStorage immediately
       localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
       return updatedUsers;
     });
+    
+    // Save current user session immediately
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
   };
 

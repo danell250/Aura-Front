@@ -44,48 +44,93 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
   };
 
   const [resetState, setResetState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [uploadingField, setUploadingField] = useState<'avatar' | 'coverImage' | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'coverImage') => {
     const file = e.target.files?.[0];
-    if (file) {
-      console.log('File selected:', file.name, file.type, file.size);
-      try {
-        // Upload file to backend
-        console.log('Starting upload...');
-        const uploadResult = await uploadService.uploadFile(file);
-        console.log('Upload successful:', uploadResult);
-          
-        // Consistent detection logic
+    if (!file) return;
+    
+    console.log('File selected:', file.name, file.type, file.size);
+    
+    // Set uploading state
+    setUploadingField(field);
+    
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      alert('File size must be less than 10MB');
+      setUploadingField(null);
+      return;
+    }
+    
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/ogg'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Please upload an image or video file.');
+      setUploadingField(null);
+      return;
+    }
+    
+    try {
+      // Upload file to backend
+      console.log('Starting upload...');
+      const uploadResult = await uploadService.uploadFile(file);
+      console.log('Upload successful:', uploadResult);
+      
+      // Consistent detection logic
+      const isVideoFile = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
+      const type = isVideoFile ? 'video' : 'image';
+      
+      const typeProperty = field === 'avatar' ? 'avatarType' : 'coverType';
+      
+      // Update form with persistent URL
+      setForm(prev => ({ 
+        ...prev, 
+        [field]: uploadResult.url, 
+        [typeProperty]: type 
+      }));
+      console.log('Form updated with persistent URL:', { [field]: uploadResult.url, [typeProperty]: type });
+      
+      // Immediately update parent component to persist the change
+      const updates: Partial<User> = {
+        [field]: uploadResult.url,
+        [typeProperty]: type
+      };
+      onUpdate(updates);
+      
+    } catch (error) {
+      console.error('Upload failed:', error);
+      
+      // For fallback, create a data URL that can be base64 encoded and saved
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
         const isVideoFile = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
         const type = isVideoFile ? 'video' : 'image';
-          
+        
         const typeProperty = field === 'avatar' ? 'avatarType' : 'coverType';
-          
+        
+        // Use data URL for fallback (this can be saved to localStorage)
         setForm(prev => ({ 
           ...prev, 
-          [field]: uploadResult.url, 
+          [field]: dataUrl, 
           [typeProperty]: type 
         }));
-        console.log('Form updated:', { [field]: uploadResult.url, [typeProperty]: type });
-      } catch (error) {
-        console.error('Upload failed:', error);
-        // Fallback to temporary URL if upload fails
-        console.log('Using fallback URL...');
-        const url = URL.createObjectURL(file);
-        const isVideoFile = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
-        const type = isVideoFile ? 'video' : 'image';
-          
-        const typeProperty = field === 'avatar' ? 'avatarType' : 'coverType';
-          
-        setForm(prev => ({ 
-          ...prev, 
-          [field]: url, 
-          [typeProperty]: type 
-        }));
-        console.log('Fallback form updated:', { [field]: url, [typeProperty]: type });
-      }
+        console.log('Fallback form updated with data URL:', { [field]: dataUrl, [typeProperty]: type });
+        
+        // Immediately update parent with data URL
+        const updates: Partial<User> = {
+          [field]: dataUrl,
+          [typeProperty]: type
+        };
+        onUpdate(updates);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      // Clear uploading state
+      setUploadingField(null);
     }
   };
 
@@ -158,22 +203,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
             <div className="space-y-3">
               <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block ml-1">Profile Photo (GIF/MP4/IMG)</label>
               <div 
-                onClick={() => avatarInputRef.current?.click()}
-                className="w-24 h-24 rounded-3xl overflow-hidden cursor-pointer border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-emerald-400 transition-all shadow-inner relative group bg-slate-50 dark:bg-slate-800"
+                onClick={() => !uploadingField && avatarInputRef.current?.click()}
+                className={`w-24 h-24 rounded-3xl overflow-hidden cursor-pointer border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-emerald-400 transition-all shadow-inner relative group bg-slate-50 dark:bg-slate-800 ${uploadingField === 'avatar' ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {renderPreview(form.avatar, form.avatarType as any, '📸', 'w-full h-full', true)}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[9px] font-black uppercase tracking-widest transition-opacity">Update</div>
+                {uploadingField === 'avatar' ? (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-3xl">
+                    <div className="w-8 h-8 border-3 border-white/30 border-t-transparent animate-spin rounded-full"></div>
+                  </div>
+                ) : (
+                  <>
+                    {renderPreview(form.avatar, form.avatarType as any, '📸', 'w-full h-full', true)}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[9px] font-black uppercase tracking-widest transition-opacity">Update</div>
+                  </>
+                )}
               </div>
               <input type="file" ref={avatarInputRef} hidden accept="image/*,video/*" onChange={e => handleFile(e, 'avatar')} />
             </div>
             <div className="space-y-3">
               <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block ml-1">Cover (GIF/MP4/IMG)</label>
               <div 
-                onClick={() => coverInputRef.current?.click()}
-                className="w-full h-24 rounded-3xl overflow-hidden cursor-pointer border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-emerald-400 transition-all shadow-inner relative group"
+                onClick={() => !uploadingField && coverInputRef.current?.click()}
+                className={`w-full h-24 rounded-3xl overflow-hidden cursor-pointer border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-emerald-400 transition-all shadow-inner relative group ${uploadingField === 'coverImage' ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {renderPreview(form.coverImage, form.coverType as any, '🏞️', 'w-full h-full', false)}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[9px] font-black uppercase tracking-widest transition-opacity">Update</div>
+                {uploadingField === 'coverImage' ? (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-3xl">
+                    <div className="w-8 h-8 border-3 border-white/30 border-t-transparent animate-spin rounded-full"></div>
+                  </div>
+                ) : (
+                  <>
+                    {renderPreview(form.coverImage, form.coverType as any, '🏞️', 'w-full h-full', false)}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[9px] font-black uppercase tracking-widest transition-opacity">Update</div>
+                  </>
+                )}
               </div>
               <input type="file" ref={coverInputRef} hidden accept="image/*,video/*" onChange={e => handleFile(e, 'coverImage')} />
             </div>

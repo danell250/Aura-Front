@@ -165,7 +165,11 @@ const App: React.FC = () => {
         }
       }
       
-      localStorage.setItem(USERS_KEY, JSON.stringify(usersToProcess));
+      try {
+        localStorage.setItem(USERS_KEY, JSON.stringify(usersToProcess));
+      } catch (err) {
+        console.error('Failed to save users to localStorage (QuotaExceeded):', err);
+      }
       
       setAllUsers(usersToProcess);
 
@@ -200,7 +204,11 @@ const App: React.FC = () => {
           // Update user in allUsers array
           const updatedUsers = usersToProcess.map(u => u.id === refreshedUser!.id ? refreshedUser! : u);
           setAllUsers(updatedUsers);
-          localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+          } catch (err) {
+            console.error('Failed to save updated users to localStorage:', err);
+          }
         } else {
           // If user not found in usersToProcess, add session user to the list
           refreshedUser = {
@@ -210,7 +218,11 @@ const App: React.FC = () => {
           };
           const updatedUsers = [...usersToProcess, refreshedUser];
           setAllUsers(updatedUsers);
-          localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+          } catch (err) {
+            console.error('Failed to save new session user to localStorage:', err);
+          }
         }
         
         setCurrentUser(refreshedUser);
@@ -246,7 +258,11 @@ const App: React.FC = () => {
       }
       
       setPosts(postsToUse);
-      localStorage.setItem(POSTS_KEY, JSON.stringify(postsToUse));
+      try {
+        localStorage.setItem(POSTS_KEY, JSON.stringify(postsToUse));
+      } catch (err) {
+        console.error('Failed to save posts to localStorage:', err);
+      }
 
       // Load ads - always use INITIAL_ADS for development
       const savedAds = localStorage.getItem(ADS_KEY);
@@ -295,7 +311,11 @@ const App: React.FC = () => {
 
   useEffect(() => { 
     if (!loading) {
-      localStorage.setItem(POSTS_KEY, JSON.stringify(posts)); 
+      try {
+        localStorage.setItem(POSTS_KEY, JSON.stringify(posts)); 
+      } catch (err) {
+        console.error('Failed to save posts to localStorage (effect):', err);
+      }
     }
   }, [posts, loading]);
   

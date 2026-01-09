@@ -3,50 +3,60 @@ import React, { useState } from 'react';
 interface ShareModalProps {
   content: string;
   url: string;
+  title?: string;
   onClose: () => void;
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ content, url, onClose }) => {
+const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, onClose }) => {
   const [copied, setCopied] = useState(false);
-  const shareUrl = `${window.location.origin}/${url}`;
-  const shareText = `${content}\n\nShared from AURA`;
+  const baseUrl = 'https://auraradiance.netlify.app';
+  const shareUrl = `${baseUrl}/${url}`;
+  const shareTitle = title || 'Check out this post on Aura';
+  const shareText = `${content}\n\n${shareUrl}`;
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+    navigator.clipboard.writeText(shareText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const socialPlatforms = [
     { 
-      name: 'AURA', 
-      icon: '✨', 
-      color: 'bg-emerald-500 text-white',
-      link: `https://aura-socialrzip--aurasocialradia.replit.app/post/${url.split('/').pop()}`
-    },
-    { 
-      name: 'Instagram', 
-      icon: '📸', 
-      color: 'bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white',
-      link: `https://www.instagram.com/` 
-    },
-    { 
       name: 'X', 
       icon: '𝕏', 
       color: 'bg-black text-white',
-      link: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`
+      link: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareTitle}\n${content}`)}&url=${encodeURIComponent(shareUrl)}`
     },
     { 
       name: 'LinkedIn', 
       icon: 'in', 
       color: 'bg-[#0077b5] text-white',
-      link: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&summary=${encodeURIComponent(shareText)}`
+      link: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}&summary=${encodeURIComponent(content)}`
     },
     { 
       name: 'Facebook', 
       icon: 'f', 
       color: 'bg-[#1877f2] text-white',
-      link: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`
+      link: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(`${shareTitle}\n${content}`)}`
+    },
+    { 
+      name: 'Instagram', 
+      icon: '📸', 
+      color: 'bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white',
+      link: '#', // Instagram doesn't support direct sharing, will copy to clipboard
+      action: 'copy'
+    },
+    { 
+      name: 'Threads', 
+      icon: '🧵', 
+      color: 'bg-black text-white',
+      link: `https://www.threads.net/intent/post?text=${encodeURIComponent(`${shareTitle}\n${content}\n${shareUrl}`)}`
+    },
+    { 
+      name: 'Reddit', 
+      icon: '🤖', 
+      color: 'bg-[#ff4500] text-white',
+      link: `https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}`
     }
   ];
 
@@ -58,18 +68,22 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, onClose }) => {
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">✕</button>
         </div>
 
-        <div className="flex justify-center gap-6 mb-12">
+        <div className="flex justify-center gap-4 mb-12 flex-wrap">
           {socialPlatforms.map(platform => (
-            <a 
+            <button
               key={platform.name}
-              href={platform.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`w-14 h-14 rounded-2xl ${platform.color} flex items-center justify-center text-xl font-black shadow-lg hover:scale-110 transition-transform active:scale-90`}
+              onClick={() => {
+                if (platform.action === 'copy') {
+                  copyToClipboard();
+                } else {
+                  window.open(platform.link, '_blank', 'noopener,noreferrer');
+                }
+              }}
+              className={`w-12 h-12 rounded-xl ${platform.color} flex items-center justify-center text-lg font-black shadow-lg hover:scale-110 transition-transform active:scale-90`}
               title={`Share to ${platform.name}`}
             >
               {platform.icon}
-            </a>
+            </button>
           ))}
         </div>
 

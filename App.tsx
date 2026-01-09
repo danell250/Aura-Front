@@ -16,6 +16,7 @@ import ShareModal from './components/ShareModal';
 import CreditStoreModal from './components/CreditStoreModal';
 import FeedFilters from './components/FeedFilters';
 import Logo from './components/Logo';
+import { useMetaTags } from './hooks/useMetaTags';
 import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
 import { geminiService } from './services/gemini';
@@ -49,9 +50,42 @@ const App: React.FC = () => {
   const [isAdManagerOpen, setIsAdManagerOpen] = useState(false);
   const [isCreditStoreOpen, setIsCreditStoreOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
+  const [sharingContent, setSharingContent] = useState<{ content: string; url: string; title?: string } | null>(null);
   
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string}>({ type: 'feed' });
+
+  // Set up meta tags for the current page
+  const getMetaInfo = useCallback(() => {
+    const baseUrl = 'https://auraradiance.netlify.app';
+    
+    if (view.type === 'profile' && view.targetId) {
+      const profileUser = allUsers.find(u => u.id === view.targetId) || currentUser;
+      return {
+        title: `${profileUser.name} | Aura Profile`,
+        description: `Connect with ${profileUser.name} on Aura - ${profileUser.bio || 'Professional social network'}`,
+        url: `${baseUrl}/profile/${view.targetId}`,
+        type: 'profile' as const
+      };
+    }
+    
+    if (sharingContent) {
+      return {
+        title: `Post on Aura | ${sharingContent.content.substring(0, 50)}...`,
+        description: sharingContent.content,
+        url: `${baseUrl}/${sharingContent.url}`,
+        type: 'article' as const
+      };
+    }
+    
+    return {
+      title: 'Aura | Connect & Radiate',
+      description: 'Establish your professional frequency on Aura, the world\'s most elegant social network. Connect, radiate, and broadcast your professional pulse.',
+      url: baseUrl,
+      type: 'website' as const
+    };
+  }, [view, sharingContent, allUsers, currentUser]);
+
+  useMetaTags(getMetaInfo());
 
   const syncBirthdays = useCallback(async (users: User[]) => {
     const today = new Date();
@@ -509,8 +543,8 @@ const App: React.FC = () => {
                 /* Fix: Wrap handleReact to satisfy BirthdayPost's onReact signature requiring only 2 arguments while passing targetType: 'post' internally. */
                 if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} />;
                 return 'content' in item 
-                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => setSharingContent({content: p.content, url: `p/${p.id}`})} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} />
-                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`})} />
+                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`})} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} />
+                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`, title: `${ad.company} on Aura`})} />
               })
             )}
           </div>

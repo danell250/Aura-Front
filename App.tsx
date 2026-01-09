@@ -47,16 +47,29 @@ const App: React.FC = () => {
       try {
         const user = JSON.parse(savedSession);
         // Find user by ID in the latest users list to get fresh profile data (avatar etc)
-        const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
-        // Preserve the avatar and coverImage from the session if they exist and are data URLs or custom uploaded ones
-        if (user.avatar && !user.avatar.includes('dicebear.com')) {
-          refreshedUser.avatar = user.avatar;
-          refreshedUser.avatarType = user.avatarType;
+        let refreshedUser = usersToProcess.find((u: User) => u.id === user.id);
+        
+        if (refreshedUser) {
+          // Merge the persistent data from the session with the refreshed user data
+          refreshedUser = {
+            ...refreshedUser,
+            // Preserve the avatar and coverImage from the session if they exist and are data URLs or custom uploaded ones
+            avatar: (user.avatar && !user.avatar.includes('dicebear.com')) ? user.avatar : refreshedUser.avatar,
+            avatarType: (user.avatar && !user.avatar.includes('dicebear.com')) ? user.avatarType : refreshedUser.avatarType,
+            coverImage: user.coverImage ? user.coverImage : refreshedUser.coverImage,
+            coverType: user.coverType ? user.coverType : refreshedUser.coverType,
+            // Preserve user-specific data that might have changed
+            auraCredits: user.auraCredits || refreshedUser.auraCredits,
+            trustScore: user.trustScore || refreshedUser.trustScore,
+            activeGlow: user.activeGlow || refreshedUser.activeGlow,
+            acquaintances: user.acquaintances || refreshedUser.acquaintances,
+            blockedUsers: user.blockedUsers || refreshedUser.blockedUsers,
+          };
+        } else {
+          // If user not found in usersToProcess, use the session user as-is
+          refreshedUser = user;
         }
-        if (user.coverImage) {
-          refreshedUser.coverImage = user.coverImage;
-          refreshedUser.coverType = user.coverType;
-        }
+        
         setCurrentUser(refreshedUser);
         setIsAuthenticated(true);
       } catch (e) { 

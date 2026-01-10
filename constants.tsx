@@ -1991,3 +1991,5 @@ export const INITIAL_POSTS: Post[] = [
     hashtags: ['mentalhealth', 'wellbeing', 'workplaceculture', 'leadership']
   },
 ];
+
+export const BACKEND_URL = process.env.BACKEND_URL || 'https://aura-back-s1bw.onrender.com';

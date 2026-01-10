@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Post } from '../types';
 import { geminiService } from '../services/gemini';
 import Logo from './Logo';
+import { BACKEND_URL } from '../constants';
 
 interface DataAuraViewProps {
   currentUser: User;
@@ -58,7 +59,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
 
   const loadPrivacySettings = async () => {
     try {
-      const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/privacy-settings`);
+      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/privacy-settings`);
       if (response.ok) {
         const data = await response.json();
         setPrivacySettings(data.data);
@@ -93,7 +94,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
     setPrivacySettings(updatedSettings);
 
     try {
-      await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/privacy-settings`, {
+      await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/privacy-settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [key]: value })
@@ -108,7 +109,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
   const exportPrivacyData = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/privacy-data`);
+      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/privacy-data`);
       if (response.ok) {
         const data = await response.json();
         
@@ -144,7 +145,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/clear-data`, {
+      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/clear-data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -155,10 +156,13 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
 
       if (response.ok) {
         const data = await response.json();
-        alert(`✅ ${data.message}\n\nData types deleted:\n${data.dataTypes.join('\n')}`);
+        alert(`✅ ${data.message}
+
+Data types deleted:
+${data.dataTypes.join('\n')}`);
         
-        // Clear local session and redirect to login
-        localStorage.clear();
+        // Clear session and redirect to login
+        localStorage.removeItem('aura_session');
         sessionStorage.clear();
         window.location.href = '/';
       } else {
@@ -180,10 +184,10 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
     .filter((u): u is User => u !== undefined);
 
   const stats = [
-    { label: 'Connections', value: currentUser.acquaintances?.length || 0, icon: '🤝' },
-    { label: 'Radiance Generated', value: posts.reduce((acc, p) => acc + p.radiance, 0), icon: '✨' },
-    { label: 'Total Posts', value: posts.length, icon: '📡' },
-    { label: 'Trust Calibration', value: `${currentUser.trustScore}%`, icon: '🛡️' }
+    { label: 'Connections', value: currentUser.acquaintances?.length || 0, icon: 'C' },
+    { label: 'Radiance Generated', value: posts.reduce((acc, p) => acc + p.radiance, 0), icon: 'R' },
+    { label: 'Total Posts', value: posts.length, icon: 'P' },
+    { label: 'Trust Calibration', value: `${currentUser.trustScore}%`, icon: 'T' }
   ];
 
   return (
@@ -204,7 +208,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
             <p className="text-[11px] font-black text-emerald-600 uppercase tracking-[0.4em] mt-2">Privacy Transparency & Sovereignty</p>
             <div className="mt-8 flex items-center gap-6">
                 <div onClick={onOpenCreditStore} className="bg-slate-900 dark:bg-slate-800 text-white px-8 py-4 rounded-3xl shadow-xl flex items-center gap-4 border border-white/5 cursor-pointer hover:scale-105 transition-transform">
-                <span className="text-2xl">💎</span>
+                <span className="text-2xl">NC</span>
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Neural Credits</p>
                   <p className="text-xl font-black">{currentUser?.auraCredits?.toLocaleString() || '0'}</p>
@@ -216,7 +220,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-14">
           {stats.map((s, i) => (
             <div key={i} className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 text-center group hover:bg-white dark:hover:bg-slate-800 transition-all">
-              <span className="text-3xl block mb-3 group-hover:scale-110 transition-transform">{s.icon}</span>
+              <span className="text-3xl block mb-3 group-hover:scale-110 transition-transform font-bold">{s.icon}</span>
               <p className="text-2xl font-black text-slate-900 dark:text-slate-100">{s.value}</p>
               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">{s.label}</p>
             </div>
@@ -224,7 +228,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
         </div>
         <div className="border-t border-slate-100 dark:border-slate-800 pt-10">
           <div className="flex items-center gap-3 mb-8">
-            <span className="text-2xl">🧠</span>
+            <span className="text-2xl">PI</span>
             <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-slate-100">Privacy Insights</h3>
           </div>
           <div className={`p-8 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-[2.5rem] border border-emerald-100/50 dark:border-emerald-800/30 relative overflow-hidden min-h-[120px] ${loading ? 'animate-pulse' : ''}`}>
@@ -239,7 +243,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
         {/* Privacy Settings */}
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
           <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3">
-            <span className="text-xl">🔒</span> Privacy Controls
+            <span className="text-xl">PC</span> Privacy Controls
           </h3>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 leading-relaxed">
             Manage your privacy settings and data preferences.
@@ -255,7 +259,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
         {/* Data Export */}
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
           <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3">
-            <span className="text-xl">📥</span> Data Export
+            <span className="text-xl">DE</span> Data Export
           </h3>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 leading-relaxed">
             Download a complete copy of your personal data.
@@ -271,7 +275,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
         {/* Profile Viewers */}
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
           <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3">
-            <span className="text-xl">👁️</span> Profile Viewers
+            <span className="text-xl">PV</span> Profile Viewers
           </h3>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 leading-relaxed">
             Recent visitors to your profile.
@@ -297,7 +301,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
       {/* Glow Enhancement */}
       <div className="grid md:grid-cols-2 gap-8 mb-8">
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-200 dark:border-slate-800 shadow-xl">
-          <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-8 flex items-center gap-3"><span className="text-xl">🎨</span> Enhance My Presence</h3>
+          <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-8 flex items-center gap-3"><span className="text-xl">EP</span> Enhance My Presence</h3>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 leading-relaxed">Spend Neural Credits to unlock professional profile glows.</p>
           <div className="space-y-4">
             <GlowOption name="Emerald Brilliance" price={100} color="bg-emerald-500" onClick={() => onPurchaseGlow('emerald')} />
@@ -308,7 +312,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
 
         {/* Data Sovereignty */}
         <div className="bg-rose-50 dark:bg-rose-950/10 rounded-[3rem] p-10 border border-rose-100 dark:border-rose-900/30 shadow-xl">
-          <h3 className="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-8 flex items-center gap-3"><span className="text-xl">⚠️</span> Data Sovereignty</h3>
+          <h3 className="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-8 flex items-center gap-3"><span className="text-xl">DS</span> Data Sovereignty</h3>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">Execute a total reset of your digital footprint on the network. This action cannot be reversed.</p>
           <button 
             onClick={() => setShowDeleteConfirm(true)} 

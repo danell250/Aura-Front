@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { APP_NAME } from '../constants';
 import { User, Ad, Notification, Post } from '../types';
 import Logo from './Logo';

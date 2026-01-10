@@ -347,7 +347,8 @@ export class SearchService {
         return (result.data as Post).timestamp >= cutoffTime;
       }
       if (result.type === 'ad') {
-        return (result.data as Ad).timestamp ? (result.data as Ad).timestamp! >= cutoffTime : true;
+        // Ads don't have timestamps, so include all ads in date filtering
+        return true;
       }
       return true; // Users and hashtags don't have timestamps
     });
@@ -382,7 +383,8 @@ export class SearchService {
       return (result.data as Post).timestamp;
     }
     if (result.type === 'ad') {
-      return (result.data as Ad).timestamp || 0;
+      // Ads don't have timestamps, use current time
+      return Date.now();
     }
     return 0;
   }

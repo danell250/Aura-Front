@@ -17,7 +17,7 @@ import CreditStoreModal from './CreditStoreModal';
 import FeedFilters from './FeedFilters';
 import Logo from './Logo';
 import { useMetaTags } from '../hooks/useMetaTags';
-import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from '../constants';
+import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES, BACKEND_URL } from '../constants';
 import { SearchResult } from '../services/searchService';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from '../types';
 import { geminiService } from '../services/gemini';
@@ -436,7 +436,18 @@ const AppContent: React.FC<AppContentProps> = ({
       onViewFriends={() => { setView({ type: 'acquaintances' }); navigate('/acquaintances'); }} 
       onViewPrivacy={() => { setView({ type: 'data_aura' }); navigate('/data-aura'); }}
       onGoHome={() => { setView({ type: 'feed' }); setActiveEnergy('all'); setSearchQuery(''); navigate('/'); }} 
-      onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} 
+      onViewProfile={(id) => { 
+        // Record profile view if it's not the current user's own profile
+        if (currentUser.id !== id) {
+          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewerId: currentUser.id })
+          }).catch(err => console.log('Failed to record profile view:', err));
+        }
+        setView({ type: 'profile', targetId: id }); 
+        navigate(`/profile/${id}`); 
+      }} 
       ads={ads} posts={posts} users={allUsers} notifications={notifications}
       onOpenCreditStore={() => setIsCreditStoreOpen(true)}
       onSearchResult={handleSearchResult}
@@ -471,9 +482,31 @@ const AppContent: React.FC<AppContentProps> = ({
             ) : (
               processedFeedItems.map((item) => {
                 /* Fix: Wrap handleReact to satisfy BirthdayPost's onReact signature requiring only 2 arguments while passing targetType: 'post' internally. */
-                if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} />;
+                if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => { 
+        // Record profile view if it's not the current user's own profile
+        if (currentUser.id !== id) {
+          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewerId: currentUser.id })
+          }).catch(err => console.log('Failed to record profile view:', err));
+        }
+        setView({ type: 'profile', targetId: id }); 
+        navigate(`/profile/${id}`); 
+      }} />;
                 return 'content' in item 
-                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl, originalPost: p}); }} onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />
+                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl, originalPost: p}); }} onViewProfile={(id) => { 
+              // Record profile view if it's not the current user's own profile
+              if (currentUser.id !== id) {
+                fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ viewerId: currentUser.id })
+                }).catch(err => console.log('Failed to record profile view:', err));
+              }
+              setView({ type: 'profile', targetId: id }); 
+              navigate(`/profile/${id}`); 
+            }} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />
                   : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`, title: `${ad.ownerName} on Aura`, image: ad.mediaUrl})} onSearchTag={setSearchQuery} />
               })
             )}
@@ -490,7 +523,18 @@ const AppContent: React.FC<AppContentProps> = ({
           onLike={handleLike} 
           onComment={handleComment} 
           onReact={handleReact} 
-          onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} 
+          onViewProfile={(id) => { 
+        // Record profile view if it's not the current user's own profile
+        if (currentUser.id !== id) {
+          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewerId: currentUser.id })
+          }).catch(err => console.log('Failed to record profile view:', err));
+        }
+        setView({ type: 'profile', targetId: id }); 
+        navigate(`/profile/${id}`); 
+      }} 
           onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl, originalPost: p}); }} 
           onAddAcquaintance={handleAddAcquaintance} 
           onRemoveAcquaintance={handleRemoveAcquaintance} 
@@ -507,13 +551,35 @@ const AppContent: React.FC<AppContentProps> = ({
         <AcquaintancesView 
           currentUser={currentUser} 
           acquaintances={allUsers.filter(u => (currentUser?.acquaintances || []).includes(u.id))} 
-          onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} 
+          onViewProfile={(id) => { 
+        // Record profile view if it's not the current user's own profile
+        if (currentUser.id !== id) {
+          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewerId: currentUser.id })
+          }).catch(err => console.log('Failed to record profile view:', err));
+        }
+        setView({ type: 'profile', targetId: id }); 
+        navigate(`/profile/${id}`); 
+      }} 
           onViewChat={(id) => { setView({ type: 'chat', targetId: id }); navigate(`/chat/${id}`); }} 
           onRemoveAcquaintance={handleRemoveAcquaintance} 
           onBack={() => { setView({ type: 'feed' }); navigate('/'); }} 
         />
       )}
-      {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} onPurchaseGlow={(glow) => handleUpdateProfile({ activeGlow: glow })} onClearData={() => {}} onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
+      {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} onPurchaseGlow={(glow) => handleUpdateProfile({ activeGlow: glow })} onClearData={() => {}} onViewProfile={(id) => { 
+        // Record profile view if it's not the current user's own profile
+        if (currentUser.id !== id) {
+          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewerId: currentUser.id })
+          }).catch(err => console.log('Failed to record profile view:', err));
+        }
+        setView({ type: 'profile', targetId: id }); 
+        navigate(`/profile/${id}`); 
+      }} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
       {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={(ad) => setAds([ad, ...ads])} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}
       {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} onCreditsPurchased={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}

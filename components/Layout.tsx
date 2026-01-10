@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { APP_NAME } from '../constants';
 import { User, Ad, Notification, Post } from '../types';
 import Logo from './Logo';
-import SearchModal from './SearchModal';
+import SearchDropdown from './SearchDropdown';
 import TrendingTopics from './TrendingTopics';
 import { SearchResult } from '../services/searchService';
 
@@ -38,24 +38,24 @@ const Layout: React.FC<LayoutProps> = ({
   onViewSettings, onViewPrivacy, onStartCampaign, onOpenCreditStore, ads, posts, users, notifications,
   activeView, isDarkMode, onToggleDarkMode, onSearchResult, onSearchTag
 }) => {
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  // Keyboard shortcut for search (Ctrl/Cmd + K)
+  // Keyboard shortcut for search focus (Ctrl/Cmd + K)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
         event.preventDefault();
-        setIsSearchModalOpen(true);
-      }
-      if (event.key === 'Escape' && isSearchModalOpen) {
-        setIsSearchModalOpen(false);
+        // Focus the search input
+        const searchInput = document.querySelector('input[placeholder*="Search Aura Network"]') as HTMLInputElement;
+        if (searchInput) {
+          searchInput.focus();
+        }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isSearchModalOpen]);
+  }, []);
 
   const renderMedia = (url: string, type: 'image' | 'video' | undefined, className: string) => {
     if (!url) return <div className={`${className} bg-slate-200 dark:bg-slate-800`}></div>;
@@ -81,25 +81,39 @@ const Layout: React.FC<LayoutProps> = ({
         </div>
 
         <div className="flex-1 max-w-xl mx-12 hidden md:block">
-          <div className="relative group">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </span>
-            <input 
-              type="text" 
-              value={searchQuery} 
-              onChange={(e) => onSearchChange(e.target.value)} 
-              onFocus={() => setIsSearchModalOpen(true)}
-              placeholder="Search Aura Network... (⌘K)" 
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-6 py-2 focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500/30 transition-all text-sm font-medium outline-none cursor-pointer" 
-              readOnly
-            />
-          </div>
+          <SearchDropdown
+            posts={posts}
+            users={users}
+            ads={ads}
+            searchQuery={searchQuery}
+            onSearchChange={onSearchChange}
+            onSelectResult={(result) => {
+              if (onSearchResult) {
+                onSearchResult(result);
+              }
+            }}
+            placeholder="Search Aura Network... (⌘K)"
+          />
         </div>
 
         <div className="flex items-center space-x-2">
+          {/* Mobile Search Button */}
+          <button 
+            onClick={() => {
+              const searchInput = document.querySelector('input[placeholder*="Search Aura Network"]') as HTMLInputElement;
+              if (searchInput) {
+                searchInput.focus();
+                searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }}
+            className="md:hidden p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="Open search"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+          
           <button onClick={onToggleDarkMode} className="p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
             {isDarkMode ? (
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -123,6 +137,23 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         </div>
       </header>
+
+      {/* Mobile Search Bar */}
+      <div className="md:hidden px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800">
+        <SearchDropdown
+          posts={posts}
+          users={users}
+          ads={ads}
+          searchQuery={searchQuery}
+          onSearchChange={onSearchChange}
+          onSelectResult={(result) => {
+            if (onSearchResult) {
+              onSearchResult(result);
+            }
+          }}
+          placeholder="Search Aura Network..."
+        />
+      </div>
 
       <div className="flex-1 max-w-[1400px] w-full mx-auto px-4 py-8 flex gap-8">
         <aside className="hidden lg:flex flex-col w-64 space-y-6 sticky top-28 self-start max-h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar pb-10">
@@ -194,22 +225,6 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         </aside>
       </div>
-
-      {/* Search Modal */}
-      <SearchModal
-        isOpen={isSearchModalOpen}
-        onClose={() => setIsSearchModalOpen(false)}
-        posts={posts}
-        users={users}
-        ads={ads}
-        onSelectResult={(result) => {
-          if (onSearchResult) {
-            onSearchResult(result);
-          }
-          setIsSearchModalOpen(false);
-        }}
-        initialQuery={searchQuery}
-      />
     </div>
   );
 };

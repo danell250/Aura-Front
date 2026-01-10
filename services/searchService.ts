@@ -131,11 +131,46 @@ export class SearchService {
       const matchedFields: string[] = [];
       let relevance = 0;
 
-      // Search in name
+      // Search in full name
       const nameMatches = this.calculateRelevance(searchTerms, user.name.toLowerCase());
       if (nameMatches > 0) {
         matchedFields.push('name');
         relevance += nameMatches * 4; // Name matches are very relevant
+      }
+
+      // Search in first name
+      if (user.firstName) {
+        const firstNameMatches = this.calculateRelevance(searchTerms, user.firstName.toLowerCase());
+        if (firstNameMatches > 0) {
+          matchedFields.push('firstName');
+          relevance += firstNameMatches * 4;
+        }
+      }
+
+      // Search in last name
+      if (user.lastName) {
+        const lastNameMatches = this.calculateRelevance(searchTerms, user.lastName.toLowerCase());
+        if (lastNameMatches > 0) {
+          matchedFields.push('lastName');
+          relevance += lastNameMatches * 4;
+        }
+      }
+
+      // Search for full name combinations (first + last)
+      if (user.firstName && user.lastName) {
+        const fullNameCombinations = [
+          `${user.firstName} ${user.lastName}`.toLowerCase(),
+          `${user.lastName} ${user.firstName}`.toLowerCase(),
+          `${user.firstName}${user.lastName}`.toLowerCase()
+        ];
+        
+        fullNameCombinations.forEach(combination => {
+          const combinationMatches = this.calculateRelevance(searchTerms, combination);
+          if (combinationMatches > 0) {
+            matchedFields.push('fullName');
+            relevance += combinationMatches * 5; // Full name combinations get highest relevance
+          }
+        });
       }
 
       // Search in handle

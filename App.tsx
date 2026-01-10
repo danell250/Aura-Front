@@ -156,22 +156,47 @@ const App: React.FC = () => {
           loadedPosts = INITIAL_POSTS.slice(0, 20); // Only use 20 posts to be safe
           loadedAds = INITIAL_ADS; // Ads are small, should be fine
         } else {
-          // Production mode - try backend API first, fall back to mock data if not available
-          console.log('Production mode: Trying backend API, falling back to mock data if needed');
+          // Production mode - prioritize localStorage, then merge with backend data
+          console.log('Production mode: Prioritizing localStorage, then merging with backend');
           
-          // Load users from backend API, fall back to mock data
+          // Load from localStorage first
+          try {
+            const localUsers = localStorage.getItem(USERS_KEY);
+            if (localUsers) {
+              loadedUsers = JSON.parse(localUsers);
+              console.log('Loaded users from localStorage:', loadedUsers.length);
+            }
+          } catch (error) {
+            console.log('Failed to load users from localStorage:', error);
+            loadedUsers = MOCK_USERS;
+          }
+          
+          // Merge with backend users (add new users from backend that aren't in localStorage)
           try {
             const response = await fetch('https://aura-back-s1bw.onrender.com/api/users');
             if (response.ok) {
-              const users = await response.json();
-              loadedUsers = Array.isArray(users) ? users : MOCK_USERS;
+              const backendData = await response.json();
+              const backendUsers = backendData.data || backendData;
+              if (Array.isArray(backendUsers)) {
+                // Add backend users that aren't already in localStorage
+                backendUsers.forEach((backendUser: any) => {
+                  const existsInLocal = loadedUsers.some(localUser => 
+                    localUser.id === backendUser.id || 
+                    localUser.email?.toLowerCase() === backendUser.email?.toLowerCase()
+                  );
+                  if (!existsInLocal) {
+                    loadedUsers.push(backendUser);
+                  }
+                });
+                console.log('Merged with backend users, total:', loadedUsers.length);
+              }
             } else {
-              console.log('Backend users endpoint not available, using mock data');
-              loadedUsers = MOCK_USERS;
+              console.log('Backend users endpoint not available, using localStorage/mock data');
+              if (loadedUsers.length === 0) loadedUsers = MOCK_USERS;
             }
           } catch (error) {
-            console.log('Backend users endpoint not available, using mock data:', error.message);
-            loadedUsers = MOCK_USERS;
+            console.log('Backend users endpoint not available, using localStorage/mock data:', error.message);
+            if (loadedUsers.length === 0) loadedUsers = MOCK_USERS;
           }
 
           // Load posts from backend API, fall back to mock data
@@ -385,14 +410,39 @@ const App: React.FC = () => {
     });
   };
 
-  const handleLogin = (userData: any) => {
+  const handleLogin = async (userData: any) => {
     try {
       console.log('Login attempt:', userData);
       
       // Normalize email for comparison
       const normalizedEmail = userData.email?.toLowerCase().trim();
       
-      // Find existing user by email, handle, or id
+      // First, try to find user in backend
+      let backendUser = null;
+      try {
+        const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users`);
+        if (response.ok) {
+          const backendUsers = await response.json();
+          const users = backendUsers.data || backendUsers;
+          if (Array.isArray(users)) {
+            backendUser = users.find((u: any) => {
+              const uEmail = u.email?.toLowerCase().trim();
+              const uHandle = u.handle?.toLowerCase().trim();
+              const dataHandle = userData.handle?.toLowerCase().trim();
+              
+              return (
+                (normalizedEmail && uEmail === normalizedEmail) || 
+                (dataHandle && uHandle === dataHandle) || 
+                (userData.id && u.id === userData.id)
+              );
+            });
+          }
+        }
+      } catch (error) {
+        console.log('Backend user lookup failed:', error);
+      }
+      
+      // Find existing user in local storage
       const existingUser = allUsers.find(u => {
         const uEmail = u.email?.toLowerCase().trim();
         const uHandle = u.handle?.toLowerCase().trim();
@@ -405,22 +455,38 @@ const App: React.FC = () => {
         );
       });
 
-      if (existingUser) {
+      if (backendUser || existingUser) {
         console.log('Found existing user, logging in...');
         const isSpecialUser = normalizedEmail === 'danelloosthuizen3@gmail.com';
         
+        // Use backend user if available, otherwise use local user
+        const baseUser = backendUser || existingUser;
+        
         // Update existing user with any new data from login (e.g., updated avatar from Google)
         const updatedUser: User = {
-          ...existingUser,
-          avatar: userData.avatar || existingUser.avatar,
-          avatarType: userData.avatarType || existingUser.avatarType || 'image',
-          email: normalizedEmail || existingUser.email,
-          firstName: userData.firstName || existingUser.firstName,
-          lastName: userData.lastName || existingUser.lastName,
-          name: userData.name || existingUser.name || `${existingUser.firstName} ${existingUser.lastName}`.trim(),
-          // Special user gets unlimited credits
-          auraCredits: isSpecialUser ? 999999 : existingUser.auraCredits,
+          ...baseUser,
+          avatar: userData.avatar || baseUser.avatar,
+          avatarType: userData.avatarType || baseUser.avatarType || 'image',
+          email: normalizedEmail || baseUser.email,
+          firstName: userData.firstName || baseUser.firstName,
+          lastName: userData.lastName || baseUser.lastName,
+          name: userData.name || baseUser.name || `${baseUser.firstName} ${baseUser.lastName}`.trim(),
+          // Special user gets unlimited credits, others keep their existing credits
+          auraCredits: isSpecialUser ? 999999 : baseUser.auraCredits,
         };
+        
+        // Update backend if user exists there
+        if (backendUser) {
+          try {
+            await fetch(`https://aura-back-s1bw.onrender.com/api/users/${backendUser.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updatedUser)
+            });
+          } catch (error) {
+            console.log('Failed to update user in backend:', error);
+          }
+        }
         
         // Update in allUsers array
         const updatedUsers = allUsers.map(u => u.id === updatedUser.id ? updatedUser : u);
@@ -432,44 +498,6 @@ const App: React.FC = () => {
           localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
         } catch (error) {
           console.error('Failed to save users to localStorage (handleLogin - existing user):', error);
-          if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-            // Clear some space by removing users with minimal data
-            const compactUsers = updatedUsers.map(user => ({
-              id: user.id,
-              firstName: user.firstName,
-              lastName: user.lastName,
-              name: user.name,
-              handle: user.handle,
-              avatar: user.avatar,
-              avatarType: user.avatarType,
-              acquaintances: user.acquaintances,
-              blockedUsers: user.blockedUsers,
-              trustScore: user.trustScore,
-              auraCredits: user.auraCredits,
-              activeGlow: user.activeGlow,
-              email: user.email,
-              dob: user.dob,
-              bio: user.bio,
-              notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
-            }));
-            try {
-              localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
-            } catch (compactError) {
-              console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
-              // If still failing, only save essential user data
-              const minimalUsers = updatedUsers.map(user => ({
-                id: user.id,
-                name: user.name,
-                handle: user.handle,
-                avatar: user.avatar,
-                acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
-                trustScore: user.trustScore,
-                auraCredits: user.auraCredits,
-                activeGlow: user.activeGlow,
-              }));
-              localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
-            }
-          }
         }
         return;
       }
@@ -517,6 +545,24 @@ const App: React.FC = () => {
       };
       
       console.log('Creating new user:', newUser);
+      
+      // Save to backend first
+      try {
+        const response = await fetch('https://aura-back-s1bw.onrender.com/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newUser)
+        });
+        
+        if (response.ok) {
+          console.log('User saved to backend successfully');
+        } else {
+          console.log('Failed to save user to backend, continuing with local storage');
+        }
+      } catch (error) {
+        console.log('Backend save failed, continuing with local storage:', error);
+      }
+      
       const updatedUsers = [...allUsers, newUser];
       setAllUsers(updatedUsers);
       setCurrentUser(newUser);
@@ -527,44 +573,6 @@ const App: React.FC = () => {
         localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
       } catch (error) {
         console.error('Failed to save users to localStorage (handleLogin - new user):', error);
-        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-          // Clear some space by removing users with minimal data
-          const compactUsers = updatedUsers.map(user => ({
-            id: user.id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            name: user.name,
-            handle: user.handle,
-            avatar: user.avatar,
-            avatarType: user.avatarType,
-            acquaintances: user.acquaintances,
-            blockedUsers: user.blockedUsers,
-            trustScore: user.trustScore,
-            auraCredits: user.auraCredits,
-            activeGlow: user.activeGlow,
-            email: user.email,
-            dob: user.dob,
-            bio: user.bio,
-            notifications: user.notifications?.slice(0, 5), // Only keep recent notifications
-          }));
-          try {
-            localStorage.setItem(USERS_KEY, JSON.stringify(compactUsers));
-          } catch (compactError) {
-            console.error('Even compacted users exceeded quota, saving minimal data:', compactError);
-            // If still failing, only save essential user data
-            const minimalUsers = updatedUsers.map(user => ({
-              id: user.id,
-              name: user.name,
-              handle: user.handle,
-              avatar: user.avatar,
-              acquaintances: user.acquaintances?.slice(0, 10), // Limit connections
-              trustScore: user.trustScore,
-              auraCredits: user.auraCredits,
-              activeGlow: user.activeGlow,
-            }));
-            localStorage.setItem(USERS_KEY, JSON.stringify(minimalUsers));
-          }
-        }
       }
       console.log('New user created and session saved');
     } catch (error) {
@@ -573,12 +581,24 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUpdateProfile = (updates: Partial<User>) => {
+  const handleUpdateProfile = async (updates: Partial<User>) => {
     if (!currentUser) return;
     
     const updatedUser = { ...currentUser, ...updates };
     if (updates.firstName && updates.lastName) updatedUser.name = `${updates.firstName} ${updates.lastName}`;
     setCurrentUser(updatedUser);
+    
+    // Update backend first
+    try {
+      await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedUser)
+      });
+      console.log('User updated in backend successfully');
+    } catch (error) {
+      console.log('Failed to update user in backend:', error);
+    }
     
     // Update in allUsers array with quota error handling
     setAllUsers(prev => {

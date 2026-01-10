@@ -4,6 +4,7 @@ import { APP_NAME } from '../constants';
 import { User, Ad, Notification, Post } from '../types';
 import Logo from './Logo';
 import SearchModal from './SearchModal';
+import TrendingTopics from './TrendingTopics';
 import { SearchResult } from '../services/searchService';
 
 interface LayoutProps {
@@ -28,13 +29,14 @@ interface LayoutProps {
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   onSearchResult?: (result: SearchResult) => void;
+  onSearchTag?: (hashtag: string) => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
   children, searchQuery, onSearchChange, onLogout, currentUser,
   onGoHome, onViewProfile, onViewChat, onViewFriends,
   onViewSettings, onViewPrivacy, onStartCampaign, onOpenCreditStore, ads, posts, users, notifications,
-  activeView, isDarkMode, onToggleDarkMode, onSearchResult
+  activeView, isDarkMode, onToggleDarkMode, onSearchResult, onSearchTag
 }) => {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -140,6 +142,16 @@ const Layout: React.FC<LayoutProps> = ({
         <main className="flex-1 min-w-0 max-w-3xl mx-auto lg:mx-0">{children}</main>
 
         <aside className="hidden xl:flex flex-col w-80 space-y-8 sticky top-28 self-start">
+          <TrendingTopics 
+            posts={posts} 
+            ads={ads} 
+            onHashtagClick={(hashtag) => {
+              if (onSearchTag) {
+                onSearchTag(`#${hashtag}`);
+              }
+            }}
+          />
+          
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-6">Neural Credits</h3>
             <p className="text-3xl font-black text-slate-900 dark:text-white">💎 {currentUser?.auraCredits?.toLocaleString() || '0'}</p>

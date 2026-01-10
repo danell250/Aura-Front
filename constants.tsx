@@ -914,7 +914,8 @@ export const INITIAL_ADS: Ad[] = [
     placement: 'feed',
     status: 'active',
     subscriptionTier: 'Leadership Pulse',
-    reactions: { '🎯': 45, '💼': 28 }
+    reactions: { '🎯': 45, '💼': 28 },
+    hashtags: ['leadership', 'summit', 'networking', 'executives']
   },
   {
     id: 'ad-career-coaching',
@@ -930,7 +931,8 @@ export const INITIAL_ADS: Ad[] = [
     placement: 'feed',
     status: 'active',
     subscriptionTier: 'Career Growth',
-    reactions: { '🚀': 67, '💡': 34 }
+    reactions: { '🚀': 67, '💡': 34 },
+    hashtags: ['career', 'coaching', 'growth', 'transformation']
   },
   {
     id: 'ad-venture-fund',
@@ -946,7 +948,8 @@ export const INITIAL_ADS: Ad[] = [
     placement: 'feed',
     status: 'active',
     subscriptionTier: 'Business Impact',
-    reactions: { '💰': 89, '🚀': 156 }
+    reactions: { '💰': 89, '🚀': 156 },
+    hashtags: ['venture', 'startup', 'ai', 'sustainability', 'funding']
   },
   {
     id: 'ad-innovation-lab',
@@ -1924,5 +1927,67 @@ export const INITIAL_POSTS: Post[] = [
     reactions: {"\ud83d\udc4d": 64, "\ud83d\udca1": 63, "\ud83d\ude80": 35},
     comments: [],
     userReactions: [],
+  },
+  // Recent trending posts
+  {
+    id: "post-ai-revolution",
+    author: MOCK_USERS[0],
+    content: "The AI revolution is here! Just implemented ChatGPT integration that increased our productivity by 300%. The future of work is human-AI collaboration. #AI #Productivity #Innovation #FutureOfWork",
+    energy: EnergyType.HIGH_ENERGY,
+    radiance: 892,
+    timestamp: Date.now() - 3600000, // 1 hour ago
+    reactions: {"🤖": 234, "🚀": 189, "💡": 156},
+    comments: [],
+    userReactions: [],
+    isBoosted: true,
+    hashtags: ['ai', 'productivity', 'innovation', 'futureofwork']
+  },
+  {
+    id: "post-remote-work",
+    author: MOCK_USERS[1],
+    content: "Remote work isn't just a trend—it's the new reality. Companies embracing hybrid models see 40% higher employee satisfaction. The key? Trust and clear communication. #RemoteWork #Hybrid #WorkLifeBalance #Productivity",
+    energy: EnergyType.CALM,
+    radiance: 567,
+    timestamp: Date.now() - 7200000, // 2 hours ago
+    reactions: {"🏠": 178, "💼": 134, "✨": 89},
+    comments: [],
+    userReactions: [],
+    hashtags: ['remotework', 'hybrid', 'worklifebalance', 'productivity']
+  },
+  {
+    id: "post-sustainability",
+    author: MOCK_USERS[2],
+    content: "Sustainability isn't just good for the planet—it's good for business. ESG-focused companies outperform the market by 25%. Green is the new gold. #Sustainability #ESG #ClimateAction #GreenBusiness",
+    energy: EnergyType.DEEP_DIVE,
+    radiance: 723,
+    timestamp: Date.now() - 10800000, // 3 hours ago
+    reactions: {"🌱": 267, "🌍": 198, "💚": 145},
+    comments: [],
+    userReactions: [],
+    hashtags: ['sustainability', 'esg', 'climateaction', 'greenbusiness']
+  },
+  {
+    id: "post-crypto-web3",
+    author: MOCK_USERS[3],
+    content: "Web3 is reshaping digital ownership. Blockchain technology enables true decentralization and user empowerment. The internet is evolving beyond Web2. #Web3 #Blockchain #Crypto #Decentralization",
+    energy: EnergyType.HIGH_ENERGY,
+    radiance: 445,
+    timestamp: Date.now() - 14400000, // 4 hours ago
+    reactions: {"₿": 189, "🔗": 156, "🚀": 123},
+    comments: [],
+    userReactions: [],
+    hashtags: ['web3', 'blockchain', 'crypto', 'decentralization']
+  },
+  {
+    id: "post-mental-health",
+    author: MOCK_USERS[4],
+    content: "Mental health in the workplace is finally getting the attention it deserves. Companies investing in employee wellbeing see 300% ROI. Taking care of people is taking care of business. #MentalHealth #Wellbeing #WorkplaceCulture #Leadership",
+    energy: EnergyType.CALM,
+    radiance: 634,
+    timestamp: Date.now() - 18000000, // 5 hours ago
+    reactions: {"❤️": 345, "🧠": 234, "🤗": 189},
+    comments: [],
+    userReactions: [],
+    hashtags: ['mentalhealth', 'wellbeing', 'workplaceculture', 'leadership']
   },
 ];

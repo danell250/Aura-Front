@@ -440,6 +440,11 @@ const AppContent: React.FC<AppContentProps> = ({
       ads={ads} posts={posts} users={allUsers} notifications={notifications}
       onOpenCreditStore={() => setIsCreditStoreOpen(true)}
       onSearchResult={handleSearchResult}
+      onSearchTag={(hashtag) => {
+        setSearchQuery(hashtag);
+        setView({ type: 'feed' });
+        navigate('/');
+      }}
     >
       {view.type === 'feed' && (
         <div className="space-y-6">

@@ -52,9 +52,10 @@ const BoostModal: React.FC<BoostModalProps> = ({
     
     onBoost(creditsToSpend);
     
-    // Show success message
+    // Show success message with credit deduction details
     const radianceBoost = creditsToSpend * 2;
-    alert(`🚀 Post boosted successfully! +${radianceBoost} radiance added.`);
+    const remainingCredits = (currentUser.auraCredits || 0) - creditsToSpend;
+    alert(`🚀 Post boosted successfully!\n\n✨ +${radianceBoost} radiance added\n💰 ${creditsToSpend} credits spent\n🏦 ${remainingCredits.toLocaleString()} credits remaining`);
     
     onClose();
     // Reset state

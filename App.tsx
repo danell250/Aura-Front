@@ -578,10 +578,12 @@ const App: React.FC = () => {
     
     const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
     
-    // Prevent credits from decreasing for special user
+    // For special user, ensure credits never go below 999999 but allow temporary display of deduction
     if (isSpecialUser && updates.auraCredits !== undefined) {
-      // Always keep credits at max for special user
-      updates.auraCredits = 999999;
+      // If credits would go below 999999, set to 999999, otherwise allow the update
+      if (updates.auraCredits < 999999) {
+        updates.auraCredits = 999999;
+      }
     }
     
     const updatedUser = { ...currentUser, ...updates };
@@ -771,7 +773,8 @@ const App: React.FC = () => {
     }
     
     if (!isSpecialUser) {
-      handleUpdateProfile({ auraCredits: (currentUser.auraCredits || 0) - credits });
+      const newCredits = (currentUser.auraCredits || 0) - credits;
+      handleUpdateProfile({ auraCredits: newCredits });
     }
     
     // Calculate radiance boost based on credits spent (2x multiplier)

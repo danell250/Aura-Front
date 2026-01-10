@@ -173,16 +173,6 @@ const Layout: React.FC<LayoutProps> = ({
         <main className="flex-1 min-w-0 max-w-3xl mx-auto lg:mx-0">{children}</main>
 
         <aside className="hidden xl:flex flex-col w-80 space-y-6 sticky top-28 self-start max-h-[calc(100vh-8rem)] sidebar-scroll">
-          <TrendingTopics 
-            posts={posts} 
-            ads={ads} 
-            onHashtagClick={(hashtag) => {
-              if (onSearchTag) {
-                onSearchTag(`#${hashtag}`);
-              }
-            }}
-          />
-          
           <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
             <div className="flex items-center justify-center gap-2 mb-4">
               <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
@@ -197,7 +187,7 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
             
             <div className="text-center mb-4">
-              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-2 transition-all duration-300">
                 {currentUser?.auraCredits?.toLocaleString() || '0'}
               </p>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -223,6 +213,16 @@ const Layout: React.FC<LayoutProps> = ({
               </div>
             </div>
           </div>
+
+          <TrendingTopics 
+            posts={posts} 
+            ads={ads} 
+            onHashtagClick={(hashtag) => {
+              if (onSearchTag) {
+                onSearchTag(`#${hashtag}`);
+              }
+            }}
+          />
         </aside>
       </div>
     </div>

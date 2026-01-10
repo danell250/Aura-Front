@@ -152,8 +152,8 @@ const Layout: React.FC<LayoutProps> = ({
             }}
           />
           
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
-            <div className="flex items-center justify-center gap-2 mb-3">
+          <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="flex items-center justify-center gap-2 mb-4">
               <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
@@ -164,36 +164,31 @@ const Layout: React.FC<LayoutProps> = ({
                 Neural Credits
               </h3>
             </div>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-              {currentUser?.auraCredits?.toLocaleString() || '0'}
-            </p>
+            
+            <div className="text-center mb-4">
+              <p className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                {currentUser?.auraCredits?.toLocaleString() || '0'}
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Amplify your professional presence and boost your reach across the network
+              </p>
+            </div>
+            
             <button 
               onClick={onOpenCreditStore} 
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-xl transition-colors shadow-sm"
+              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium text-sm rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2"
             >
-              Purchase Credits
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              Boost Your Reach
             </button>
-          </div>
-          
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white overflow-hidden relative group cursor-pointer shadow-lg" onClick={onOpenCreditStore}>
-            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/20 blur-2xl -mr-12 -mt-12 group-hover:scale-125 transition-transform"></div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                  <svg className="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <h4 className="text-sm font-semibold">Boost Your Reach</h4>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed mb-4">
-                Amplify your professional presence and connect with industry leaders through strategic credit investment.
-              </p>
-              <div className="flex items-center gap-2 text-emerald-400 group-hover:text-emerald-300 transition-colors">
-                <span className="text-xs font-medium">Explore Plans</span>
-                <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+            
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                <span>Post Boosts</span>
+                <span>Profile Visibility</span>
+                <span>Ad Campaigns</span>
               </div>
             </div>
           </div>

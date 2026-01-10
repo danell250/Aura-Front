@@ -16,6 +16,7 @@ type AuthMode =
   | 'signup_selection' 
   | 'login_manual' 
   | 'signup_manual' 
+  | 'profile_setup'
   | 'forgot_password' 
   | 'reset_success';
 
@@ -32,10 +33,17 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
     lastName: '',
     phone: '',
     email: '',
-    dob: ''
+    dob: '',
+    bio: '',
+    handle: '',
+    industry: '',
+    companyName: '',
+    googleId: '',
+    avatar: '',
+    avatarType: 'image'
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (error) setError(null);
   };
@@ -63,35 +71,34 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
       const displayName = user.displayName || '';
       const nameParts = displayName.trim().split(/\s+/);
       const firstName = nameParts[0] || 'User';
-      const lastName = nameParts.slice(1).join(' ') || 'User';
-      const fullName = displayName || `${firstName} ${lastName}`;
+      const lastName = nameParts.slice(1).join(' ') || '';
+      const fullName = displayName || `${firstName} ${lastName}`.trim();
 
-      // Prepare user data for login
-      const userData = {
-        id: user.uid,
-        firstName,
-        lastName,
-        name: fullName,
-        email: user.email.toLowerCase().trim(),
-        avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
-        avatarType: 'image' as const
-      };
-
-      // Check if user already exists
+      // Check if user already exists by email
+      const normalizedEmail = user.email.toLowerCase().trim();
       const existingUser = allUsers.find(u => 
-        u.email?.toLowerCase().trim() === userData.email
+        u.email?.toLowerCase().trim() === normalizedEmail
       );
 
       if (existingUser) {
-        // Update with latest Google data
+        // Existing user - log them in with updated Google data
         onLogin({
-          ...userData,
-          id: existingUser.id, // Keep existing ID
-          handle: existingUser.handle, // Keep existing handle
+          ...existingUser,
+          avatar: user.photoURL || existingUser.avatar,
+          avatarType: 'image' as const
         });
       } else {
-        // Create new user
-        onLogin(userData);
+        // New user - redirect to profile setup with Google data
+        setMode('profile_setup');
+        setFormData({
+          ...formData,
+          firstName,
+          lastName,
+          email: normalizedEmail,
+          googleId: user.uid,
+          avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
+          avatarType: 'image'
+        });
       }
     } catch (err: any) {
       console.error("Firebase Auth Error:", err);
@@ -114,7 +121,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
   const handleManualLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.identifier || !formData.password) {
-      setError("Credentials required to log in.");
+      setError("Email/username and password are required to log in.");
       return;
     }
     
@@ -164,34 +171,25 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
       return;
     }
 
-    simulateProcess(() => {
-      onLogin({ 
-        firstName: firstName.trim(), 
-        lastName: lastName.trim(), 
-        dob, 
-        email: normalizedEmail, 
-        phone: phone.trim() 
-      });
+    // Proceed to profile setup
+    setFormData({
+      ...formData,
+      email: normalizedEmail,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phone: phone.trim()
     });
+    setMode('profile_setup');
   };
 
-  const handleSocialContinue = (provider: string) => {
+  const handleForgotPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email) {
+      setError("Please enter your email address.");
+      return;
+    }
     simulateProcess(() => {
-      const socialEmail = `${provider.toLowerCase()}@user.aura`;
-      const existingUser = allUsers.find(u => u.email.toLowerCase() === socialEmail.toLowerCase());
-      
-      if (existingUser) {
-        onLogin(existingUser);
-      } else {
-        setSocialContext({
-          provider,
-          data: {
-            firstName: provider,
-            lastName: 'Social',
-            email: socialEmail
-          }
-        });
-      }
+      setMode('reset_success');
     });
   };
 
@@ -206,14 +204,52 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
     setSocialContext(null);
   };
 
-  const handleForgotPassword = (e: React.FormEvent) => {
+  const handleProfileSetup = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.email) {
-      setError("Please enter your email address.");
+    const { firstName, lastName, phone, dob, email, bio, handle, industry, companyName } = formData;
+    
+    // Validate required fields
+    if (!firstName || !lastName || !phone || !dob || !email || !bio || !handle) {
+      setError("Please fill in all required fields.");
       return;
     }
+
+    // Validate handle format (must start with @)
+    const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
+    if (cleanHandle.length < 3) {
+      setError("Handle must be at least 2 characters long.");
+      return;
+    }
+
+    // Check if handle is already taken
+    const existingHandle = allUsers.find(u => 
+      u.handle?.toLowerCase() === cleanHandle.toLowerCase()
+    );
+    
+    if (existingHandle) {
+      setError("This handle is already taken. Please choose another one.");
+      return;
+    }
+
     simulateProcess(() => {
-      setMode('reset_success');
+      // Create complete user profile
+      const userData = {
+        id: formData.googleId || `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        name: `${firstName.trim()} ${lastName.trim()}`,
+        email: email.toLowerCase().trim(),
+        phone: phone.trim(),
+        dob,
+        bio: bio.trim(),
+        handle: cleanHandle,
+        industry: industry.trim() || undefined,
+        companyName: companyName.trim() || undefined,
+        avatar: formData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}`,
+        avatarType: formData.avatarType || 'image'
+      };
+
+      onLogin(userData);
     });
   };
 
@@ -355,6 +391,165 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
                   {isProcessing ? 'Establishing...' : 'Create Account'}
                 </button>
                 <button type="button" onClick={() => setMode('signup_selection')} className="w-full text-center text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest pt-6 hover:text-slate-900 dark:hover:text-white transition-colors">← Back to Options</button>
+              </div>
+            </form>
+          )}
+
+          {mode === 'profile_setup' && (
+            <form onSubmit={handleProfileSetup} className="animate-in slide-in-from-right-8 duration-500">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight text-center mb-2">Complete Your Profile</h3>
+              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center mb-8 leading-relaxed">
+                Tell us about yourself to personalize your Aura experience
+              </p>
+              
+              <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClasses}>First Name *</label>
+                    <input 
+                      name="firstName" 
+                      value={formData.firstName} 
+                      onChange={handleInputChange} 
+                      placeholder="Alex" 
+                      className={inputClasses} 
+                      required 
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Last Name *</label>
+                    <input 
+                      name="lastName" 
+                      value={formData.lastName} 
+                      onChange={handleInputChange} 
+                      placeholder="Rivera" 
+                      className={inputClasses} 
+                      required 
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClasses}>Username/Handle *</label>
+                  <input 
+                    name="handle" 
+                    value={formData.handle} 
+                    onChange={handleInputChange} 
+                    placeholder="@alexrivera" 
+                    className={inputClasses} 
+                    required 
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClasses}>Email Address *</label>
+                  <input 
+                    type="email" 
+                    name="email" 
+                    value={formData.email} 
+                    onChange={handleInputChange} 
+                    placeholder="alex@company.com" 
+                    className={inputClasses} 
+                    required 
+                    disabled={!!formData.googleId}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClasses}>Phone Number *</label>
+                    <input 
+                      type="tel" 
+                      name="phone" 
+                      value={formData.phone} 
+                      onChange={handleInputChange} 
+                      placeholder="+1 (555) 000-0000" 
+                      className={inputClasses} 
+                      required 
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Date of Birth *</label>
+                    <input 
+                      type="date" 
+                      name="dob" 
+                      value={formData.dob} 
+                      onChange={handleInputChange} 
+                      className={inputClasses} 
+                      required 
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClasses}>Professional Bio *</label>
+                  <textarea 
+                    name="bio" 
+                    value={formData.bio} 
+                    onChange={handleInputChange}
+                    placeholder="Tell us about your professional background, expertise, and what you're passionate about..."
+                    className={`${inputClasses} min-h-[100px] resize-none`}
+                    maxLength={300}
+                    required 
+                  />
+                  <div className="text-right mt-1">
+                    <span className="text-[9px] text-slate-400">{formData.bio.length}/300</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClasses}>Industry</label>
+                  <select 
+                    name="industry" 
+                    value={formData.industry} 
+                    onChange={handleInputChange}
+                    className={inputClasses}
+                  >
+                    <option value="">Select your industry</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Education">Education</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Consulting">Consulting</option>
+                    <option value="Manufacturing">Manufacturing</option>
+                    <option value="Retail">Retail</option>
+                    <option value="Real Estate">Real Estate</option>
+                    <option value="Legal">Legal</option>
+                    <option value="Media">Media</option>
+                    <option value="Non-profit">Non-profit</option>
+                    <option value="Government">Government</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClasses}>Company Name</label>
+                  <input 
+                    name="companyName" 
+                    value={formData.companyName} 
+                    onChange={handleInputChange} 
+                    placeholder="Your current company or organization" 
+                    className={inputClasses} 
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <button 
+                  type="submit" 
+                  disabled={isProcessing} 
+                  className="w-full py-5 aura-bg-gradient text-white font-black rounded-2xl text-[12px] uppercase tracking-[0.3em] shadow-xl hover:brightness-110 active:scale-95 transition-all"
+                >
+                  {isProcessing ? 'Creating Profile...' : 'Complete Setup'}
+                </button>
+                
+                <button 
+                  type="button" 
+                  onClick={() => setMode(formData.googleId ? 'login_selection' : 'signup_manual')} 
+                  className="w-full text-center text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest pt-2 hover:text-slate-900 dark:hover:text-white transition-colors"
+                >
+                  ← Back
+                </button>
               </div>
             </form>
           )}

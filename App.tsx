@@ -474,13 +474,13 @@ const App: React.FC = () => {
         return;
       }
 
-      // Create new user with all required fields
+      // Create new user with all required fields and 100 free credits
       const userId = userData.id || `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const firstName = userData.firstName || 'User';
       const lastName = userData.lastName || '';
       const fullName = userData.name || `${firstName} ${lastName}`.trim() || 'User';
       
-      // Generate unique handle
+      // Generate unique handle if not provided
       let handle = userData.handle;
       if (!handle) {
         const baseHandle = `@${firstName.toLowerCase().replace(/\s+/g, '')}${lastName.toLowerCase().replace(/\s+/g, '')}`;
@@ -506,10 +506,12 @@ const App: React.FC = () => {
         dob: userData.dob || '',
         phone: userData.phone || '',
         bio: userData.bio || '',
+        industry: userData.industry || undefined,
+        companyName: userData.companyName || undefined,
         acquaintances: [],
         blockedUsers: [],
         trustScore: 10,
-        // Special user gets unlimited credits, new users get 100 free credits
+        // New users get 100 free credits, special user gets unlimited
         auraCredits: isSpecialUser ? 999999 : 100,
         activeGlow: 'none'
       };

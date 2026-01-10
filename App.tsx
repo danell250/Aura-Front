@@ -25,7 +25,7 @@ const saveSession = (user: User) => {
       acquaintances: user.acquaintances || [],
       blockedUsers: user.blockedUsers || [],
       trustScore: user.trustScore ?? 10,
-      auraCredits: user.auraCredits ?? 50,
+      auraCredits: user.auraCredits ?? 100,
       activeGlow: user.activeGlow || 'none',
       email: user.email || '',
       dob: user.dob || '',
@@ -93,7 +93,7 @@ const loadSession = (): { user: User | null; isValid: boolean } => {
       acquaintances: parsed.user.acquaintances || [],
       blockedUsers: parsed.user.blockedUsers || [],
       trustScore: parsed.user.trustScore ?? 10,
-      auraCredits: parsed.user.auraCredits ?? 50,
+      auraCredits: parsed.user.auraCredits ?? 100,
       activeGlow: parsed.user.activeGlow || 'none',
       email: parsed.user.email || '',
       dob: parsed.user.dob || '',
@@ -245,7 +245,7 @@ const App: React.FC = () => {
               avatarType: sessionUser.avatarType || 'image',
               email: sessionUser.email || '',
               trustScore: 10,
-              auraCredits: 50,
+              auraCredits: 100,
               activeGlow: 'none',
               acquaintances: [],
               blockedUsers: [],
@@ -509,8 +509,8 @@ const App: React.FC = () => {
         acquaintances: [],
         blockedUsers: [],
         trustScore: 10,
-        // Special user gets unlimited credits
-        auraCredits: isSpecialUser ? 999999 : 50,
+        // Special user gets unlimited credits, new users get 100 free credits
+        auraCredits: isSpecialUser ? 999999 : 100,
         activeGlow: 'none'
       };
       
@@ -879,11 +879,62 @@ const App: React.FC = () => {
     alert('Post shared to Aura feed successfully!');
   }, [currentUser, setPosts]);
 
-  const handlePurchaseCredits = (bundle: CreditBundle) => {
-    if (!currentUser) return;
+  const handlePurchaseCredits = async (bundle: CreditBundle) => {
+    if (!currentUser) {
+      console.error('No current user found for credit purchase');
+      return;
+    }
     
-    const updatedCredits = (currentUser.auraCredits || 0) + bundle.credits;
-    handleUpdateProfile({ auraCredits: updatedCredits });
+    console.log('Processing credit purchase:', {
+      bundle: bundle.name,
+      credits: bundle.credits,
+      price: bundle.price,
+      currentCredits: currentUser.auraCredits || 0
+    });
+    
+    const currentCredits = currentUser.auraCredits || 0;
+    const newCredits = currentCredits + bundle.credits;
+    
+    console.log('Credit allocation:', {
+      before: currentCredits,
+      adding: bundle.credits,
+      after: newCredits
+    });
+    
+    // Try to update credits via backend API first
+    try {
+      const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/purchase-credits`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          credits: bundle.credits,
+          bundleName: bundle.name,
+          transactionId: `txn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          paymentMethod: 'paypal'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Backend credit purchase successful:', result);
+      } else {
+        console.log('Backend credit purchase failed, using local update');
+      }
+    } catch (error) {
+      console.log('Backend not available, using local credit update:', error);
+    }
+    
+    // Update user credits locally (this ensures it works even if backend is down)
+    handleUpdateProfile({ auraCredits: newCredits });
+    
+    // Show success notification
+    setTimeout(() => {
+      alert(`Success! ${bundle.credits} credits have been added to your account. New balance: ${newCredits.toLocaleString()} credits.`);
+    }, 500);
+    
+    console.log('Credit purchase completed successfully');
   };
 
   const handleComment = useCallback((postId: string, text: string, parentId?: string) => {

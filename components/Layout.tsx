@@ -1,8 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { APP_NAME } from '../constants';
-import { User, Ad, Notification } from '../types';
+import { User, Ad, Notification, Post } from '../types';
 import Logo from './Logo';
+import SearchModal from './SearchModal';
+import { SearchResult } from '../services/searchService';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,19 +21,39 @@ interface LayoutProps {
   onStartCampaign: () => void;
   onOpenCreditStore?: () => void;
   ads: Ad[];
+  posts: Post[];
+  users: User[];
   notifications: Notification[];
   activeView: string;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  onSearchResult?: (result: SearchResult) => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
   children, searchQuery, onSearchChange, onLogout, currentUser,
   onGoHome, onViewProfile, onViewChat, onViewFriends,
-  onViewSettings, onViewPrivacy, onStartCampaign, onOpenCreditStore, ads, notifications,
-  activeView, isDarkMode, onToggleDarkMode
+  onViewSettings, onViewPrivacy, onStartCampaign, onOpenCreditStore, ads, posts, users, notifications,
+  activeView, isDarkMode, onToggleDarkMode, onSearchResult
 }) => {
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // Keyboard shortcut for search (Ctrl/Cmd + K)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+        event.preventDefault();
+        setIsSearchModalOpen(true);
+      }
+      if (event.key === 'Escape' && isSearchModalOpen) {
+        setIsSearchModalOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isSearchModalOpen]);
 
   const renderMedia = (url: string, type: 'image' | 'video' | undefined, className: string) => {
     if (!url) return <div className={`${className} bg-slate-200 dark:bg-slate-800`}></div>;
@@ -67,8 +89,10 @@ const Layout: React.FC<LayoutProps> = ({
               type="text" 
               value={searchQuery} 
               onChange={(e) => onSearchChange(e.target.value)} 
-              placeholder="Search Aura Network..." 
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-6 py-2 focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500/30 transition-all text-sm font-medium outline-none" 
+              onFocus={() => setIsSearchModalOpen(true)}
+              placeholder="Search Aura Network... (⌘K)" 
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-6 py-2 focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500/30 transition-all text-sm font-medium outline-none cursor-pointer" 
+              readOnly
             />
           </div>
         </div>
@@ -130,6 +154,22 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         </aside>
       </div>
+
+      {/* Search Modal */}
+      <SearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        posts={posts}
+        users={users}
+        ads={ads}
+        onSelectResult={(result) => {
+          if (onSearchResult) {
+            onSearchResult(result);
+          }
+          setIsSearchModalOpen(false);
+        }}
+        initialQuery={searchQuery}
+      />
     </div>
   );
 };

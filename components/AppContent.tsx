@@ -18,6 +18,7 @@ import FeedFilters from './FeedFilters';
 import Logo from './Logo';
 import { useMetaTags } from '../hooks/useMetaTags';
 import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from '../constants';
+import { SearchResult } from '../services/searchService';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from '../types';
 import { geminiService } from '../services/gemini';
 
@@ -249,10 +250,31 @@ const AppContent: React.FC<AppContentProps> = ({
   const processedFeedItems = useMemo(() => {
     // Apply filters first
     const filteredPosts = posts.filter(p => {
-      const matchesSearch = p.content.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           p.author.name.toLowerCase().includes(searchQuery.toLowerCase());
+      // Enhanced search functionality
+      const searchLower = searchQuery.toLowerCase().trim();
+      
+      if (!searchLower) return true;
+      
+      // Check if it's a hashtag search
+      if (searchLower.startsWith('#')) {
+        const hashtag = searchLower.slice(1);
+        return p.hashtags?.some(tag => tag.toLowerCase().includes(hashtag)) || false;
+      }
+      
+      // Regular search - check multiple fields
+      const matchesContent = p.content.toLowerCase().includes(searchLower);
+      const matchesAuthor = p.author.name.toLowerCase().includes(searchLower);
+      const matchesHandle = p.author.handle.toLowerCase().includes(searchLower);
+      const matchesHashtags = p.hashtags?.some(tag => tag.toLowerCase().includes(searchLower)) || false;
+      const matchesComments = p.comments.some(comment => 
+        comment.text.toLowerCase().includes(searchLower) ||
+        comment.author.name.toLowerCase().includes(searchLower)
+      );
+      
+      const matchesSearch = matchesContent || matchesAuthor || matchesHandle || matchesHashtags || matchesComments;
       const matchesEnergy = activeEnergy === 'all' || p.energy === activeEnergy;
       const matchesMedia = activeMediaType === 'all' || p.mediaType === activeMediaType;
+      
       return matchesSearch && matchesEnergy && matchesMedia;
     });
 
@@ -263,6 +285,26 @@ const AppContent: React.FC<AppContentProps> = ({
       if (a.expiryDate && a.expiryDate < Date.now()) {
         return false;
       }
+      
+      // Apply search filtering to ads
+      const searchLower = searchQuery.toLowerCase().trim();
+      if (searchLower) {
+        // Check if it's a hashtag search
+        if (searchLower.startsWith('#')) {
+          const hashtag = searchLower.slice(1);
+          return a.hashtags?.some(tag => tag.toLowerCase().includes(hashtag)) || false;
+        }
+        
+        // Regular search - check multiple fields
+        const matchesHeadline = a.headline.toLowerCase().includes(searchLower);
+        const matchesDescription = a.description.toLowerCase().includes(searchLower);
+        const matchesOwner = a.ownerName.toLowerCase().includes(searchLower);
+        const matchesHashtags = a.hashtags?.some(tag => tag.toLowerCase().includes(searchLower)) || false;
+        const matchesCTA = a.ctaText.toLowerCase().includes(searchLower);
+        
+        return matchesHeadline || matchesDescription || matchesOwner || matchesHashtags || matchesCTA;
+      }
+      
       return true;
     });
     
@@ -327,6 +369,47 @@ const AppContent: React.FC<AppContentProps> = ({
     return combined;
   }, [posts, ads, birthdayAnnouncements, view, searchQuery, activeEnergy, activeMediaType]);
 
+  const handleSearchResult = (result: SearchResult) => {
+    switch (result.type) {
+      case 'post':
+        // Navigate to feed and highlight the post
+        setView({ type: 'feed' });
+        setSearchQuery('');
+        navigate('/');
+        // Scroll to post after navigation
+        setTimeout(() => {
+          const postElement = document.getElementById(`post-${result.id}`);
+          if (postElement) {
+            postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            postElement.classList.add('ring-2', 'ring-emerald-500', 'ring-opacity-50');
+            setTimeout(() => {
+              postElement.classList.remove('ring-2', 'ring-emerald-500', 'ring-opacity-50');
+            }, 3000);
+          }
+        }, 100);
+        break;
+      case 'user':
+        // Navigate to user profile
+        const user = result.data as User;
+        setView({ type: 'profile', targetId: user.id });
+        navigate(`/profile/${user.id}`);
+        break;
+      case 'ad':
+        // Navigate to feed and highlight the ad
+        setView({ type: 'feed' });
+        setSearchQuery('');
+        navigate('/');
+        break;
+      case 'hashtag':
+        // Search for posts with this hashtag
+        const hashtag = (result.data as { tag: string; count: number }).tag;
+        setSearchQuery(`#${hashtag}`);
+        setView({ type: 'feed' });
+        navigate('/');
+        break;
+    }
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950 transition-colors"><Logo size="lg" className="animate-float" /></div>;
   if (!isAuthenticated || !currentUser) return <Auth onLogin={handleLogin} allUsers={allUsers} />;
 
@@ -354,8 +437,9 @@ const AppContent: React.FC<AppContentProps> = ({
       onViewPrivacy={() => { setView({ type: 'data_aura' }); navigate('/data-aura'); }}
       onGoHome={() => { setView({ type: 'feed' }); setActiveEnergy('all'); setSearchQuery(''); navigate('/'); }} 
       onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} 
-      ads={ads} notifications={notifications}
+      ads={ads} posts={posts} users={allUsers} notifications={notifications}
       onOpenCreditStore={() => setIsCreditStoreOpen(true)}
+      onSearchResult={handleSearchResult}
     >
       {view.type === 'feed' && (
         <div className="space-y-6">
@@ -385,7 +469,7 @@ const AppContent: React.FC<AppContentProps> = ({
                 if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} />;
                 return 'content' in item 
                   ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl, originalPost: p}); }} onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); navigate(`/profile/${id}`); }} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} />
-                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`, title: `${ad.company} on Aura`, image: ad.imageUrl})} />
+                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`, title: `${ad.ownerName} on Aura`, image: ad.mediaUrl})} onSearchTag={setSearchQuery} />
               })
             )}
           </div>

@@ -7,9 +7,10 @@ interface AdCardProps {
   ad: Ad;
   onReact?: (adId: string, reaction: string) => void;
   onShare?: (ad: Ad) => void;
+  onSearchTag?: (tag: string) => void;
 }
 
-const AdCard: React.FC<AdCardProps> = ({ ad, onReact, onShare }) => {
+const AdCard: React.FC<AdCardProps> = ({ ad, onReact, onShare, onSearchTag }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +27,26 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onReact, onShare }) => {
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     if (onReact) onReact(ad.id, emojiData.emoji);
     setShowEmojiPicker(false);
+  };
+
+  const renderTextWithHashtags = (text: string) => {
+    if (!onSearchTag) return text;
+    
+    const parts = text.split(/(\s+)/);
+    return parts.map((part, i) => {
+      if (part.startsWith('#') && part.length > 1) {
+        return (
+          <span 
+            key={i} 
+            onClick={(e) => { e.stopPropagation(); onSearchTag(part); }} 
+            className="text-emerald-600 dark:text-emerald-400 font-bold cursor-pointer hover:underline"
+          >
+            {part}
+          </span>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
   };
 
   const getEmbedUrl = (url: string) => {
@@ -116,8 +137,8 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onReact, onShare }) => {
           </button>
         </div>
 
-        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2 tracking-tight">{ad.headline}</h3>
-        <p className="text-slate-600 dark:text-slate-400 text-sm mb-5 leading-relaxed font-medium">{ad.description}</p>
+        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2 tracking-tight">{renderTextWithHashtags(ad.headline)}</h3>
+        <p className="text-slate-600 dark:text-slate-400 text-sm mb-5 leading-relaxed font-medium">{renderTextWithHashtags(ad.description)}</p>
 
         <div className={`rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-950 border mb-5 aspect-video flex items-center justify-center min-h-[100px] ${isUniversalTier ? 'border-amber-400/20' : 'border-slate-100 dark:border-slate-800'}`}>
           {renderMedia(ad.mediaUrl, ad.mediaType, "w-full h-full object-cover", false)}

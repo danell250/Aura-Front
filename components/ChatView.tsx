@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Message } from '../types';
+import { MessageService } from '../services/messageService';
 import Logo from './Logo';
 
 interface ChatViewProps {
@@ -19,38 +20,76 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
   const [archivedIds, setArchivedIds] = useState<string[]>([]);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [conversations, setConversations] = useState<any[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const headerMenuRef = useRef<HTMLDivElement>(null);
 
-  // Load state from local storage for persistence
+  // Load conversations and messages from backend
   useEffect(() => {
+    const loadConversations = async () => {
+      try {
+        const response = await MessageService.getConversations(currentUser.id);
+        if (response.success) {
+          setConversations(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load conversations:', error);
+        // Fallback to localStorage for offline functionality
+        const savedMessages = localStorage.getItem('aura_chat_messages');
+        if (savedMessages) setMessages(JSON.parse(savedMessages));
+      }
+    };
+
+    loadConversations();
+
+    // Load archived/deleted state from localStorage
     const savedArchived = localStorage.getItem('aura_archived_chats');
     if (savedArchived) setArchivedIds(JSON.parse(savedArchived));
     
     const savedDeleted = localStorage.getItem('aura_deleted_chats');
     if (savedDeleted) setDeletedIds(JSON.parse(savedDeleted));
+  }, [currentUser.id]);
 
-    const savedMessages = localStorage.getItem('aura_chat_messages');
-    if (savedMessages) setMessages(JSON.parse(savedMessages));
-  }, []);
+  // Load messages when active contact changes
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!activeContact) return;
+      
+      setIsLoading(true);
+      try {
+        const response = await MessageService.getMessages(currentUser.id, activeContact.id);
+        if (response.success) {
+          setMessages(response.data);
+          // Mark messages as read
+          await MessageService.markAsRead(activeContact.id, currentUser.id);
+        }
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+        // Fallback to localStorage messages
+        const savedMessages = localStorage.getItem('aura_chat_messages');
+        if (savedMessages) {
+          const allMessages = JSON.parse(savedMessages);
+          const chatMessages = allMessages.filter((m: Message) => 
+            (m.senderId === currentUser.id && m.receiverId === activeContact.id) ||
+            (m.senderId === activeContact.id && m.receiverId === currentUser.id)
+          );
+          setMessages(chatMessages);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Sync back to local storage
+    loadMessages();
+  }, [activeContact, currentUser.id]);
+
+  // Sync state to localStorage
   useEffect(() => {
     localStorage.setItem('aura_archived_chats', JSON.stringify(archivedIds));
     localStorage.setItem('aura_deleted_chats', JSON.stringify(deletedIds));
-    localStorage.setItem('aura_chat_messages', JSON.stringify(messages));
-  }, [archivedIds, deletedIds, messages]);
-
-  useEffect(() => {
-    if (initialContactId) {
-      const contact = acquaintances.find(u => u.id === initialContactId);
-      if (contact) {
-        setActiveContact(contact);
-        // If it was archived, bring it back to active? Or switch tab?
-        if (archivedIds.includes(contact.id)) setSidebarTab('archived');
-      }
-    }
-  }, [initialContactId, acquaintances]);
+  }, [archivedIds, deletedIds]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -66,30 +105,49 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSend = () => {
-    if (!inputText.trim() || !activeContact) return;
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      senderId: currentUser.id,
-      receiverId: activeContact.id,
-      text: inputText,
-      timestamp: Date.now()
-    };
-    setMessages(prev => [...prev, newMessage]);
-    setInputText('');
-
-    // Simulated automated response
-    if (activeContact.trustScore > 80) {
-      setTimeout(() => {
-        const reply: Message = {
-          id: `reply-${Date.now()}`,
-          senderId: activeContact.id,
-          receiverId: currentUser.id,
-          text: "Acknowledged. Signal clarity remains high. Proceed with current trajectory.",
-          timestamp: Date.now()
-        };
-        setMessages(prev => [...prev, reply]);
-      }, 1500);
+  const handleSend = async () => {
+    if (!inputText.trim() || !activeContact || isSending) return;
+    
+    setIsSending(true);
+    try {
+      const response = await MessageService.sendMessage(
+        currentUser.id,
+        activeContact.id,
+        inputText.trim()
+      );
+      
+      if (response.success) {
+        // Add message to local state immediately for better UX
+        const newMessage: Message = response.data;
+        setMessages(prev => [...prev, newMessage]);
+        setInputText('');
+        
+        // Update conversations list
+        const updatedConversations = await MessageService.getConversations(currentUser.id);
+        if (updatedConversations.success) {
+          setConversations(updatedConversations.data);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      // Fallback to localStorage for offline functionality
+      const newMessage: Message = {
+        id: `msg-${Date.now()}`,
+        senderId: currentUser.id,
+        receiverId: activeContact.id,
+        text: inputText.trim(),
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, newMessage]);
+      setInputText('');
+      
+      // Save to localStorage as backup
+      const savedMessages = localStorage.getItem('aura_chat_messages');
+      const allMessages = savedMessages ? JSON.parse(savedMessages) : [];
+      allMessages.push(newMessage);
+      localStorage.setItem('aura_chat_messages', JSON.stringify(allMessages));
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -129,19 +187,25 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
       });
   }, [acquaintances, contactSearch, sidebarTab, archivedIds]);
 
-  const currentChatMessages = useMemo(() => {
-    return messages.filter(m => 
-      (m.senderId === currentUser.id && m.receiverId === activeContact?.id) ||
-      (m.senderId === activeContact?.id && m.receiverId === currentUser.id)
-    );
-  }, [messages, activeContact, currentUser.id]);
-
   const getLastMessage = (userId: string) => {
-    const chatMsgs = messages.filter(m => 
-      (m.senderId === currentUser.id && m.receiverId === userId) ||
-      (m.senderId === userId && m.receiverId === currentUser.id)
-    );
-    return chatMsgs.length > 0 ? chatMsgs[chatMsgs.length - 1] : null;
+    // Find conversation data from backend or fallback to localStorage
+    const conversation = conversations.find(conv => conv._id === userId);
+    if (conversation?.lastMessage) {
+      return conversation.lastMessage;
+    }
+    
+    // Fallback to localStorage messages
+    const savedMessages = localStorage.getItem('aura_chat_messages');
+    if (savedMessages) {
+      const allMessages = JSON.parse(savedMessages);
+      const chatMsgs = allMessages.filter((m: Message) => 
+        (m.senderId === currentUser.id && m.receiverId === userId) ||
+        (m.senderId === userId && m.receiverId === currentUser.id)
+      );
+      return chatMsgs.length > 0 ? chatMsgs[chatMsgs.length - 1] : null;
+    }
+    
+    return null;
   };
 
   return (
@@ -279,23 +343,30 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
             
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-8 sm:p-14 space-y-8 no-scrollbar bg-slate-50/10 dark:bg-slate-950/20">
-              {currentChatMessages.length === 0 ? (
+              {isLoading ? (
+                <div className="h-full flex flex-col items-center justify-center opacity-40">
+                  <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full mb-4"></div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Loading Messages...</p>
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center opacity-20 grayscale scale-90">
                   <Logo size="lg" showText={false} />
                   <p className="text-[10px] font-black uppercase tracking-[0.4em] mt-8 text-slate-400">Security Clearance Verified. Begin Sync.</p>
                 </div>
               ) : (
-                currentChatMessages.map((msg, idx) => {
+                messages.map((msg, idx) => {
                   const isMe = msg.senderId === currentUser.id;
-                  const prevMsg = currentChatMessages[idx - 1];
+                  const prevMsg = messages[idx - 1];
                   const isFirstInSequence = !prevMsg || prevMsg.senderId !== msg.senderId;
+                  const timestamp = typeof msg.timestamp === 'number' ? msg.timestamp : new Date(msg.timestamp).getTime();
                   
                   return (
                     <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-4 duration-500`}>
                       <div className={`max-w-[80%] sm:max-w-[70%] p-6 sm:p-8 rounded-[2.5rem] text-[15px] font-bold shadow-2xl leading-relaxed transition-all hover:scale-[1.01] ${isMe ? 'aura-bg-gradient text-white shadow-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-100 dark:border-slate-800 shadow-slate-200/20 dark:shadow-black/20'} ${isMe ? 'rounded-br-none' : 'rounded-bl-none'} ${!isFirstInSequence && (isMe ? 'rounded-tr-xl' : 'rounded-tl-xl')}`}>
-                        {msg.text}
+                        <div className="break-words">{msg.text}</div>
                         <div className={`text-[8px] mt-4 font-black uppercase tracking-[0.2em] flex items-center gap-2 ${isMe ? 'text-white/50 justify-end' : 'text-slate-300 dark:text-slate-600'}`}>
-                          {new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric' }).format(msg.timestamp)}
+                          {new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric' }).format(timestamp)}
+                          {msg.isEdited && <span className="opacity-60">(edited)</span>}
                           {isMe && (
                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>
                           )}
@@ -319,16 +390,21 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
                     type="text" 
                     value={inputText} 
                     onChange={e => setInputText(e.target.value)} 
-                    onKeyDown={e => e.key === 'Enter' && handleSend()} 
+                    onKeyDown={e => e.key === 'Enter' && !isSending && handleSend()} 
                     placeholder="Synthesize neural message..." 
-                    className="w-full pl-8 pr-32 py-5 bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.2rem] border-2 border-transparent outline-none focus:ring-12 focus:ring-emerald-500/5 dark:focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-400/20 transition-all text-base font-bold text-slate-900 dark:text-white shadow-inner" 
+                    disabled={isSending}
+                    className="w-full pl-8 pr-32 py-5 bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.2rem] border-2 border-transparent outline-none focus:ring-12 focus:ring-emerald-500/5 dark:focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-400/20 transition-all text-base font-bold text-slate-900 dark:text-white shadow-inner disabled:opacity-50" 
                   />
                   <button 
                     onClick={handleSend} 
-                    disabled={!inputText.trim()} 
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 px-10 py-3.5 aura-bg-gradient text-white rounded-[1.75rem] shadow-xl shadow-emerald-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-20 text-[11px] font-black uppercase tracking-[0.3em]"
+                    disabled={!inputText.trim() || isSending} 
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 px-10 py-3.5 aura-bg-gradient text-white rounded-[1.75rem] shadow-xl shadow-emerald-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-20 text-[11px] font-black uppercase tracking-[0.3em] min-w-[80px]"
                   >
-                    Sync
+                    {isSending ? (
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    ) : (
+                      'Sync'
+                    )}
                   </button>
                 </div>
               </div>
@@ -362,3 +438,13 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
 };
 
 export default ChatView;
+  // Handle initial contact selection
+  useEffect(() => {
+    if (initialContactId) {
+      const contact = acquaintances.find(u => u.id === initialContactId);
+      if (contact) {
+        setActiveContact(contact);
+        if (archivedIds.includes(contact.id)) setSidebarTab('archived');
+      }
+    }
+  }, [initialContactId, acquaintances, archivedIds]);

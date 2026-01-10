@@ -84,6 +84,7 @@ export interface Post {
   userReactions?: string[];
   comments: Comment[];
   isBoosted?: boolean;
+  hashtags?: string[];
 }
 
 export type AdPlacement = 'feed' | 'left' | 'right';
@@ -107,6 +108,7 @@ export interface Ad {
   subscriptionTier?: string;
   reactions?: Record<string, number>;
   userReactions?: string[];
+  hashtags?: string[];
 }
 
 export interface AdPackage {
@@ -139,4 +141,10 @@ export interface Message {
   receiverId: string;
   text: string;
   timestamp: number;
+  isRead?: boolean;
+  messageType?: 'text' | 'image' | 'file';
+  mediaUrl?: string;
+  replyTo?: string;
+  isEdited?: boolean;
+  editedAt?: number;
 }

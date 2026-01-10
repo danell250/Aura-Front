@@ -105,6 +105,17 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Handle initial contact selection
+  useEffect(() => {
+    if (initialContactId) {
+      const contact = acquaintances.find(u => u.id === initialContactId);
+      if (contact) {
+        setActiveContact(contact);
+        if (archivedIds.includes(contact.id)) setSidebarTab('archived');
+      }
+    }
+  }, [initialContactId, acquaintances, archivedIds]);
+
   const handleSend = async () => {
     if (!inputText.trim() || !activeContact || isSending) return;
     
@@ -438,13 +449,3 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
 };
 
 export default ChatView;
-  // Handle initial contact selection
-  useEffect(() => {
-    if (initialContactId) {
-      const contact = acquaintances.find(u => u.id === initialContactId);
-      if (contact) {
-        setActiveContact(contact);
-        if (archivedIds.includes(contact.id)) setSidebarTab('archived');
-      }
-    }
-  }, [initialContactId, acquaintances, archivedIds]);

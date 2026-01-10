@@ -578,12 +578,23 @@ const App: React.FC = () => {
     
     const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
     
-    // For special user, ensure credits never go below 999999 but allow temporary display of deduction
-    if (isSpecialUser && updates.auraCredits !== undefined) {
-      // If credits would go below 999999, set to 999999, otherwise allow the update
-      if (updates.auraCredits < 999999) {
-        updates.auraCredits = 999999;
-      }
+    // For special user, allow credit deduction to show but restore credits after a delay
+    if (isSpecialUser && updates.auraCredits !== undefined && updates.auraCredits < 999999) {
+      // Allow the deduction to show temporarily, then restore after 2 seconds
+      setTimeout(() => {
+        setCurrentUser(prev => prev ? { ...prev, auraCredits: 999999 } : prev);
+        setAllUsers(prevUsers => {
+          const updatedUsers = prevUsers.map(u => 
+            u.id === currentUser.id ? { ...u, auraCredits: 999999 } : u
+          );
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+          } catch (error) {
+            console.error('Failed to save restored credits:', error);
+          }
+          return updatedUsers;
+        });
+      }, 2000);
     }
     
     const updatedUser = { ...currentUser, ...updates };

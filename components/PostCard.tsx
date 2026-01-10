@@ -231,14 +231,9 @@ const PostCard: React.FC<PostCardProps> = ({
 
   return (
     <div className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] overflow-hidden mb-8 group relative ${post.isBoosted ? 'ring-1 ring-emerald-500/30' : ''}`} style={{ boxShadow: radianceGlow }}>
-      {post.isBoosted && (
-        <div className="absolute top-0 right-0 p-4 z-10">
-          <span className="px-3 py-1 bg-emerald-500 text-white text-[9px] font-bold uppercase rounded-full tracking-wider shadow-lg">Boosted</span>
-        </div>
-      )}
       <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => onViewProfile(post.author.id)}>
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0" onClick={() => onViewProfile(post.author.id)}>
             <div className={`w-11 h-11 rounded-xl overflow-hidden border transition-all duration-300 bg-slate-50 dark:bg-slate-800 shrink-0 ${post.author.activeGlow === 'emerald' ? 'border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'border-slate-100 dark:border-slate-800'}`}>
               {post.author.avatarType === 'video' || post.author.avatar.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) ? (
                 <video src={post.author.avatar} className="w-full h-full object-cover" autoPlay loop muted playsInline />
@@ -246,21 +241,24 @@ const PostCard: React.FC<PostCardProps> = ({
                 <img src={post.author.avatar} className="w-full h-full object-cover" alt="" />
               )}
             </div>
-            <div>
-              <p className="font-bold text-slate-900 dark:text-white text-sm tracking-tight leading-none">{post.author.name}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-slate-900 dark:text-white text-sm tracking-tight leading-none truncate">{post.author.name}</p>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-slate-500 font-medium">{post.author.handle}</span>
-                <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full"></span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">{post.energy}</span>
+                <span className="text-xs text-slate-500 font-medium truncate">{post.author.handle}</span>
+                <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0"></span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">{post.energy}</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] text-slate-400 font-medium">{new Date(post.timestamp).toLocaleDateString()}</span>
+          <div className="flex items-center gap-2 shrink-0 ml-3">
+            {post.isBoosted && (
+              <span className="px-2 py-1 bg-emerald-500 text-white text-[8px] font-bold uppercase rounded-full tracking-wider shadow-sm">Boosted</span>
+            )}
+            <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">{new Date(post.timestamp).toLocaleDateString()}</span>
             {post.author.id === currentUser.id && (
               <button 
                 onClick={() => onDeletePost && onDeletePost(post.id)} 
-                className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
                 title="Delete Post"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

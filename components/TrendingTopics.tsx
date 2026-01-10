@@ -19,29 +19,37 @@ const TrendingTopics: React.FC<TrendingTopicsProps> = ({
     return TrendingService.getTrendingTopics(posts, ads);
   }, [posts, ads]);
 
-  const getCategoryIcon = (category: TrendingTopic['category']) => {
+  const getCategoryIndicator = (category: TrendingTopic['category']) => {
     switch (category) {
       case 'rising':
-        return '📈';
+        return (
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+        );
       case 'hot':
-        return '🔥';
+        return (
+          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+        );
       case 'steady':
-        return '📊';
+        return (
+          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+        );
       default:
-        return '💫';
+        return (
+          <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+        );
     }
   };
 
-  const getCategoryColor = (category: TrendingTopic['category']) => {
+  const getCategoryLabel = (category: TrendingTopic['category']) => {
     switch (category) {
       case 'rising':
-        return 'text-emerald-600 dark:text-emerald-400';
+        return 'Rising';
       case 'hot':
-        return 'text-orange-600 dark:text-orange-400';
+        return 'Hot';
       case 'steady':
-        return 'text-blue-600 dark:text-blue-400';
+        return 'Active';
       default:
-        return 'text-slate-600 dark:text-slate-400';
+        return 'New';
     }
   };
 
@@ -53,17 +61,21 @@ const TrendingTopics: React.FC<TrendingTopicsProps> = ({
 
   if (trendingTopics.length === 0) {
     return (
-      <div className={`bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm ${className}`}>
-        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-6">
+      <div className={`bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm ${className}`}>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">
           Trending Topics
         </h3>
-        <div className="text-center py-8">
-          <div className="text-4xl mb-3 opacity-30">📊</div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            No trending topics yet
+        <div className="text-center py-6">
+          <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
+            <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+            No trending topics
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-            Start using hashtags to see trends
+          <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+            Start conversations to see trends
           </p>
         </div>
       </div>
@@ -71,59 +83,59 @@ const TrendingTopics: React.FC<TrendingTopicsProps> = ({
   }
 
   return (
-    <div className={`bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm ${className}`}>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-          Trending Topics
-        </h3>
-        <div className="text-xs text-slate-400 dark:text-slate-500">
-          Last 24h
+    <div className={`bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm ${className}`}>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-md flex items-center justify-center">
+            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+            Trending Topics
+          </h3>
+        </div>
+        <div className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
+          24h
         </div>
       </div>
 
-      <div className="space-y-3">
-        {trendingTopics.slice(0, 8).map((topic, index) => (
+      <div className="space-y-2">
+        {trendingTopics.slice(0, 6).map((topic, index) => (
           <button
             key={topic.hashtag}
             onClick={() => onHashtagClick(topic.hashtag)}
-            className="w-full text-left p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 group border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm"
+            className="w-full text-left p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 group border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{getCategoryIcon(topic.category)}</span>
-                  <span className="text-xs font-bold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 rounded-full w-6 h-6 flex items-center justify-center">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-slate-400 dark:text-slate-500 w-4 text-center">
                     {index + 1}
                   </span>
+                  {getCategoryIndicator(topic.category)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-slate-900 dark:text-white text-sm truncate">
+                    <span className="font-medium text-slate-900 dark:text-white text-sm truncate">
                       #{topic.hashtag}
                     </span>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${getCategoryColor(topic.category)} bg-current bg-opacity-10`}>
-                      {topic.category}
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                      {getCategoryLabel(topic.category)}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {topic.count} {topic.count === 1 ? 'post' : 'posts'}
+                      {topic.count} {topic.count === 1 ? 'mention' : 'mentions'}
                     </span>
-                    {topic.growth !== 0 && (
-                      <div className="flex items-center gap-1">
-                        <span className={`text-xs font-bold ${
-                          topic.growth > 0 
-                            ? 'text-emerald-600 dark:text-emerald-400' 
-                            : 'text-red-600 dark:text-red-400'
-                        }`}>
-                          {formatGrowth(topic.growth)}
-                        </span>
-                        {topic.growth > 0 && (
-                          <svg className="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </div>
+                    {topic.growth !== 0 && topic.growth !== 100 && (
+                      <span className={`text-xs font-medium ${
+                        topic.growth > 0 
+                          ? 'text-emerald-600 dark:text-emerald-400' 
+                          : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {formatGrowth(topic.growth)}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -138,33 +150,16 @@ const TrendingTopics: React.FC<TrendingTopicsProps> = ({
         ))}
       </div>
 
-      {trendingTopics.length > 8 && (
-        <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+      {trendingTopics.length > 6 && (
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
           <button
-            onClick={() => onHashtagClick('')} // This could open a full trending page
-            className="w-full text-center text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+            onClick={() => onHashtagClick('')}
+            className="w-full text-center text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
           >
-            View all trending topics
+            View all trends
           </button>
         </div>
       )}
-
-      <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-        <div className="flex items-center justify-center gap-4 text-xs text-slate-400 dark:text-slate-500">
-          <div className="flex items-center gap-1">
-            <span>🔥</span>
-            <span>Hot</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>📈</span>
-            <span>Rising</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>📊</span>
-            <span>Steady</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

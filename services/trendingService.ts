@@ -80,16 +80,16 @@ export class TrendingService {
         growth = 100; // New hashtag
       }
       
-      // Determine category based on usage and growth
+      // Determine category based on usage and growth - more conservative approach
       let category: 'rising' | 'hot' | 'steady' = 'steady';
-      if (growth > 100 && currentCount >= 2) {
+      if (growth > 150 && currentCount >= 3) {
         category = 'rising';
-      } else if (currentCount >= 5 || weeklyCount >= 10) {
+      } else if (currentCount >= 8 || weeklyCount >= 15) {
         category = 'hot';
       }
 
-      // Only include hashtags with meaningful activity
-      if (currentCount > 0) {
+      // Only include hashtags with meaningful activity and filter out noise
+      if (currentCount >= 1 && hashtag.length >= 2) {
         trendingTopics.push({
           hashtag,
           count: currentCount,

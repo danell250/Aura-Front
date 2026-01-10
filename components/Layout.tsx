@@ -141,7 +141,7 @@ const Layout: React.FC<LayoutProps> = ({
 
         <main className="flex-1 min-w-0 max-w-3xl mx-auto lg:mx-0">{children}</main>
 
-        <aside className="hidden xl:flex flex-col w-80 space-y-8 sticky top-28 self-start">
+        <aside className="hidden xl:flex flex-col w-80 space-y-6 sticky top-28 self-start max-h-[calc(100vh-8rem)] sidebar-scroll">
           <TrendingTopics 
             posts={posts} 
             ads={ads} 
@@ -152,17 +152,50 @@ const Layout: React.FC<LayoutProps> = ({
             }}
           />
           
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-6">Neural Credits</h3>
-            <p className="text-3xl font-black text-slate-900 dark:text-white">💎 {currentUser?.auraCredits?.toLocaleString() || '0'}</p>
-            <button onClick={onOpenCreditStore} className="mt-6 w-full py-4 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 font-black uppercase text-[10px] tracking-widest rounded-2xl border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-600 hover:text-white transition-all shadow-sm">Sync Credits</button>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                Neural Credits
+              </h3>
+            </div>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+              {currentUser?.auraCredits?.toLocaleString() || '0'}
+            </p>
+            <button 
+              onClick={onOpenCreditStore} 
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-xl transition-colors shadow-sm"
+            >
+              Purchase Credits
+            </button>
           </div>
           
-          <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white overflow-hidden relative group cursor-pointer" onClick={onOpenCreditStore}>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform"></div>
-            <h4 className="text-xs font-black uppercase tracking-widest mb-3 relative z-10">Expand Your Reach</h4>
-            <p className="text-[11px] text-slate-400 leading-relaxed mb-6 relative z-10 font-medium">Use credits to boost your presence and illuminate your professional profile.</p>
-            <span className="text-[10px] font-black uppercase text-emerald-400 group-hover:text-emerald-300 transition-colors relative z-10 flex items-center gap-2">Buy Credits <span className="translate-x-0 group-hover:translate-x-2 transition-transform">→</span></span>
+          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white overflow-hidden relative group cursor-pointer shadow-lg" onClick={onOpenCreditStore}>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/20 blur-2xl -mr-12 -mt-12 group-hover:scale-125 transition-transform"></div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h4 className="text-sm font-semibold">Boost Your Reach</h4>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                Amplify your professional presence and connect with industry leaders through strategic credit investment.
+              </p>
+              <div className="flex items-center gap-2 text-emerald-400 group-hover:text-emerald-300 transition-colors">
+                <span className="text-xs font-medium">Explore Plans</span>
+                <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
           </div>
         </aside>
       </div>

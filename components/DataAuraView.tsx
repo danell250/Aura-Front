@@ -15,11 +15,36 @@ interface DataAuraViewProps {
   onOpenCreditStore?: () => void;
 }
 
+interface PrivacySettings {
+  profileVisibility: 'public' | 'friends' | 'private';
+  showOnlineStatus: boolean;
+  allowDirectMessages: 'everyone' | 'friends' | 'none';
+  showProfileViews: boolean;
+  allowTagging: boolean;
+  showInSearch: boolean;
+  dataProcessingConsent: boolean;
+  marketingConsent: boolean;
+  analyticsConsent: boolean;
+  thirdPartySharing: boolean;
+  locationTracking: boolean;
+  activityTracking: boolean;
+  personalizedAds: boolean;
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+}
+
 const DataAuraView: React.FC<DataAuraViewProps> = ({ 
   currentUser, allUsers, posts, onBack, onPurchaseGlow, onClearData, onViewProfile, onOpenCreditStore
 }) => {
   const [insight, setInsight] = useState<string>('Calibrating neural frequencies...');
   const [loading, setLoading] = useState(true);
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings | null>(null);
+  const [showPrivacySettings, setShowPrivacySettings] = useState(false);
+  const [showDataExport, setShowDataExport] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const getInsight = async () => {
@@ -28,7 +53,127 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
       setLoading(false);
     };
     getInsight();
+    loadPrivacySettings();
   }, [currentUser, posts]);
+
+  const loadPrivacySettings = async () => {
+    try {
+      const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/privacy-settings`);
+      if (response.ok) {
+        const data = await response.json();
+        setPrivacySettings(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to load privacy settings:', error);
+      // Set default settings
+      setPrivacySettings({
+        profileVisibility: 'public',
+        showOnlineStatus: true,
+        allowDirectMessages: 'everyone',
+        showProfileViews: true,
+        allowTagging: true,
+        showInSearch: true,
+        dataProcessingConsent: true,
+        marketingConsent: false,
+        analyticsConsent: true,
+        thirdPartySharing: false,
+        locationTracking: false,
+        activityTracking: true,
+        personalizedAds: false,
+        emailNotifications: true,
+        pushNotifications: true
+      });
+    }
+  };
+
+  const updatePrivacySetting = async (key: keyof PrivacySettings, value: any) => {
+    if (!privacySettings) return;
+
+    const updatedSettings = { ...privacySettings, [key]: value };
+    setPrivacySettings(updatedSettings);
+
+    try {
+      await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/privacy-settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value })
+      });
+    } catch (error) {
+      console.error('Failed to update privacy setting:', error);
+      // Revert on error
+      setPrivacySettings(privacySettings);
+    }
+  };
+
+  const exportPrivacyData = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/privacy-data`);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Create and download JSON file
+        const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `aura-privacy-data-${currentUser.handle}-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        alert('✅ Your privacy data has been exported successfully!');
+      } else {
+        throw new Error('Export failed');
+      }
+    } catch (error) {
+      console.error('Failed to export privacy data:', error);
+      alert('❌ Failed to export privacy data. Please try again.');
+    } finally {
+      setIsExporting(false);
+      setShowDataExport(false);
+    }
+  };
+
+  const clearAllData = async () => {
+    if (deleteConfirmation !== 'CONFIRM_DELETE_ALL_DATA') {
+      alert('Please type the exact confirmation code to proceed.');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/clear-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          confirmationCode: deleteConfirmation,
+          reason: 'User requested data deletion via Privacy & Data panel'
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`✅ ${data.message}\n\nData types deleted:\n${data.dataTypes.join('\n')}`);
+        
+        // Clear local session and redirect to login
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = '/';
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Deletion failed');
+      }
+    } catch (error) {
+      console.error('Failed to clear data:', error);
+      alert('❌ Failed to clear data. Please try again or contact support.');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      setDeleteConfirmation('');
+    }
+  };
 
   const observers = (currentUser.profileViews || [])
     .map(id => allUsers.find(u => u.id === id))
@@ -88,26 +233,69 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
           </div>
         </div>
       </div>
-      <div className="grid md:grid-cols-2 gap-8 mb-8">
-        <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] p-10 border border-slate-200 dark:border-slate-800 shadow-xl">
-          <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mb-8 flex items-center gap-3"><span className="text-xl">🛰️</span> Recent Profile Viewers</h3>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 leading-relaxed">People who have visited your profile recently.</p>
-          <div className="space-y-4 max-h-[300px] overflow-y-auto no-scrollbar pr-2">
-            {observers.length === 0 ? (<div className="py-10 text-center bg-slate-50 dark:bg-slate-800 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">No recent viewers</p></div>) : observers.map(observer => (
-                <div key={observer.id} onClick={() => onViewProfile(observer.id)} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 group hover:border-emerald-200 dark:hover:border-emerald-800 transition-all cursor-pointer">
-                  <div className="flex items-center gap-4">
-                    <img src={observer.avatar} className="w-10 h-10 rounded-xl object-contain bg-slate-50 dark:bg-slate-800" alt="" />
-                    <div>
-                      <p className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">{observer.name}</p>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{observer.handle}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+
+      {/* Privacy Controls */}
+      <div className="grid md:grid-cols-3 gap-8 mb-8">
+        {/* Privacy Settings */}
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
+          <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3">
+            <span className="text-xl">🔒</span> Privacy Controls
+          </h3>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 leading-relaxed">
+            Manage your privacy settings and data preferences.
+          </p>
+          <button 
+            onClick={() => setShowPrivacySettings(true)}
+            className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg"
+          >
+            Manage Settings
+          </button>
+        </div>
+
+        {/* Data Export */}
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
+          <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3">
+            <span className="text-xl">📥</span> Data Export
+          </h3>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 leading-relaxed">
+            Download a complete copy of your personal data.
+          </p>
+          <button 
+            onClick={() => setShowDataExport(true)}
+            className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg"
+          >
+            Export Data
+          </button>
+        </div>
+
+        {/* Profile Viewers */}
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
+          <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3">
+            <span className="text-xl">👁️</span> Profile Viewers
+          </h3>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 leading-relaxed">
+            Recent visitors to your profile.
+          </p>
+          <div className="space-y-3 max-h-[200px] overflow-y-auto">
+            {observers.length === 0 ? (
+              <div className="py-6 text-center bg-slate-50 dark:bg-slate-800 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">No recent viewers</p>
+              </div>
+            ) : observers.slice(0, 3).map(observer => (
+              <div key={observer.id} onClick={() => onViewProfile(observer.id)} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 group hover:border-emerald-200 dark:hover:border-emerald-800 transition-all cursor-pointer">
+                <img src={observer.avatar} className="w-8 h-8 rounded-lg object-contain bg-slate-50 dark:bg-slate-800" alt="" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight truncate">{observer.name}</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest truncate">{observer.handle}</p>
                 </div>
-              ))
-            }
+              </div>
+            ))}
           </div>
         </div>
+      </div>
+
+      {/* Glow Enhancement */}
+      <div className="grid md:grid-cols-2 gap-8 mb-8">
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-200 dark:border-slate-800 shadow-xl">
           <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-8 flex items-center gap-3"><span className="text-xl">🎨</span> Enhance My Presence</h3>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 leading-relaxed">Spend Neural Credits to unlock professional profile glows.</p>
@@ -117,13 +305,49 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
             <GlowOption name="Amber Resonance" price={500} color="bg-amber-500" onClick={() => onPurchaseGlow('amber')} />
           </div>
         </div>
+
+        {/* Data Sovereignty */}
+        <div className="bg-rose-50 dark:bg-rose-950/10 rounded-[3rem] p-10 border border-rose-100 dark:border-rose-900/30 shadow-xl">
+          <h3 className="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-8 flex items-center gap-3"><span className="text-xl">⚠️</span> Data Sovereignty</h3>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">Execute a total reset of your digital footprint on the network. This action cannot be reversed.</p>
+          <button 
+            onClick={() => setShowDeleteConfirm(true)} 
+            className="w-full py-5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-200 dark:shadow-rose-900/20 active:scale-[0.96]"
+          >
+            Clear My Data
+          </button>
+          <p className="text-[9px] font-bold text-rose-400 dark:text-rose-500 uppercase tracking-widest mt-6 text-center">Protocol 12-X Compliant</p>
+        </div>
       </div>
-      <div className="bg-rose-50 dark:bg-rose-950/10 rounded-[3rem] p-10 border border-rose-100 dark:border-rose-900/30 shadow-xl">
-        <h3 className="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-8 flex items-center gap-3"><span className="text-xl">⚠️</span> Data Sovereignty</h3>
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">Execute a total reset of your digital footprint on the network. This action cannot be reversed.</p>
-        <button onClick={onClearData} className="w-full py-5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-200 dark:shadow-rose-900/20 active:scale-[0.96]">Clear My Data</button>
-        <p className="text-[9px] font-bold text-rose-400 dark:text-rose-500 uppercase tracking-widest mt-6 text-center">Protocol 12-X Compliant</p>
-      </div>
+
+      {/* Privacy Settings Modal */}
+      {showPrivacySettings && privacySettings && (
+        <PrivacySettingsModal 
+          settings={privacySettings}
+          onUpdate={updatePrivacySetting}
+          onClose={() => setShowPrivacySettings(false)}
+        />
+      )}
+
+      {/* Data Export Modal */}
+      {showDataExport && (
+        <DataExportModal 
+          onExport={exportPrivacyData}
+          onClose={() => setShowDataExport(false)}
+          isExporting={isExporting}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <DeleteConfirmModal 
+          onConfirm={clearAllData}
+          onClose={() => setShowDeleteConfirm(false)}
+          confirmationText={deleteConfirmation}
+          onConfirmationChange={setDeleteConfirmation}
+          isDeleting={isDeleting}
+        />
+      )}
     </div>
   );
 };
@@ -135,6 +359,190 @@ const GlowOption = ({ name, price, color, onClick }: any) => (
       <p className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">{name}</p>
     </div>
     <button onClick={onClick} className="px-5 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100 dark:border-slate-700 hover:bg-slate-900 hover:text-white transition-all">{price} Credits</button>
+  </div>
+);
+
+const PrivacySettingsModal = ({ settings, onUpdate, onClose }: any) => (
+  <div className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Privacy Settings</h3>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div className="p-6 space-y-6">
+        <SettingToggle 
+          label="Show Profile in Search" 
+          description="Allow others to find your profile in search results"
+          value={settings.showInSearch} 
+          onChange={(value) => onUpdate('showInSearch', value)} 
+        />
+        <SettingToggle 
+          label="Show Online Status" 
+          description="Display when you're active on the platform"
+          value={settings.showOnlineStatus} 
+          onChange={(value) => onUpdate('showOnlineStatus', value)} 
+        />
+        <SettingToggle 
+          label="Show Profile Views" 
+          description="Let others see who viewed their profile"
+          value={settings.showProfileViews} 
+          onChange={(value) => onUpdate('showProfileViews', value)} 
+        />
+        <SettingToggle 
+          label="Allow Tagging" 
+          description="Let others tag you in posts and comments"
+          value={settings.allowTagging} 
+          onChange={(value) => onUpdate('allowTagging', value)} 
+        />
+        <SettingToggle 
+          label="Email Notifications" 
+          description="Receive notifications via email"
+          value={settings.emailNotifications} 
+          onChange={(value) => onUpdate('emailNotifications', value)} 
+        />
+        <SettingToggle 
+          label="Analytics Consent" 
+          description="Allow anonymous usage analytics to improve the platform"
+          value={settings.analyticsConsent} 
+          onChange={(value) => onUpdate('analyticsConsent', value)} 
+        />
+      </div>
+    </div>
+  </div>
+);
+
+const SettingToggle = ({ label, description, value, onChange }: any) => (
+  <div className="flex items-start justify-between">
+    <div className="flex-1">
+      <h4 className="font-semibold text-slate-900 dark:text-white text-sm">{label}</h4>
+      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{description}</p>
+    </div>
+    <button
+      onClick={() => onChange(!value)}
+      className={`ml-4 relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        value ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          value ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
+  </div>
+);
+
+const DataExportModal = ({ onExport, onClose, isExporting }: any) => (
+  <div className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg">
+      <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Export Your Data</h3>
+      </div>
+      <div className="p-6">
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+          Download a complete copy of your personal data including profile information, posts, connections, and privacy settings.
+        </p>
+        <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 mb-6">
+          <h4 className="font-semibold text-slate-900 dark:text-white text-sm mb-2">Data Included:</h4>
+          <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
+            <li>• Personal information and profile data</li>
+            <li>• Account settings and preferences</li>
+            <li>• Posts, comments, and reactions</li>
+            <li>• Connections and blocked users</li>
+            <li>• Privacy settings and consent records</li>
+          </ul>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 px-4 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onExport}
+            disabled={isExporting}
+            className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            {isExporting ? (
+              <>
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                Exporting...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export Data
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const DeleteConfirmModal = ({ onConfirm, onClose, confirmationText, onConfirmationChange, isDeleting }: any) => (
+  <div className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg">
+      <div className="p-6 border-b border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/20">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold text-rose-900 dark:text-rose-100">Delete All Data</h3>
+        </div>
+      </div>
+      <div className="p-6">
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+          This will permanently delete all your data including your profile, posts, messages, and connections. This action cannot be undone.
+        </p>
+        <div className="bg-rose-50 dark:bg-rose-950/20 rounded-lg p-4 mb-6">
+          <p className="text-sm font-semibold text-rose-900 dark:text-rose-100 mb-2">
+            Type "CONFIRM_DELETE_ALL_DATA" to proceed:
+          </p>
+          <input
+            type="text"
+            value={confirmationText}
+            onChange={(e) => onConfirmationChange(e.target.value)}
+            className="w-full px-3 py-2 border border-rose-200 dark:border-rose-800 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none"
+            placeholder="Type confirmation code..."
+          />
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 px-4 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isDeleting || confirmationText !== 'CONFIRM_DELETE_ALL_DATA'}
+            className="flex-1 py-3 px-4 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            {isDeleting ? (
+              <>
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                Deleting...
+              </>
+            ) : (
+              'Delete All Data'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 );
 

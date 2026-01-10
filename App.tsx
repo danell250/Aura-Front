@@ -576,27 +576,6 @@ const App: React.FC = () => {
   const handleUpdateProfile = (updates: Partial<User>) => {
     if (!currentUser) return;
     
-    const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
-    
-    // For special user, allow credit deduction to show but restore credits after a delay
-    if (isSpecialUser && updates.auraCredits !== undefined && updates.auraCredits < 999999) {
-      // Allow the deduction to show temporarily, then restore after 2 seconds
-      setTimeout(() => {
-        setCurrentUser(prev => prev ? { ...prev, auraCredits: 999999 } : prev);
-        setAllUsers(prevUsers => {
-          const updatedUsers = prevUsers.map(u => 
-            u.id === currentUser.id ? { ...u, auraCredits: 999999 } : u
-          );
-          try {
-            localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-          } catch (error) {
-            console.error('Failed to save restored credits:', error);
-          }
-          return updatedUsers;
-        });
-      }, 2000);
-    }
-    
     const updatedUser = { ...currentUser, ...updates };
     if (updates.firstName && updates.lastName) updatedUser.name = `${updates.firstName} ${updates.lastName}`;
     setCurrentUser(updatedUser);
@@ -783,15 +762,32 @@ const App: React.FC = () => {
       return;
     }
     
-    if (!isSpecialUser) {
-      const newCredits = (currentUser.auraCredits || 0) - credits;
-      handleUpdateProfile({ auraCredits: newCredits });
+    // Always deduct credits first to show the deduction
+    const newCredits = (currentUser.auraCredits || 0) - credits;
+    handleUpdateProfile({ auraCredits: newCredits });
+    
+    // For special users, restore credits after a delay
+    if (isSpecialUser) {
+      setTimeout(() => {
+        setCurrentUser(prev => prev ? { ...prev, auraCredits: 999999 } : prev);
+        setAllUsers(prevUsers => {
+          const updatedUsers = prevUsers.map(u => 
+            u.id === currentUser.id ? { ...u, auraCredits: 999999 } : u
+          );
+          try {
+            localStorage.setItem('aura_all_users', JSON.stringify(updatedUsers));
+          } catch (error) {
+            console.error('Failed to save restored credits:', error);
+          }
+          return updatedUsers;
+        });
+      }, 2000);
     }
     
     // Calculate radiance boost based on credits spent (2x multiplier)
     const radianceBoost = credits * 2;
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, radiance: p.radiance + radianceBoost, isBoosted: true } : p));
-  }, [currentUser?.auraCredits, currentUser?.email, handleUpdateProfile]);
+  }, [currentUser?.auraCredits, currentUser?.email, currentUser?.id, handleUpdateProfile, setAllUsers]);
 
   const handleBoostUser = useCallback((userId: string) => {
     if (!currentUser) return;

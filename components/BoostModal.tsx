@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '../types';
+import SuccessNotification from './SuccessNotification';
 
 interface BoostModalProps {
   isOpen: boolean;
@@ -21,6 +22,12 @@ const BoostModal: React.FC<BoostModalProps> = ({
   const [selectedCredits, setSelectedCredits] = useState(50);
   const [customCredits, setCustomCredits] = useState('');
   const [isCustom, setIsCustom] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successDetails, setSuccessDetails] = useState<{
+    radianceBoost: number;
+    creditsSpent: number;
+    remainingCredits: number;
+  } | null>(null);
 
   const presetOptions = [
     { credits: 50, label: 'Small Boost', description: '+100 radiance', color: 'from-emerald-500 to-teal-500' },
@@ -33,29 +40,29 @@ const BoostModal: React.FC<BoostModalProps> = ({
     const creditsToSpend = isCustom ? parseInt(customCredits) : selectedCredits;
     
     if (creditsToSpend <= 0) {
-      alert('Please enter a valid number of credits');
       return;
     }
     
     if (creditsToSpend > (currentUser.auraCredits || 0)) {
       if (onOpenCreditStore) {
-        const shouldOpenStore = confirm('Insufficient credits. Would you like to purchase more credits?');
-        if (shouldOpenStore) {
-          onOpenCreditStore();
-          onClose();
-        }
-      } else {
-        alert('Insufficient credits. Please purchase more credits or choose a lower amount.');
+        onOpenCreditStore();
+        onClose();
       }
       return;
     }
     
     onBoost(creditsToSpend);
     
-    // Show success message with credit deduction details
+    // Show success notification with credit deduction details
     const radianceBoost = creditsToSpend * 2;
     const remainingCredits = (currentUser.auraCredits || 0) - creditsToSpend;
-    alert(`🚀 Post boosted successfully!\n\n✨ +${radianceBoost} radiance added\n💰 ${creditsToSpend} credits spent\n🏦 ${remainingCredits.toLocaleString()} credits remaining`);
+    
+    setSuccessDetails({
+      radianceBoost,
+      creditsSpent: creditsToSpend,
+      remainingCredits
+    });
+    setShowSuccess(true);
     
     onClose();
     // Reset state
@@ -72,10 +79,25 @@ const BoostModal: React.FC<BoostModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) return (
+    <>
+      <SuccessNotification
+        isVisible={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        title="Post Boosted Successfully!"
+        message={`Amplified ${postAuthor}'s reach`}
+        details={successDetails ? [
+          { label: 'Radiance boost', value: `+${successDetails.radianceBoost}`, color: 'text-emerald-600 dark:text-emerald-400' },
+          { label: 'Credits spent', value: `${successDetails.creditsSpent}`, color: 'text-slate-900 dark:text-white' },
+          { label: 'Credits remaining', value: `${successDetails.remainingCredits.toLocaleString()}`, color: 'text-slate-900 dark:text-white' }
+        ] : []}
+      />
+    </>
+  );
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-slate-900/90 backdrop-blur-xl animate-in fade-in duration-300 overflow-y-auto">
+    <>
+      <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-slate-900/90 backdrop-blur-xl animate-in fade-in duration-300 overflow-y-auto">
       <div className="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 md:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 relative animate-in zoom-in-95 duration-300 my-2 sm:my-4">
         <div className="flex justify-between items-start mb-4 sm:mb-6">
           <div className="flex-1 pr-3 sm:pr-4">
@@ -237,7 +259,20 @@ const BoostModal: React.FC<BoostModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+      </div>
+      
+      <SuccessNotification
+        isVisible={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        title="Post Boosted Successfully!"
+        message={`Amplified ${postAuthor}'s reach`}
+        details={successDetails ? [
+          { label: 'Radiance boost', value: `+${successDetails.radianceBoost}`, color: 'text-emerald-600 dark:text-emerald-400' },
+          { label: 'Credits spent', value: `${successDetails.creditsSpent}`, color: 'text-slate-900 dark:text-white' },
+          { label: 'Credits remaining', value: `${successDetails.remainingCredits.toLocaleString()}`, color: 'text-slate-900 dark:text-white' }
+        ] : []}
+      />
+    </>
   );
 };
 

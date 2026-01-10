@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Post, User, Comment } from '../types';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import { geminiService } from '../services/gemini';
+import BoostModal from './BoostModal';
 
 interface PostCardProps {
   post: Post;
@@ -13,14 +14,15 @@ interface PostCardProps {
   onSearchTag: (tag: string) => void;
   onLike: (postId: string) => void;
   onShare?: (post: Post) => void;
-  onBoost?: (postId: string) => void;
+  onBoost?: (postId: string, credits: number) => void;
   onDeletePost?: (postId: string) => void;
   onDeleteComment?: (postId: string, commentId: string) => void;
+  onOpenCreditStore?: () => void;
   allUsers: User[];
 }
 
 const PostCard: React.FC<PostCardProps> = ({ 
-  post, onReact, onComment, currentUser, onViewProfile, onSearchTag, onLike, onShare, onBoost, onDeletePost, onDeleteComment, allUsers
+  post, onReact, onComment, currentUser, onViewProfile, onSearchTag, onLike, onShare, onBoost, onDeletePost, onDeleteComment, onOpenCreditStore, allUsers
 }) => {
   const [commentText, setCommentText] = useState('');
   const [replyText, setReplyText] = useState('');
@@ -29,6 +31,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [activeCommentEmojiPicker, setActiveCommentEmojiPicker] = useState<string | null>(null);
+  const [showBoostModal, setShowBoostModal] = useState(false);
 
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
@@ -91,6 +94,16 @@ const PostCard: React.FC<PostCardProps> = ({
       );
     }
     return <img key={url} src={url} className={className} alt="" />;
+  };
+
+  const handleBoostClick = () => {
+    setShowBoostModal(true);
+  };
+
+  const handleBoostConfirm = (credits: number) => {
+    if (onBoost) {
+      onBoost(post.id, credits);
+    }
   };
 
   const handleAISuggestion = async () => {
@@ -300,7 +313,7 @@ const PostCard: React.FC<PostCardProps> = ({
            </div>
            
            <div className="flex items-center gap-2">
-             <button onClick={() => onBoost && onBoost(post.id)} className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-2 rounded-xl hover:bg-emerald-600 hover:text-white transition-all">Boost</button>
+             <button onClick={handleBoostClick} className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-2 rounded-xl hover:bg-emerald-600 hover:text-white transition-all">Boost</button>
              <button onClick={() => onShare && onShare(post)} className="p-2 text-slate-400 hover:text-emerald-500 transition-all flex items-center gap-1">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                 <span className="text-xs font-bold uppercase tracking-wider">Share</span>
@@ -334,6 +347,16 @@ const PostCard: React.FC<PostCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Boost Modal */}
+      <BoostModal
+        isOpen={showBoostModal}
+        onClose={() => setShowBoostModal(false)}
+        onBoost={handleBoostConfirm}
+        currentUser={currentUser}
+        postAuthor={post.author.name}
+        onOpenCreditStore={onOpenCreditStore}
+      />
     </div>
   );
 };

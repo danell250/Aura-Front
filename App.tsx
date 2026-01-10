@@ -760,22 +760,23 @@ const App: React.FC = () => {
     }));
   }, [currentUser]);
 
-  const handleBoostPost = useCallback((postId: string) => {
+  const handleBoostPost = useCallback((postId: string, credits: number = 50) => {
     if (!currentUser) return;
     
-    const boostCost = 50;
     const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
     
-    if (!isSpecialUser && (currentUser.auraCredits || 0) < boostCost) {
+    if (!isSpecialUser && (currentUser.auraCredits || 0) < credits) {
       setIsCreditStoreOpen(true);
       return;
     }
     
     if (!isSpecialUser) {
-      handleUpdateProfile({ auraCredits: (currentUser.auraCredits || 0) - boostCost });
+      handleUpdateProfile({ auraCredits: (currentUser.auraCredits || 0) - credits });
     }
     
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, radiance: p.radiance + 100, isBoosted: true } : p));
+    // Calculate radiance boost based on credits spent (2x multiplier)
+    const radianceBoost = credits * 2;
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, radiance: p.radiance + radianceBoost, isBoosted: true } : p));
   }, [currentUser?.auraCredits, currentUser?.email, handleUpdateProfile]);
 
   const handleBoostUser = useCallback((userId: string) => {

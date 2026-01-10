@@ -36,20 +36,10 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
         }
       } catch (error) {
         console.error('Failed to load conversations:', error);
-        // Fallback to localStorage for offline functionality
-        const savedMessages = localStorage.getItem('aura_chat_messages');
-        if (savedMessages) setMessages(JSON.parse(savedMessages));
       }
     };
 
     loadConversations();
-
-    // Load archived/deleted state from localStorage
-    const savedArchived = localStorage.getItem('aura_archived_chats');
-    if (savedArchived) setArchivedIds(JSON.parse(savedArchived));
-    
-    const savedDeleted = localStorage.getItem('aura_deleted_chats');
-    if (savedDeleted) setDeletedIds(JSON.parse(savedDeleted));
   }, [currentUser.id]);
 
   // Load messages when active contact changes
@@ -67,16 +57,6 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
         }
       } catch (error) {
         console.error('Failed to load messages:', error);
-        // Fallback to localStorage messages
-        const savedMessages = localStorage.getItem('aura_chat_messages');
-        if (savedMessages) {
-          const allMessages = JSON.parse(savedMessages);
-          const chatMessages = allMessages.filter((m: Message) => 
-            (m.senderId === currentUser.id && m.receiverId === activeContact.id) ||
-            (m.senderId === activeContact.id && m.receiverId === currentUser.id)
-          );
-          setMessages(chatMessages);
-        }
       } finally {
         setIsLoading(false);
       }
@@ -85,11 +65,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
     loadMessages();
   }, [activeContact, currentUser.id]);
 
-  // Sync state to localStorage
-  useEffect(() => {
-    localStorage.setItem('aura_archived_chats', JSON.stringify(archivedIds));
-    localStorage.setItem('aura_deleted_chats', JSON.stringify(deletedIds));
-  }, [archivedIds, deletedIds]);
+
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -141,22 +117,8 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      // Fallback to localStorage for offline functionality
-      const newMessage: Message = {
-        id: `msg-${Date.now()}`,
-        senderId: currentUser.id,
-        receiverId: activeContact.id,
-        text: inputText.trim(),
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, newMessage]);
-      setInputText('');
-      
-      // Save to localStorage as backup
-      const savedMessages = localStorage.getItem('aura_chat_messages');
-      const allMessages = savedMessages ? JSON.parse(savedMessages) : [];
-      allMessages.push(newMessage);
-      localStorage.setItem('aura_chat_messages', JSON.stringify(allMessages));
+      // Show error to user
+      alert('Failed to send message. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -199,21 +161,10 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
   }, [acquaintances, contactSearch, sidebarTab, archivedIds]);
 
   const getLastMessage = (userId: string) => {
-    // Find conversation data from backend or fallback to localStorage
+    // Find conversation data from backend
     const conversation = conversations.find(conv => conv._id === userId);
     if (conversation?.lastMessage) {
       return conversation.lastMessage;
-    }
-    
-    // Fallback to localStorage messages
-    const savedMessages = localStorage.getItem('aura_chat_messages');
-    if (savedMessages) {
-      const allMessages = JSON.parse(savedMessages);
-      const chatMsgs = allMessages.filter((m: Message) => 
-        (m.senderId === currentUser.id && m.receiverId === userId) ||
-        (m.senderId === userId && m.receiverId === currentUser.id)
-      );
-      return chatMsgs.length > 0 ? chatMsgs[chatMsgs.length - 1] : null;
     }
     
     return null;

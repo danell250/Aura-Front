@@ -204,7 +204,7 @@ const AppContent: React.FC<AppContentProps> = ({
         }
         return u;
       });
-      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      // Removed localStorage saving - relying on backend only
       return updatedUsers;
     });
   }, [view.type, view.targetId, currentUser, allUsers, setCurrentUser]);

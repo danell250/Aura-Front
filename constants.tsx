@@ -1997,4 +1997,4 @@ export const INITIAL_POSTS: Post[] = [
   },
 ];
 
-export const BACKEND_URL = process.env.BACKEND_URL || 'https://aura-back-s1bw.onrender.com';
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://aura-back-s1bw.onrender.com';

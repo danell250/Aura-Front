@@ -4,7 +4,7 @@ import AppContent from './components/AppContent';
 import SerendipityModal from './components/SerendipityModal';
 import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, BACKEND_URL } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle, Message } from './types';
-
+import { apiFetch } from './utils/api';
 
 import { auth, onAuthStateChanged } from './services/firebase';
 import { UserService } from './services/userService';
@@ -212,7 +212,7 @@ const App: React.FC = () => {
             // Only fetch users if cache is invalid
             if (!CacheService.isUsersCacheValid()) {
               promises.push(
-                fetch(`${BACKEND_URL}/api/users`)
+                apiFetch('/api/users')
                   .then(res => res.ok ? res.json() : null)
                   .then(data => ({ type: 'users', data }))
                   .catch(() => ({ type: 'users', data: null }))
@@ -222,7 +222,7 @@ const App: React.FC = () => {
             // Only fetch posts if cache is invalid
             if (!CacheService.isPostsCacheValid()) {
               promises.push(
-                fetch(`${BACKEND_URL}/api/posts`)
+                apiFetch('/api/posts')
                   .then(res => res.ok ? res.json() : null)
                   .then(data => ({ type: 'posts', data }))
                   .catch(() => ({ type: 'posts', data: null }))
@@ -232,7 +232,7 @@ const App: React.FC = () => {
             // Only fetch ads if cache is invalid
             if (!CacheService.isAdsCacheValid()) {
               promises.push(
-                fetch(`${BACKEND_URL}/api/ads`)
+                apiFetch('/api/ads')
                   .then(res => res.ok ? res.json() : null)
                   .then(data => ({ type: 'ads', data }))
                   .catch(() => ({ type: 'ads', data: null }))
@@ -849,9 +849,8 @@ const App: React.FC = () => {
     
     // Call backend API to persist the credit deduction
     try {
-      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/spend-credits`, {
+      const response = await apiFetch(`/api/users/${currentUser.id}/spend-credits`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           credits: credits,
           reason: 'post_boost'
@@ -904,9 +903,8 @@ const App: React.FC = () => {
     
     // Call backend API to persist the credit deduction
     try {
-      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/spend-credits`, {
+      const response = await apiFetch(`/api/users/${currentUser.id}/spend-credits`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           credits: boostCost,
           reason: 'user_boost'
@@ -1004,11 +1002,8 @@ const App: React.FC = () => {
     
     // Try to update credits via backend API first
     try {
-      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/purchase-credits`, {
+      const response = await apiFetch(`/api/users/${currentUser.id}/purchase-credits`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           credits: bundle.credits,
           bundleName: bundle.name,

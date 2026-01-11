@@ -17,6 +17,7 @@ import ShareModal from './ShareModal';
 import CreditStoreModal from './CreditStoreModal';
 import FeedFilters from './FeedFilters';
 import SerendipityModal from './SerendipityModal';
+import AIContentGenerator from './AIContentGenerator';
 import Logo from './Logo';
 import { useMetaTags } from '../hooks/useMetaTags';
 import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES, BACKEND_URL } from '../constants';
@@ -93,64 +94,9 @@ interface AppContentProps {
   handlePurchaseCredits: (bundle: CreditBundle) => void;
   handleAuraShare: (selectedUsers: User[]) => void;
   toggleDarkMode: () => void;
-}
-
-interface AppContentProps {
-  isAuthenticated: boolean;
-  currentUser: User | null;
-  allUsers: User[];
-  posts: Post[];
-  ads: Ad[];
-  birthdayAnnouncements: BirthdayAnnouncement[];
-  notifications: Notification[];
-  loading: boolean;
-  searchQuery: string;
-  activeEnergy: EnergyType | 'all';
-  activeMediaType: 'all' | 'image' | 'video' | 'document';
-  isSettingsOpen: boolean;
-  isAdManagerOpen: boolean;
-  isCreditStoreOpen: boolean;
-  isDarkMode: boolean;
-  sharingContent: { content: string; url: string; title?: string; image?: string; originalPost?: Post } | null;
-  view: {type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string};
-  setIsAuthenticated: (value: boolean) => void;
-  setCurrentUser: (user: User | null) => void;
-  setAllUsers: (users: User[]) => void;
-  setPosts: (posts: Post[]) => void;
-  setAds: (ads: Ad[]) => void;
-  setBirthdayAnnouncements: (announcements: BirthdayAnnouncement[]) => void;
-  setNotifications: (notifications: Notification[]) => void;
-  setLoading: (loading: boolean) => void;
-  setSearchQuery: (query: string) => void;
-  setActiveEnergy: (energy: EnergyType | 'all') => void;
-  setActiveMediaType: (type: 'all' | 'image' | 'video' | 'document') => void;
-  setIsSettingsOpen: (open: boolean) => void;
-  setIsAdManagerOpen: (open: boolean) => void;
-  setIsCreditStoreOpen: (open: boolean) => void;
-  setIsDarkMode: (dark: boolean) => void;
-  setSharingContent: (content: { content: string; url: string; title?: string; image?: string; originalPost?: Post } | null) => void;
-  setView: (view: {type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string}) => void;
-  handleLogin: (userData: any) => void;
-  handleUpdateProfile: (updates: Partial<User>) => void;
-  handlePost: (content: string, mediaUrl?: string, mediaType?: any, taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => void;
-  handleTimeCapsule: (data: any) => void;
-  handleSerendipityMode: () => void;
-  serendipityModalOpen: boolean;
-  setSerendipityModalOpen: (open: boolean) => void;
-  serendipityContent: any;
-  handleDeletePost: (postId: string) => void;
-  handleDeleteComment: (postId: string, commentId: string) => void;
-  handleLike: (postId: string) => void;
-  handleBoostPost: (postId: string) => void;
-  handleBoostUser: (userId: string) => void;
-  handleComment: (postId: string, text: string, parentId?: string) => void;
-  handleReact: (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => void;
-  handleAddAcquaintance: (targetUser: User) => void;
-  handleAcceptConnection: (notification: Notification) => void;
-  handleRemoveAcquaintance: (userId: string) => void;
-  handlePurchaseCredits: (bundle: CreditBundle) => void;
-  handleAuraShare: (selectedUsers: User[]) => void;
-  toggleDarkMode: () => void;
+  aiGeneratorOpen: boolean;
+  setAiGeneratorOpen: (open: boolean) => void;
+  onGenerateAIContent: (prompt: string) => Promise<string>;
 }
 
 const AppContent: React.FC<AppContentProps> = ({
@@ -159,7 +105,7 @@ const AppContent: React.FC<AppContentProps> = ({
   isDarkMode, sharingContent, view, setIsAuthenticated, setCurrentUser, setAllUsers, setPosts,
   setAds, setBirthdayAnnouncements, setNotifications, setLoading, setSearchQuery, setActiveEnergy,
   setActiveMediaType, setIsSettingsOpen, setIsAdManagerOpen, setIsCreditStoreOpen, setIsDarkMode,
-  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleSerendipityMode, serendipityModalOpen, setSerendipityModalOpen, serendipityContent, handleDeletePost,
+  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleSerendipityMode, serendipityModalOpen, setSerendipityModalOpen, serendipityContent, aiGeneratorOpen, setAiGeneratorOpen, onGenerateAIContent, handleDeletePost,
   handleDeleteComment, handleLike, handleBoostPost, handleBoostUser, handleComment, handleReact,
   handleAddAcquaintance, handleAcceptConnection, handleRemoveAcquaintance, handlePurchaseCredits, handleAuraShare,
   toggleDarkMode
@@ -200,6 +146,21 @@ const AppContent: React.FC<AppContentProps> = ({
   }, [view, sharingContent, allUsers, currentUser]);
 
   useMetaTags(getMetaInfo());
+
+  // Handle AI Content Generator events
+  useEffect(() => {
+    const handleOpenAIContentGenerator = (event: any) => {
+      setAiGeneratorOpen(true);
+      // Store the callback to set content in the CreatePost component
+      (window as any).setPostContent = event.detail.setPostContent;
+    };
+
+    window.addEventListener('openAIContentGenerator', handleOpenAIContentGenerator);
+    
+    return () => {
+      window.removeEventListener('openAIContentGenerator', handleOpenAIContentGenerator);
+    };
+  }, [setAiGeneratorOpen]);
 
   // Handle URL-based routing
   useEffect(() => {
@@ -541,7 +502,7 @@ const AppContent: React.FC<AppContentProps> = ({
     >
       {view.type === 'feed' && (
         <div className="space-y-6">
-          <CreatePost allUsers={allUsers} currentUser={currentUser} onPost={handlePost} onTimeCapsule={handleTimeCapsule} />
+          <CreatePost allUsers={allUsers} currentUser={currentUser} onPost={handlePost} onTimeCapsule={handleTimeCapsule} onGenerateAIContent={onGenerateAIContent} />
           
           <FeedFilters 
             activeMediaType={activeMediaType}
@@ -718,6 +679,15 @@ const AppContent: React.FC<AppContentProps> = ({
         onNavigateToProfile={(userId) => {
           setView({ type: 'profile', targetId: userId }); 
           navigate(`/profile/${userId}`); 
+        }}
+      />
+      <AIContentGenerator 
+        isOpen={aiGeneratorOpen} 
+        onClose={() => setAiGeneratorOpen(false)} 
+        onGenerate={onGenerateAIContent}
+        onUseContent={(content) => {
+          // Content will be handled by the stored callback in the event handler
+          console.log('Using AI-generated content:', content);
         }}
       />
     </Layout>

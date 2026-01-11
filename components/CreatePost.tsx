@@ -11,6 +11,7 @@ import TimeCapsuleTutorial from './TimeCapsuleTutorial';
 interface CreatePostProps {
   onPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video' | 'document', taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => void;
   onTimeCapsule: (data: TimeCapsuleData) => void;
+  onGenerateAIContent: (prompt: string) => Promise<string>;
   currentUser: User;
   allUsers: User[];
 }
@@ -32,7 +33,7 @@ const ActionButton = ({ icon, label, onClick, color, isSpecial }: any) => (
   </button>
 );
 
-const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, currentUser, allUsers }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenerateAIContent, currentUser, allUsers }) => {
   const [content, setContent] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isProcessingMedia, setIsProcessingMedia] = useState(false);
@@ -130,10 +131,19 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, currentU
   const handleInspiration = async () => {
     if (!topic.trim()) return;
     setIsGenerating(true);
-    const suggestion = await geminiService.generatePostInspiration(topic);
-    setContent(suggestion);
-    setIsGenerating(false);
-    setShowInspiration(false);
+    try {
+      // Use the enhanced AI content generation function passed from parent
+      const suggestion = await onGenerateAIContent(topic);
+      setContent(suggestion);
+    } catch (error) {
+      console.error('Error generating content:', error);
+      // Fallback to the original gemini service
+      const fallbackSuggestion = await geminiService.generatePostInspiration(topic);
+      setContent(fallbackSuggestion);
+    } finally {
+      setIsGenerating(false);
+      setShowInspiration(false);
+    }
   };
 
   const handleTimeCapsuleSubmit = (data: TimeCapsuleData) => {
@@ -284,7 +294,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, currentU
                   )}
                 </div>
               </div>
-              <ActionButton onClick={() => setShowInspiration(!showInspiration)} icon="✨" label="AI Assist" color="text-indigo-600" isSpecial />
+              <ActionButton onClick={() => setShowInspiration(!showInspiration)} icon="✨" label="AI Inspire" color="text-indigo-600" isSpecial />
+                <ActionButton onClick={() => {
+                  // Open the AI Content Generator modal via a custom event
+                  const event = new CustomEvent('openAIContentGenerator', { detail: { setPostContent: setContent } });
+                  window.dispatchEvent(event);
+                }} icon="🤖" label="AI Write" color="text-purple-600" isSpecial />
             </div>
 
             <button 
@@ -337,6 +352,23 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, currentU
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                   </>
                 )}
+              </button>
+            </div>
+            
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3">OR</p>
+              <button 
+                onClick={() => {
+                  // Open the AI Content Generator modal
+                  const event = new CustomEvent('openAIContentGenerator', { detail: { setPostContent: setContent } });
+                  window.dispatchEvent(event);
+                }}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <span>🤖 AI Content Generator</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
               </button>
             </div>
           </div>

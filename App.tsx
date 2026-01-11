@@ -7,6 +7,7 @@ import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from 
 import { auth, onAuthStateChanged } from './services/firebase';
 import { UserService } from './services/userService';
 import { CacheService } from './services/cacheService';
+import { geminiService } from './services/gemini';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -559,6 +560,8 @@ const App: React.FC = () => {
 
   const [serendipityModalOpen, setSerendipityModalOpen] = useState(false);
   const [serendipityContent, setSerendipityContent] = useState(null);
+  
+  const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false);
 
   const handleSerendipityMode = () => {
     if (!currentUser) return;
@@ -637,7 +640,18 @@ const App: React.FC = () => {
       setSerendipityModalOpen(true);
     }
   };
-
+  
+  const handleGenerateAIContent = async (prompt: string): Promise<string> => {
+    try {
+      // Use the existing geminiService from the imports
+      const response = await geminiService.generateContent(prompt);
+      return response;
+    } catch (error) {
+      console.error('Error generating AI content:', error);
+      throw error;
+    }
+  };
+  
   const handleDeletePost = useCallback((postId: string) => {
     setPosts(prev => prev.filter(p => p.id !== postId));
   }, []);
@@ -1140,6 +1154,9 @@ const App: React.FC = () => {
             serendipityModalOpen={serendipityModalOpen}
             setSerendipityModalOpen={setSerendipityModalOpen}
             serendipityContent={serendipityContent}
+            aiGeneratorOpen={aiGeneratorOpen}
+            setAiGeneratorOpen={setAiGeneratorOpen}
+            onGenerateAIContent={handleGenerateAIContent}
             handleDeletePost={handleDeletePost}
             handleDeleteComment={handleDeleteComment}
             handleLike={handleLike}
@@ -1156,6 +1173,7 @@ const App: React.FC = () => {
           />
         } />
       </Routes>
+
   </Router>
   );
 }

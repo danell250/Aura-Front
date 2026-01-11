@@ -63,5 +63,21 @@ export const geminiService = {
       console.error("Analysis Error:", error);
       return "Unable to calibrate neural aura at this time.";
     }
+  },
+  
+  async generateContent(prompt: string) {
+    try {
+      const response = await fetch(`${BACKEND_URL}/content`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!response.ok) throw new Error('Backend error');
+      const data = await response.json();
+      return data.text || "I'd love to help you create content, but I'm experiencing some cosmic interference right now. Please try again later! ✨";
+    } catch (error) {
+      console.error("Content Generation Error:", error);
+      return "The creative frequencies are currently shifting. Please try again in a moment! 🌟";
+    }
   }
 };

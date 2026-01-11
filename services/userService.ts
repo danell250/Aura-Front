@@ -151,7 +151,51 @@ export class UserService {
     }
   }
   
-  // Get all users from both sources (with deduplication)
+  // Fast user loading - MongoDB first, Firestore as fallback only when needed
+  static async getAllUsersFast(): Promise<{ success: boolean; users?: User[]; error?: string }> {
+    try {
+      console.log('🚀 Fast loading users from MongoDB backend');
+      
+      // Try MongoDB backend first (faster)
+      try {
+        const response = await fetch(`${BACKEND_URL}/users`);
+        if (response.ok) {
+          const result = await response.json();
+          const backendUsers = result.data || result;
+          if (Array.isArray(backendUsers) && backendUsers.length > 0) {
+            console.log(`✅ Fast loaded ${backendUsers.length} users from MongoDB backend`);
+            return { success: true, users: backendUsers };
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ MongoDB backend not available, trying Firestore:', error);
+      }
+      
+      // Fallback to Firebase Firestore only if MongoDB fails
+      try {
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const firestoreUsers: User[] = [];
+        usersSnapshot.forEach((doc) => {
+          const userData = doc.data() as User;
+          firestoreUsers.push(userData);
+        });
+        
+        if (firestoreUsers.length > 0) {
+          console.log(`✅ Fallback loaded ${firestoreUsers.length} users from Firebase Firestore`);
+          return { success: true, users: firestoreUsers };
+        }
+      } catch (error) {
+        console.error('❌ Firebase Firestore fetch failed:', error);
+      }
+      
+      return { success: false, error: 'No users found in either storage' };
+    } catch (error) {
+      console.error('❌ Error in fast user loading:', error);
+      return { success: false, error: 'Failed to fetch users' };
+    }
+  }
+
+  // Get all users from both sources (with deduplication) - Original method for when you need complete sync
   static async getAllUsers(): Promise<{ success: boolean; users?: User[]; error?: string }> {
     try {
       console.log('Fetching all users from MongoDB and Firestore');

@@ -5,6 +5,7 @@ import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
 import { auth, onAuthStateChanged } from './services/firebase';
 import { UserService } from './services/userService';
+import { CacheService } from './services/cacheService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -146,126 +147,173 @@ const App: React.FC = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        let loadedUsers: User[] = [];
-        let loadedPosts: Post[] = [];
-        let loadedAds: Ad[] = [];
-
-        // Always load from backend, regardless of environment
-        console.log('Loading data from backend');
+        // Clear expired cache first
+        CacheService.clearExpiredCache();
         
-        // Load users using UserService (from both MongoDB and Firestore)
-        try {
-          const usersResult = await UserService.getAllUsers();
-          if (usersResult.success && usersResult.users) {
-            loadedUsers = usersResult.users;
-            console.log('Loaded users from UserService:', loadedUsers.length);
-          } else {
-            console.log('UserService failed, using mock data');
-            loadedUsers = MOCK_USERS;
-          }
-        } catch (error) {
-          console.log('UserService not available, using mock data:', error);
-          loadedUsers = MOCK_USERS;
+        // Start with valid cached data immediately for faster perceived performance
+        const cachedUsers = CacheService.getCachedUsers();
+        const cachedPosts = CacheService.getCachedPosts();
+        const cachedAds = CacheService.getCachedAds();
+        
+        console.log('Cache status:', CacheService.getCacheStatus());
+        
+        // Set cached data immediately if available and valid
+        if (cachedUsers && cachedUsers.length > 0) {
+          setAllUsers(cachedUsers);
+          console.log('✅ Loaded cached users:', cachedUsers.length);
+        }
+        
+        if (cachedPosts && cachedPosts.length > 0) {
+          setPosts(cachedPosts);
+          console.log('✅ Loaded cached posts:', cachedPosts.length);
+        }
+        
+        if (cachedAds && cachedAds.length > 0) {
+          setAds(cachedAds);
+          console.log('✅ Loaded cached ads:', cachedAds.length);
         }
 
-        // Load posts from backend API
-        try {
-          const response = await fetch('https://aura-back-s1bw.onrender.com/api/posts');
-          if (response.ok) {
-            const data = await response.json();
-            const posts = data.posts || data;
-            loadedPosts = Array.isArray(posts) ? posts : INITIAL_POSTS;
-          } else {
-            console.log('Backend posts endpoint not available, using mock data');
-            loadedPosts = INITIAL_POSTS;
-          }
-        } catch (error) {
-          console.log('Backend posts endpoint not available, using mock data:', error.message);
-          loadedPosts = INITIAL_POSTS;
-        }
-
-        // Load ads from backend API
-        try {
-          const response = await fetch('https://aura-back-s1bw.onrender.com/api/ads');
-          if (response.ok) {
-            const ads = await response.json();
-            loadedAds = Array.isArray(ads) ? ads : INITIAL_ADS;
-          } else {
-            console.log('Backend ads endpoint not available, using mock data');
-            loadedAds = INITIAL_ADS;
-          }
-        } catch (error) {
-          console.log('Backend ads endpoint not available, using mock data:', error.message);
-          loadedAds = INITIAL_ADS;
-        }
-
-        // Set the loaded data
-        setAllUsers(loadedUsers);
-        setPosts(loadedPosts);
-        setAds(loadedAds);
-
-        // Load and validate session for current user
+        // Load and validate session for current user immediately
         const { user: sessionUser, isValid } = loadSession();
         
         if (isValid && sessionUser) {
-          // Find user in our loaded data
-          let refreshedUser = loadedUsers.find((u: User) => u.id === sessionUser.id);
-          
-          if (refreshedUser) {
-            // Merge session data with loaded user data, prioritizing backend data for credits
-            refreshedUser = {
-              ...refreshedUser,
-              // Preserve session-specific data
-              // Prioritize backend-loaded credits over session credits to reflect recent transactions
-              auraCredits: refreshedUser.auraCredits ?? sessionUser.auraCredits ?? 50,
-              trustScore: refreshedUser.trustScore ?? sessionUser.trustScore ?? 10,
-              activeGlow: refreshedUser.activeGlow || sessionUser.activeGlow || 'none',
-              acquaintances: refreshedUser.acquaintances || sessionUser.acquaintances || [],
-              blockedUsers: refreshedUser.blockedUsers || sessionUser.blockedUsers || [],
-              // Preserve other session data
-              email: refreshedUser.email || sessionUser.email,
-              dob: refreshedUser.dob || sessionUser.dob,
-              bio: refreshedUser.bio || sessionUser.bio,
-            };
-          } else {
-            // Session user not in loaded data, create minimal user
-            refreshedUser = {
-              id: sessionUser.id,
-              firstName: sessionUser.firstName || 'User',
-              lastName: sessionUser.lastName || '',
-              name: sessionUser.name || 'User',
-              handle: sessionUser.handle || '@user',
-              avatar: sessionUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sessionUser.id}`,
-              avatarType: sessionUser.avatarType || 'image',
-              email: sessionUser.email || '',
-              trustScore: sessionUser.trustScore || 10,
-              auraCredits: sessionUser.auraCredits || 100,
-              activeGlow: sessionUser.activeGlow || 'none',
-              acquaintances: sessionUser.acquaintances || [],
-              blockedUsers: sessionUser.blockedUsers || [],
-              bio: sessionUser.bio || '',
-              dob: sessionUser.dob || '',
-            };
-          }
-          
-          setCurrentUser(refreshedUser);
+          setCurrentUser(sessionUser);
           setIsAuthenticated(true);
-          console.log('User authenticated with loaded data');
-        } else {
-          console.log('No valid session found');
+          console.log('✅ User authenticated from session');
         }
         
-        // Load theme
+        // Load theme immediately
         if (localStorage.getItem('aura_theme') === 'dark') {
           setIsDarkMode(true);
           document.documentElement.classList.add('dark');
         }
-      } catch (error) {
-        console.error('Error during app initialization:', error);
-      } finally {
-        setTimeout(() => {
+
+        // Set loading to false immediately if we have valid cached data
+        const hasValidCache = (cachedUsers && cachedUsers.length > 0) || 
+                             (cachedPosts && cachedPosts.length > 0) || 
+                             (cachedAds && cachedAds.length > 0);
+        
+        if (hasValidCache) {
           setLoading(false);
-        }, 500);
+          console.log('✅ App ready with cached data');
+        }
+
+        // Now fetch fresh data in parallel (non-blocking) only if cache is invalid
+        const fetchFreshData = async () => {
+          try {
+            console.log('🔄 Checking for fresh data...');
+            
+            const promises = [];
+            
+            // Only fetch users if cache is invalid
+            if (!CacheService.isUsersCacheValid()) {
+              promises.push(
+                fetch('https://aura-back-s1bw.onrender.com/api/users')
+                  .then(res => res.ok ? res.json() : null)
+                  .then(data => ({ type: 'users', data }))
+                  .catch(() => ({ type: 'users', data: null }))
+              );
+            }
+            
+            // Only fetch posts if cache is invalid
+            if (!CacheService.isPostsCacheValid()) {
+              promises.push(
+                fetch('https://aura-back-s1bw.onrender.com/api/posts')
+                  .then(res => res.ok ? res.json() : null)
+                  .then(data => ({ type: 'posts', data }))
+                  .catch(() => ({ type: 'posts', data: null }))
+              );
+            }
+            
+            // Only fetch ads if cache is invalid
+            if (!CacheService.isAdsCacheValid()) {
+              promises.push(
+                fetch('https://aura-back-s1bw.onrender.com/api/ads')
+                  .then(res => res.ok ? res.json() : null)
+                  .then(data => ({ type: 'ads', data }))
+                  .catch(() => ({ type: 'ads', data: null }))
+              );
+            }
+
+            if (promises.length === 0) {
+              console.log('✅ All data is cached and valid, no fresh fetch needed');
+              return;
+            }
+
+            const results = await Promise.allSettled(promises);
+
+            results.forEach((result) => {
+              if (result.status === 'fulfilled' && result.value.data) {
+                const { type, data } = result.value;
+                
+                switch (type) {
+                  case 'users':
+                    const backendUsers = data.data || data;
+                    if (Array.isArray(backendUsers) && backendUsers.length > 0) {
+                      setAllUsers(backendUsers);
+                      CacheService.setCachedUsers(backendUsers);
+                      console.log('✅ Updated users from backend:', backendUsers.length);
+                      
+                      // Update current user if found in fresh data
+                      if (sessionUser) {
+                        const refreshedUser = backendUsers.find((u: User) => u.id === sessionUser.id);
+                        if (refreshedUser) {
+                          const mergedUser = {
+                            ...refreshedUser,
+                            auraCredits: refreshedUser.auraCredits ?? sessionUser.auraCredits ?? 100,
+                            trustScore: refreshedUser.trustScore ?? sessionUser.trustScore ?? 10,
+                            activeGlow: refreshedUser.activeGlow || sessionUser.activeGlow || 'none',
+                            acquaintances: refreshedUser.acquaintances || sessionUser.acquaintances || [],
+                            blockedUsers: refreshedUser.blockedUsers || sessionUser.blockedUsers || [],
+                          };
+                          setCurrentUser(mergedUser);
+                          saveSession(mergedUser);
+                        }
+                      }
+                    }
+                    break;
+                    
+                  case 'posts':
+                    const posts = data.posts || data;
+                    if (Array.isArray(posts)) {
+                      setPosts(posts);
+                      CacheService.setCachedPosts(posts);
+                      console.log('✅ Updated posts from backend:', posts.length);
+                    }
+                    break;
+                    
+                  case 'ads':
+                    if (Array.isArray(data)) {
+                      setAds(data);
+                      CacheService.setCachedAds(data);
+                      console.log('✅ Updated ads from backend:', data.length);
+                    }
+                    break;
+                }
+              }
+            });
+
+          } catch (error) {
+            console.error('❌ Error fetching fresh data:', error);
+          }
+        };
+
+        // Fetch fresh data in background
+        fetchFreshData();
+
+        // Set loading to false with minimal delay if no cached data
+        if (!hasValidCache) {
+          // Fallback to mock data if no cache
+          if (!cachedUsers) setAllUsers(MOCK_USERS);
+          if (!cachedPosts) setPosts(INITIAL_POSTS);
+          if (!cachedAds) setAds(INITIAL_ADS);
+          
+          setTimeout(() => setLoading(false), 100);
+        }
+
+      } catch (error) {
+        console.error('❌ Error during app initialization:', error);
+        setLoading(false);
       }
     };
 

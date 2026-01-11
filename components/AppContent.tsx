@@ -507,7 +507,18 @@ const AppContent: React.FC<AppContentProps> = ({
               setView({ type: 'profile', targetId: id }); 
               navigate(`/profile/${id}`); 
             }} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />
-                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`, title: `${ad.ownerName} on Aura`, image: ad.mediaUrl})} onSearchTag={setSearchQuery} />
+                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`, title: `${ad.ownerName} on Aura`, image: ad.mediaUrl})} onSearchTag={setSearchQuery} onViewProfile={(id) => { 
+              // Record profile view if it's not the current user's own profile
+              if (currentUser.id !== id) {
+                fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ viewerId: currentUser.id })
+                }).catch(err => console.log('Failed to record profile view:', err));
+              }
+              setView({ type: 'profile', targetId: id }); 
+              navigate(`/profile/${id}`); 
+            }} />
               })
             )}
           </div>
@@ -546,7 +557,18 @@ const AppContent: React.FC<AppContentProps> = ({
           onDeleteComment={handleDeleteComment} 
         />
       )}
-      {view.type === 'chat' && <ChatView currentUser={currentUser} acquaintances={allUsers.filter(u => (currentUser?.acquaintances || []).includes(u.id))} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} initialContactId={view.targetId} />}
+      {view.type === 'chat' && <ChatView currentUser={currentUser} acquaintances={allUsers.filter(u => (currentUser?.acquaintances || []).includes(u.id))} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} initialContactId={view.targetId} onViewProfile={(id) => { 
+        // Record profile view if it's not the current user's own profile
+        if (currentUser.id !== id) {
+          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewerId: currentUser.id })
+          }).catch(err => console.log('Failed to record profile view:', err));
+        }
+        setView({ type: 'profile', targetId: id }); 
+        navigate(`/profile/${id}`); 
+      }} />}
       {view.type === 'acquaintances' && (
         <AcquaintancesView 
           currentUser={currentUser} 

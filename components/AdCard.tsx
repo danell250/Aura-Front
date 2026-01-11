@@ -8,9 +8,10 @@ interface AdCardProps {
   onReact?: (adId: string, reaction: string) => void;
   onShare?: (ad: Ad) => void;
   onSearchTag?: (tag: string) => void;
+  onViewProfile?: (userId: string) => void;
 }
 
-const AdCard: React.FC<AdCardProps> = ({ ad, onReact, onShare, onSearchTag }) => {
+const AdCard: React.FC<AdCardProps> = ({ ad, onReact, onShare, onSearchTag, onViewProfile }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
@@ -119,7 +120,12 @@ const AdCard: React.FC<AdCardProps> = ({ ad, onReact, onShare, onSearchTag }) =>
               {renderMedia(ad.ownerAvatar, ad.ownerAvatarType, "w-full h-full", true)}
             </div>
             <div>
-              <p className="font-bold text-slate-900 dark:text-white leading-none text-xs">{ad.ownerName}</p>
+              <button 
+                onClick={() => onViewProfile?.(ad.ownerId)}
+                className="font-bold text-slate-900 dark:text-white leading-none text-xs hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer text-left"
+              >
+                {ad.ownerName}
+              </button>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className={`w-1.5 h-1.5 rounded-full ${isUniversalTier ? 'bg-amber-400' : 'bg-emerald-500'}`}></span>
                 <p className={`text-[10px] font-bold uppercase tracking-wider ${isUniversalTier ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>Sponsored</p>

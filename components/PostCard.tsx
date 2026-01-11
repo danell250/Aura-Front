@@ -172,7 +172,12 @@ const PostCard: React.FC<PostCardProps> = ({
           <div className="flex-1">
             <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 relative group futuristic-shadow transition-all hover:bg-white dark:hover:bg-slate-800">
               <div className="flex justify-between items-start mb-1">
-                <p className="text-[10px] font-black uppercase tracking-tight text-slate-900 dark:text-white">{comment.author.name}</p>
+                <button 
+                  onClick={() => onViewProfile(comment.author.id)}
+                  className="text-[10px] font-black uppercase tracking-tight text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                >
+                  {comment.author.name}
+                </button>
                 <span className="text-[8px] text-slate-400 uppercase font-medium">{new Date(comment.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">{comment.text}</p>
@@ -242,9 +247,19 @@ const PostCard: React.FC<PostCardProps> = ({
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-bold text-slate-900 dark:text-white text-sm tracking-tight leading-none truncate">{post.author.name}</p>
+              <button 
+                onClick={() => onViewProfile(post.author.id)}
+                className="font-bold text-slate-900 dark:text-white text-sm tracking-tight leading-none truncate hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer text-left"
+              >
+                {post.author.name}
+              </button>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-slate-500 font-medium truncate">{post.author.handle}</span>
+                <button 
+                  onClick={() => onViewProfile(post.author.id)}
+                  className="text-xs text-slate-500 font-medium truncate hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                >
+                  {post.author.handle}
+                </button>
                 <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0"></span>
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">{post.energy}</span>
               </div>

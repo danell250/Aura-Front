@@ -9,9 +9,10 @@ interface ChatViewProps {
   acquaintances: User[];
   onBack: () => void;
   initialContactId?: string;
+  onViewProfile?: (userId: string) => void;
 }
 
-const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack, initialContactId }) => {
+const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack, initialContactId, onViewProfile }) => {
   const [activeContact, setActiveContact] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -234,7 +235,15 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
                     )}
                   </div>
                   <div className="text-left overflow-hidden flex-1">
-                    <p className={`font-black truncate text-sm leading-none uppercase tracking-tight ${activeContact?.id === user.id ? 'text-white' : 'text-slate-900 dark:text-slate-100'}`}>{user.name}</p>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewProfile?.(user.id);
+                      }}
+                      className={`font-black truncate text-sm leading-none uppercase tracking-tight hover:text-emerald-400 transition-colors text-left ${activeContact?.id === user.id ? 'text-white hover:text-emerald-200' : 'text-slate-900 dark:text-slate-100'}`}
+                    >
+                      {user.name}
+                    </button>
                     <p className={`text-[9px] truncate tracking-wide mt-2 font-bold ${activeContact?.id === user.id ? 'text-white/70' : 'text-slate-400'}`}>
                       {lastMsg ? lastMsg.text : 'Secure link established'}
                     </p>

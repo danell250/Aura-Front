@@ -94,8 +94,18 @@ const AcquaintancesView: React.FC<AcquaintancesViewProps> = ({
                   alt="" 
                 />
                 <div className="overflow-hidden">
-                  <h4 className="font-black text-slate-900 truncate uppercase text-sm leading-none">{user.name}</h4>
-                  <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest mt-1.5">{user.handle}</p>
+                  <button 
+                    onClick={() => onViewProfile(user.id)}
+                    className="font-black text-slate-900 truncate uppercase text-sm leading-none hover:text-emerald-600 transition-colors cursor-pointer text-left"
+                  >
+                    {user.name}
+                  </button>
+                  <button 
+                    onClick={() => onViewProfile(user.id)}
+                    className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest mt-1.5 hover:text-emerald-600 transition-colors cursor-pointer block text-left"
+                  >
+                    {user.handle}
+                  </button>
                   <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Member since 2024</p>
                 </div>
               </div>

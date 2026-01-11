@@ -63,45 +63,126 @@ const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
 
         <div className="px-8 sm:px-12 pb-12">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 -mt-16 relative z-10">
-            <div className="flex flex-col items-center md:items-start flex-1 min-w-0">
-              <div className={`w-32 h-32 sm:w-40 sm:h-40 rounded-[2.5rem] p-1.5 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden mb-4 ${user.activeGlow !== 'none' ? 'ring-8 ring-emerald-500/20' : ''}`}>
-                <div className="w-full h-full rounded-[2rem] overflow-hidden border-2 border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
-                  {renderMedia(user.avatar, user.avatarType, "w-full h-full", true)}
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 -mt-16 relative z-10">
+            <div className="flex flex-col lg:flex-row lg:items-end gap-6 flex-1 min-w-0">
+              {/* Avatar Section */}
+              <div className="flex flex-col items-center lg:items-start flex-shrink-0">
+                <div className={`w-32 h-32 sm:w-40 sm:h-40 rounded-[2.5rem] p-1.5 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden mb-4 ${user.activeGlow !== 'none' ? 'ring-8 ring-emerald-500/20' : ''}`}>
+                  <div className="w-full h-full rounded-[2rem] overflow-hidden border-2 border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
+                    {renderMedia(user.avatar, user.avatarType, "w-full h-full", true)}
+                  </div>
                 </div>
               </div>
-              <div className="text-center md:text-left px-2">
-                <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-tight break-words">{user.name}</h2>
-                <div className="inline-block mt-2 px-4 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-full border border-emerald-100 dark:border-emerald-900/50">
+
+              {/* User Info Section */}
+              <div className="flex-1 text-center lg:text-left lg:pb-4">
+                <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-tight break-words mb-3">{user.name}</h2>
+                <div className="inline-block mb-4 px-4 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-full border border-emerald-100 dark:border-emerald-900/50">
                   <p className="text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-[0.2em] text-[10px]">{user.handle}</p>
+                </div>
+                
+                {/* Bio Preview */}
+                {user.bio && (
+                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed max-w-md mx-auto lg:mx-0 line-clamp-2">
+                    {user.bio}
+                  </p>
+                )}
+                
+                {/* Quick Stats for Mobile */}
+                <div className="flex gap-6 justify-center lg:justify-start mt-4 lg:hidden">
+                  <div className="text-center">
+                    <div className="text-lg font-black text-slate-900 dark:text-white">{posts.length}</div>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Posts</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-black text-slate-900 dark:text-white">{user.acquaintances?.length || 0}</div>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Connections</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-black text-emerald-600 dark:text-emerald-400">{user.trustScore}</div>
+                    <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Trust Score</div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-4 justify-center md:justify-end md:mt-20 flex-shrink-0">
-              {!isSelf && (
-                <button 
-                  onClick={() => onBoostUser && onBoostUser(user.id)}
-                  className="px-8 py-4 bg-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl text-[11px] shadow-xl hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-2"
-                >
-                  🚀 Boost Orbit
-                </button>
-              )}
-              {isSelf ? (
-                <>
-                  <button onClick={onEditProfile} className="px-8 py-4 bg-slate-900 dark:bg-slate-800 text-white font-black uppercase tracking-widest rounded-2xl text-[11px] shadow-xl hover:brightness-110 active:scale-95 transition-all">Edit Profile</button>
-                  <button onClick={onSerendipityMode} className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl text-[11px] shadow-xl hover:from-purple-700 hover:to-indigo-700 active:scale-95 transition-all flex items-center gap-2">
-                    <span>✨</span> Serendipity
+            {/* Action Buttons Section */}
+            <div className="flex flex-col gap-4 justify-center lg:justify-end flex-shrink-0 min-w-[280px]">
+              {/* Primary Action Buttons Row */}
+              <div className="flex gap-3 justify-center lg:justify-end">
+                {!isSelf && (
+                  <>
+                    <button 
+                      onClick={() => onBoostUser && onBoostUser(user.id)}
+                      className="flex-1 lg:flex-none px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold uppercase tracking-wider rounded-xl text-[10px] shadow-lg hover:from-indigo-700 hover:to-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2 min-w-[120px]"
+                    >
+                      <span>🚀</span>
+                      <span>Boost Orbit</span>
+                    </button>
+                    <button 
+                      onClick={() => isAcquaintance ? onRemoveAcquaintance(user.id) : (isRequested ? null : onAddAcquaintance(user))} 
+                      className={`flex-1 lg:flex-none px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 min-w-[120px] ${
+                        isAcquaintance 
+                          ? 'bg-rose-50 text-rose-600 border-2 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/20 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-950/30' 
+                          : isRequested 
+                            ? 'bg-slate-100 text-slate-500 border-2 border-slate-200 cursor-not-allowed dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700' 
+                            : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600'
+                      }`}
+                      disabled={isRequested}
+                    >
+                      <span>{isAcquaintance ? '🔗' : isRequested ? '⏳' : '🤝'}</span>
+                      <span>{isAcquaintance ? 'Connected' : isRequested ? 'Requested' : 'Connect'}</span>
+                    </button>
+                  </>
+                )}
+                {isSelf && (
+                  <button 
+                    onClick={onEditProfile} 
+                    className="flex-1 lg:flex-none px-6 py-3 bg-slate-900 dark:bg-slate-700 text-white font-bold uppercase tracking-wider rounded-xl text-[10px] shadow-lg hover:bg-slate-800 dark:hover:bg-slate-600 active:scale-95 transition-all flex items-center justify-center gap-2 min-w-[140px]"
+                  >
+                    <span>⚙️</span>
+                    <span>Edit Profile</span>
                   </button>
-                </>
-              ) : (
-                <>
-                  <button onClick={() => isAcquaintance ? onRemoveAcquaintance(user.id) : (isRequested ? null : onAddAcquaintance(user))} className={`px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 ${isAcquaintance ? 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-400' : isRequested ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-500' : 'aura-bg-gradient text-white'}`}>{isAcquaintance ? 'Unlink' : isRequested ? 'Requested' : 'Connect'}</button>
-                  <button onClick={() => onOpenMessaging && onOpenMessaging(user.id)} className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl text-[11px] shadow-xl hover:from-purple-700 hover:to-indigo-700 active:scale-95 transition-all flex items-center gap-2">
-                    <span>✉️</span> Message
+                )}
+              </div>
+
+              {/* Secondary Action Buttons Row */}
+              <div className="flex gap-3 justify-center lg:justify-end">
+                {!isSelf && (
+                  <button 
+                    onClick={() => onOpenMessaging && onOpenMessaging(user.id)} 
+                    className="flex-1 lg:flex-none px-6 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-600 font-bold uppercase tracking-wider rounded-xl text-[10px] shadow-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500 active:scale-95 transition-all flex items-center justify-center gap-2 min-w-[120px]"
+                  >
+                    <span>✉️</span>
+                    <span>Message</span>
                   </button>
-                </>
-              )}
+                )}
+                {isSelf && (
+                  <button 
+                    onClick={onSerendipityMode} 
+                    className="flex-1 lg:flex-none px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold uppercase tracking-wider rounded-xl text-[10px] shadow-lg hover:from-purple-600 hover:to-pink-600 active:scale-95 transition-all flex items-center justify-center gap-2 min-w-[140px]"
+                  >
+                    <span>✨</span>
+                    <span>Serendipity</span>
+                  </button>
+                )}
+              </div>
+
+              {/* User Stats Row - Desktop Only */}
+              <div className="hidden lg:flex gap-4 justify-center lg:justify-end mt-2">
+                <div className="text-center">
+                  <div className="text-lg font-black text-slate-900 dark:text-white">{posts.length}</div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Posts</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-black text-slate-900 dark:text-white">{user.acquaintances?.length || 0}</div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Connections</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-black text-emerald-600 dark:text-emerald-400">{user.trustScore}</div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Trust Score</div>
+                </div>
+              </div>
             </div>
           </div>
 

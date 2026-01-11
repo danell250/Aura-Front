@@ -94,15 +94,67 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                   <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2 leading-tight">
                     {user.name}
                   </h1>
-                  <p className="text-emerald-600 dark:text-emerald-400 font-medium mb-4">
+                  <p className="text-emerald-600 dark:text-emerald-400 font-medium mb-6">
                     {user.handle}
                   </p>
                   
-                  {user.bio && (
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-6 max-w-md mx-auto lg:mx-0">
-                      {user.bio}
-                    </p>
-                  )}
+                  {/* Action Buttons - Moved here from right side */}
+                  <div className="flex flex-col gap-3 mb-6 max-w-sm mx-auto lg:mx-0">
+                    {!isSelf ? (
+                      <>
+                        {/* Primary Actions Row */}
+                        <div className="flex gap-3">
+                          <button 
+                            onClick={() => onBoostUser && onBoostUser(user.id)}
+                            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg text-sm shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
+                          >
+                            <span>🚀</span>
+                            <span>Boost</span>
+                          </button>
+                          <button 
+                            onClick={() => isAcquaintance ? onRemoveAcquaintance(user.id) : (isRequested ? null : onAddAcquaintance(user))} 
+                            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
+                              isAcquaintance 
+                                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600' 
+                                : isRequested 
+                                  ? 'bg-slate-100 text-slate-500 cursor-not-allowed dark:bg-slate-800 dark:text-slate-400' 
+                                  : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
+                            }`}
+                            disabled={isRequested}
+                          >
+                            <span>{isAcquaintance ? '✓' : isRequested ? '⏳' : '+'}</span>
+                            <span>{isAcquaintance ? 'Connected' : isRequested ? 'Requested' : 'Connect'}</span>
+                          </button>
+                        </div>
+                        
+                        {/* Message Button */}
+                        <button 
+                          onClick={() => onOpenMessaging && onOpenMessaging(user.id)} 
+                          className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-medium rounded-lg text-sm shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                          <span>✉️</span>
+                          <span>Message</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button 
+                          onClick={onEditProfile} 
+                          className="w-full px-4 py-2.5 bg-slate-900 dark:bg-slate-700 text-white font-medium rounded-lg text-sm shadow-md hover:bg-slate-800 dark:hover:bg-slate-600 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                          <span>⚙️</span>
+                          <span>Edit Profile</span>
+                        </button>
+                        <button 
+                          onClick={onSerendipityMode} 
+                          className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg text-sm shadow-md hover:shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
+                        >
+                          <span>✨</span>
+                          <span>Serendipity</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
 
                   {/* Stats */}
                   <div className="flex gap-8 justify-center lg:justify-start">
@@ -120,64 +172,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Right Section - Action Buttons */}
-              <div className="flex flex-col gap-3 lg:min-w-[240px]">
-                {!isSelf ? (
-                  <>
-                    {/* Primary Actions Row */}
-                    <div className="flex gap-3">
-                      <button 
-                        onClick={() => onBoostUser && onBoostUser(user.id)}
-                        className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg text-sm shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
-                      >
-                        <span>🚀</span>
-                        <span>Boost</span>
-                      </button>
-                      <button 
-                        onClick={() => isAcquaintance ? onRemoveAcquaintance(user.id) : (isRequested ? null : onAddAcquaintance(user))} 
-                        className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
-                          isAcquaintance 
-                            ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600' 
-                            : isRequested 
-                              ? 'bg-slate-100 text-slate-500 cursor-not-allowed dark:bg-slate-800 dark:text-slate-400' 
-                              : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
-                        }`}
-                        disabled={isRequested}
-                      >
-                        <span>{isAcquaintance ? '✓' : isRequested ? '⏳' : '+'}</span>
-                        <span>{isAcquaintance ? 'Connected' : isRequested ? 'Requested' : 'Connect'}</span>
-                      </button>
-                    </div>
-                    
-                    {/* Message Button */}
-                    <button 
-                      onClick={() => onOpenMessaging && onOpenMessaging(user.id)} 
-                      className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-medium rounded-lg text-sm shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      <span>✉️</span>
-                      <span>Message</span>
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button 
-                      onClick={onEditProfile} 
-                      className="w-full px-4 py-2.5 bg-slate-900 dark:bg-slate-700 text-white font-medium rounded-lg text-sm shadow-md hover:bg-slate-800 dark:hover:bg-slate-600 hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      <span>⚙️</span>
-                      <span>Edit Profile</span>
-                    </button>
-                    <button 
-                      onClick={onSerendipityMode} 
-                      className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg text-sm shadow-md hover:shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
-                    >
-                      <span>✨</span>
-                      <span>Serendipity</span>
-                    </button>
-                  </>
-                )}
               </div>
             </div>
           </div>
@@ -244,7 +238,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               {/* Bio Section */}
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">About</h3>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-base">
                   {user.bio || "No bio available."}
                 </p>
               </div>

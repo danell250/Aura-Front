@@ -10,6 +10,8 @@ interface MessagingSystemProps {
   messages: Message[];
   unreadCounts: Record<string, number>;
   onMarkAsRead: (senderId: string) => void;
+  onArchiveChat?: (userId: string) => void;
+  onDeleteChat?: (userId: string) => void;
 }
 
 const MessagingSystem: React.FC<MessagingSystemProps> = ({ 
@@ -20,10 +22,14 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   onSendMessage, 
   messages, 
   unreadCounts,
-  onMarkAsRead
+  onMarkAsRead,
+  onArchiveChat,
+  onDeleteChat
 }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messageText, setMessageText] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Filter users for messaging (excluding current user)
@@ -41,6 +47,20 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [userMessages]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -141,15 +161,69 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
           {selectedUser ? (
             <>
               {/* Chat header */}
-              <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
-                <img 
-                  src={selectedUser.avatar} 
-                  alt={selectedUser.name} 
-                  className="w-10 h-10 rounded-xl object-cover"
-                />
-                <div>
-                  <h3 className="font-black text-slate-900 dark:text-white">{selectedUser.name}</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Online now</p>
+              <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={selectedUser.avatar} 
+                    alt={selectedUser.name} 
+                    className="w-10 h-10 rounded-xl object-cover"
+                  />
+                  <div>
+                    <h3 className="font-black text-slate-900 dark:text-white">{selectedUser.name}</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Online now</p>
+                  </div>
+                </div>
+                <div className="relative" ref={dropdownRef}>
+                  <button 
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg transition-colors"
+                    aria-label="Chat options"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                    </svg>
+                  </button>
+                  
+                  {showDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-50 py-2">
+                      <button 
+                        onClick={() => {
+                          if (onArchiveChat && selectedUser) onArchiveChat(selectedUser.id);
+                          setShowDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                        </svg>
+                        Archive Chat
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (onDeleteChat && selectedUser) onDeleteChat(selectedUser.id);
+                          setShowDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete Chat
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setSelectedUser(null);
+                          setShowDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Close Chat
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 

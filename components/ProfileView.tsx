@@ -23,10 +23,11 @@ interface ProfileViewProps {
   onDeletePost?: (postId: string) => void;
   onDeleteComment?: (postId: string, commentId: string) => void;
   onSerendipityMode?: () => void;
+  onOpenMessaging?: (userId?: string) => void;
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({ 
-  user, posts, currentUser, allUsers, onBack, onReact, onComment, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode
+  user, posts, currentUser, allUsers, onBack, onReact, onComment, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging
 }) => {
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
   const isSelf = currentUser.id === user.id;
@@ -94,7 +95,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                   </button>
                 </>
               ) : (
-                <button onClick={() => isAcquaintance ? onRemoveAcquaintance(user.id) : (isRequested ? null : onAddAcquaintance(user))} className={`px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 ${isAcquaintance ? 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-400' : isRequested ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-500' : 'aura-bg-gradient text-white'}`}>{isAcquaintance ? 'Unlink' : isRequested ? 'Requested' : 'Connect'}</button>
+                <>
+                  <button onClick={() => isAcquaintance ? onRemoveAcquaintance(user.id) : (isRequested ? null : onAddAcquaintance(user))} className={`px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 ${isAcquaintance ? 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-400' : isRequested ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-500' : 'aura-bg-gradient text-white'}`}>{isAcquaintance ? 'Unlink' : isRequested ? 'Requested' : 'Connect'}</button>
+                  <button onClick={() => onOpenMessaging && onOpenMessaging(user.id)} className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl text-[11px] shadow-xl hover:from-purple-700 hover:to-indigo-700 active:scale-95 transition-all flex items-center gap-2">
+                    <span>✉️</span> Message
+                  </button>
+                </>
               )}
             </div>
           </div>

@@ -104,6 +104,8 @@ interface AppContentProps {
   getUnreadCounts: () => Record<string, number>;
   handleSendMessage: (receiverId: string, text: string) => void;
   handleMarkMessagesAsRead: (senderId: string) => void;
+  onArchiveChat?: (userId: string) => void;
+  onDeleteChat?: (userId: string) => void;
 }
 
 const AppContent: React.FC<AppContentProps> = ({
@@ -112,7 +114,7 @@ const AppContent: React.FC<AppContentProps> = ({
   isDarkMode, sharingContent, view, setIsAuthenticated, setCurrentUser, setAllUsers, setPosts,
   setAds, setBirthdayAnnouncements, setNotifications, setLoading, setSearchQuery, setActiveEnergy,
   setActiveMediaType, setIsSettingsOpen, setIsAdManagerOpen, setIsCreditStoreOpen, setIsDarkMode,
-  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleSerendipityMode, serendipityModalOpen, setSerendipityModalOpen, serendipityContent, aiGeneratorOpen, setAiGeneratorOpen, onGenerateAIContent, messagingOpen, setMessagingOpen, messages, getUnreadCounts, handleSendMessage, handleMarkMessagesAsRead, handleDeletePost,
+  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleSerendipityMode, serendipityModalOpen, setSerendipityModalOpen, serendipityContent, aiGeneratorOpen, setAiGeneratorOpen, onGenerateAIContent, messagingOpen, setMessagingOpen, messages, getUnreadCounts, handleSendMessage, handleMarkMessagesAsRead, onArchiveChat, onDeleteChat, onOpenMessaging, handleDeletePost,
   handleDeleteComment, handleLike, handleBoostPost, handleBoostUser, handleComment, handleReact,
   handleAddAcquaintance, handleAcceptConnection, handleRemoveAcquaintance, handlePurchaseCredits, handleAuraShare,
   toggleDarkMode
@@ -629,6 +631,7 @@ const AppContent: React.FC<AppContentProps> = ({
           onDeletePost={handleDeletePost} 
           onDeleteComment={handleDeleteComment} 
           onSerendipityMode={handleSerendipityMode} 
+          onOpenMessaging={onOpenMessaging}
         />
       )}
       {view.type === 'chat' && <ChatView currentUser={currentUser} acquaintances={allUsers.filter(u => (currentUser?.acquaintances || []).includes(u.id))} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} initialContactId={view.targetId} onViewProfile={(id) => { 
@@ -707,6 +710,8 @@ const AppContent: React.FC<AppContentProps> = ({
         messages={messages}
         unreadCounts={getUnreadCounts()}
         onMarkAsRead={handleMarkMessagesAsRead}
+        onArchiveChat={onArchiveChat}
+        onDeleteChat={onDeleteChat}
       />
     </Layout>
   );

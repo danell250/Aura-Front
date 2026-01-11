@@ -730,6 +730,42 @@ const App: React.FC = () => {
     }
   }, [currentUser, allUsers]);
   
+  // Function to archive chat
+  const handleArchiveChat = useCallback((userId: string) => {
+    // In a real implementation, this would move the chat to an archived state
+    // For now, we'll just show an alert to confirm the action
+    const user = allUsers.find(u => u.id === userId);
+    if (user) {
+      alert(`Chat with ${user.name} has been archived.`);
+      // In a real implementation, you would update state to move the chat to an archived list
+    }
+  }, [allUsers]);
+  
+  // Function to delete chat
+  const handleDeleteChat = useCallback((userId: string) => {
+    if (window.confirm('Are you sure you want to delete this chat? All messages will be permanently removed.')) {
+      // Filter out messages between current user and the specified user
+      setMessages(prev => 
+        prev.filter(msg => 
+          !(msg.senderId === userId && msg.receiverId === currentUser?.id) &&
+          !(msg.senderId === currentUser?.id && msg.receiverId === userId)
+        )
+      );
+      
+      const user = allUsers.find(u => u.id === userId);
+      if (user) {
+        alert(`Chat with ${user.name} has been deleted.`);
+      }
+    }
+  }, [allUsers, currentUser?.id]);
+  
+  // Function to open messaging with a specific user
+  const handleOpenMessaging = useCallback((userId?: string) => {
+    setMessagingOpen(true);
+    // If a specific user is provided, we could potentially auto-select them
+    // For now, we'll just open the messaging system
+  }, []);
+  
   const handleDeletePost = useCallback((postId: string) => {
     setPosts(prev => prev.filter(p => p.id !== postId));
   }, []);
@@ -1255,6 +1291,9 @@ const App: React.FC = () => {
             getUnreadCounts={getUnreadCounts}
             handleSendMessage={handleSendMessage}
             handleMarkMessagesAsRead={handleMarkMessagesAsRead}
+            onArchiveChat={handleArchiveChat}
+            onDeleteChat={handleDeleteChat}
+            onOpenMessaging={handleOpenMessaging}
           />
         } />
       </Routes>

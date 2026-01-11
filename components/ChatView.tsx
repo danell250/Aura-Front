@@ -175,16 +175,17 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
     }
     
     if (sidebarTab === 'all') {
-      return allUsers.filter(u => u.id !== currentUser.id);
+      // Only show users when actively searching - completely empty by default
+      return contactSearch.trim() ? allUsers.filter(u => u.id !== currentUser.id) : [];
     }
     
-    // Recent conversations - users who have had conversations
+    // Recent conversations - only users who have actual conversation history
     const recentUserIds = conversations.map(conv => conv._id);
     return allUsers.filter(u => 
       u.id !== currentUser.id && 
       recentUserIds.includes(u.id)
     );
-  }, [sidebarTab, searchResults, allUsers, currentUser.id, conversations]);
+  }, [sidebarTab, searchResults, allUsers, currentUser.id, conversations, contactSearch]);
 
   const getLastMessage = (userId: string) => {
     // Find conversation data from backend
@@ -231,7 +232,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
             </span>
             <input 
               type="text" 
-              placeholder="Search users to message..." 
+              placeholder="Search people to message..." 
               value={contactSearch} 
               onChange={e => setContactSearch(e.target.value)} 
               className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-3.5 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-400/30 transition-all text-slate-900 dark:text-white"
@@ -244,9 +245,14 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
             <div className="py-10 text-center opacity-30">
               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
                 {sidebarTab === 'search' ? 'No users found' : 
-                 sidebarTab === 'recent' ? 'No recent conversations' : 
-                 'No users available'}
+                 sidebarTab === 'recent' ? 'No conversations yet' : 
+                 contactSearch.trim() ? 'No users found' : 'Search to find people'}
               </p>
+              {(sidebarTab === 'recent' || (sidebarTab === 'all' && !contactSearch.trim())) && (
+                <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-300 mt-2">
+                  {sidebarTab === 'recent' ? 'Start a conversation to see it here' : 'Type a name to find someone to message'}
+                </p>
+              )}
             </div>
           ) : (
             filteredContacts.map(user => {
@@ -425,7 +431,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
             </div>
             <h3 className="text-4xl font-black uppercase tracking-[0.5em] text-slate-900 dark:text-white leading-none">Aura Direct</h3>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-[0.4em] mt-8 max-w-sm leading-relaxed">
-              Neural frequency synchronization module is standby. <br/>Select a verified node to initiate.
+              Search for people above to start a conversation. <br/>Your messages are encrypted and secure.
             </p>
             <div className="mt-16 flex gap-10 opacity-20">
                <div className="text-center">

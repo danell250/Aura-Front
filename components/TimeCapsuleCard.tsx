@@ -145,6 +145,10 @@ const TimeCapsuleCard: React.FC<TimeCapsuleCardProps> = ({
           </button>
           
           <div className="ml-auto flex items-center gap-2">
+            {/* Show "Just posted" indicator for current user's recent time capsules (last 5 minutes) */}
+            {isOwner && (Date.now() - post.timestamp) < (5 * 60 * 1000) && (
+              <span className="px-2 py-1 bg-purple-500 text-white text-[8px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Just created</span>
+            )}
             <span className="text-xs text-slate-400 font-medium">
               {new Date(post.timestamp).toLocaleDateString()}
             </span>

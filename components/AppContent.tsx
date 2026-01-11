@@ -322,8 +322,20 @@ const AppContent: React.FC<AppContentProps> = ({
       return bPriority - aPriority;
     });
     
-    // Sort posts: Boosted first, then timestamp
-    const sortedPosts = [...filteredPosts].sort((a, b) => {
+    // Separate current user's recent posts (last 5 minutes) from other posts
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const currentUserRecentPosts = filteredPosts.filter(p => 
+      currentUser && p.author.id === currentUser.id && p.timestamp > fiveMinutesAgo
+    );
+    const otherPosts = filteredPosts.filter(p => 
+      !currentUser || p.author.id !== currentUser.id || p.timestamp <= fiveMinutesAgo
+    );
+    
+    // Sort current user's recent posts by timestamp (newest first)
+    const sortedCurrentUserRecentPosts = [...currentUserRecentPosts].sort((a, b) => b.timestamp - a.timestamp);
+    
+    // Sort other posts: Boosted first, then timestamp
+    const sortedOtherPosts = [...otherPosts].sort((a, b) => {
         if (a.isBoosted && !b.isBoosted) return -1;
         if (!a.isBoosted && b.isBoosted) return 1;
         return b.timestamp - a.timestamp;
@@ -331,12 +343,17 @@ const AppContent: React.FC<AppContentProps> = ({
 
     const combined: (Post | Ad | BirthdayAnnouncement)[] = [];
     
-    // 1. Birthdays (top)
+    // 1. PRIORITY: Current user's recent posts (last 5 minutes) - ALWAYS AT THE TOP
+    if (view.type === 'feed' && sortedCurrentUserRecentPosts.length > 0) {
+      sortedCurrentUserRecentPosts.forEach(post => combined.push(post));
+    }
+    
+    // 2. Birthdays (after user's recent posts)
     if (view.type === 'feed' && activeEnergy === 'all' && activeMediaType === 'all' && !searchQuery) {
       birthdayAnnouncements.forEach(bday => combined.push(bday));
     }
 
-    // 2. Paid Ads (High Advantage) - Priority Feed Injection for Aura Radiance and Universal Signal
+    // 3. Paid Ads (High Advantage) - Priority Feed Injection for Aura Radiance and Universal Signal
     if (view.type === 'feed' && !searchQuery && sortedAds.length > 0) {
       // Put priority tier ads (Aura Radiance & Universal Signal) at the top
       const priorityAds = sortedAds.filter(a => 
@@ -349,9 +366,9 @@ const AppContent: React.FC<AppContentProps> = ({
       }
     }
 
-    // 3. Posts with interleaved ads - Priority Feed Injection
+    // 4. Other posts with interleaved ads - Priority Feed Injection
     let adIdx = (view.type === 'feed' && !searchQuery) ? Math.min(2, sortedAds.length) : 0;
-    sortedPosts.forEach((post, index) => {
+    sortedOtherPosts.forEach((post, index) => {
       combined.push(post);
       // Inject ads every 2 posts for better advantage (Priority Feed Injection for Aura Radiance+)
       if (view.type === 'feed' && (index + 1) % 2 === 0 && adIdx < sortedAds.length) {
@@ -369,7 +386,7 @@ const AppContent: React.FC<AppContentProps> = ({
     }
 
     return combined;
-  }, [posts, ads, birthdayAnnouncements, view, searchQuery, activeEnergy, activeMediaType]);
+  }, [posts, ads, birthdayAnnouncements, view, searchQuery, activeEnergy, activeMediaType, currentUser]);
 
   const handleSearchResult = (result: SearchResult) => {
     switch (result.type) {

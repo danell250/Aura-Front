@@ -31,20 +31,23 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, onCred
   useEffect(() => {
     let isMounted = true;
     const loadSdk = async () => {
-      if (window.paypal && window.paypal.Buttons) {
-        if (isMounted) setSdkReady(true);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = "https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD";
-      script.async = true;
-      script.onload = () => {
-        setTimeout(() => { if (isMounted) setSdkReady(true); }, 300);
-      };
-      script.onerror = () => {
+      try {
+        // Load PayPal SDK with popup-friendly configuration
+        const script = document.createElement('script');
+        script.src = `https://www.paypal.com/sdk/js?client-id=AeHnqoH5sPvK2X4xLgYQnZ3p8rFk7mNqLwXj4vBt6yCg9hD2eRf5kLp8mNqXj4vBt&currency=USD&disable-funding=credit,card`;
+        script.async = true;
+        script.onload = () => {
+          if (isMounted) setSdkReady(true);
+        };
+        script.onerror = () => {
+          console.error('PayPal SDK failed to load');
+          if (isMounted) setRenderError("Payment Gateway Connection Failed.");
+        };
+        document.body.appendChild(script);
+      } catch (error) {
+        console.error('Error loading PayPal SDK:', error);
         if (isMounted) setRenderError("Payment Gateway Connection Failed.");
-      };
-      document.body.appendChild(script);
+      }
     };
     loadSdk();
     return () => { isMounted = false; };
@@ -61,6 +64,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, onCred
         try {
           const buttons = window.paypal.Buttons({
             style: { layout: 'vertical', color: 'blue', shape: 'rect' },
+            fundingSource: undefined, // Allow all funding sources
             createOrder: (data: any, actions: any) => {
               return actions.order.create({
                 purchase_units: [{
@@ -77,8 +81,11 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, onCred
               onClose();
             },
             onError: (err: any) => {
-              setRenderError("Transaction failed. Please check your connection.");
-              isRenderingRef.current = false;
+              console.error('PayPal button error:', err);
+              setRenderError('Payment failed. Please try again.');
+            },
+            onCancel: () => {
+              console.log('PayPal payment cancelled');
             }
           });
           await buttons.render(`#${containerId}`);

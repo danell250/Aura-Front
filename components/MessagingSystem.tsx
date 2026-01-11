@@ -12,6 +12,7 @@ interface MessagingSystemProps {
   onMarkAsRead: (senderId: string) => void;
   onArchiveChat?: (userId: string) => void;
   onDeleteChat?: (userId: string) => void;
+  initialUserId?: string; // Add prop to open conversation with specific user
 }
 
 const MessagingSystem: React.FC<MessagingSystemProps> = ({ 
@@ -24,11 +25,14 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   unreadCounts,
   onMarkAsRead,
   onArchiveChat,
-  onDeleteChat
+  onDeleteChat,
+  initialUserId
 }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messageText, setMessageText] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +48,30 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
     
     return hasMessages;
   });
+
+  // Filter connections for search (acquaintances + all users if searching)
+  const searchableUsers = allUsers.filter(user => {
+    if (user.id === currentUser.id) return false;
+    
+    if (!searchQuery.trim()) return false;
+    
+    const matchesSearch = 
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.handle.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesSearch;
+  });
+
+  // Handle initial user selection
+  useEffect(() => {
+    if (initialUserId && isOpen) {
+      const user = allUsers.find(u => u.id === initialUserId);
+      if (user) {
+        setSelectedUser(user);
+        onMarkAsRead(user.id);
+      }
+    }
+  }, [initialUserId, isOpen, allUsers, onMarkAsRead]);
 
   // Filter messages for the selected user
   const userMessages = selectedUser 
@@ -107,82 +135,171 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
             <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
               <span>💬</span> Messages
             </h2>
-            <button 
-              onClick={onClose}
-              className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
-              aria-label="Close messages"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowSearch(!showSearch)}
+                className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label="Search users"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+              <button 
+                onClick={onClose}
+                className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label="Close messages"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto">
-            {messagingUsers.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center p-8">
-                <div className="text-center">
-                  <div className="text-4xl mb-4 opacity-30">💬</div>
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white mb-2 uppercase tracking-wider">No Conversations</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Start messaging someone to see your chats here
-                  </p>
-                </div>
+          {/* Search Bar */}
+          {showSearch && (
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search people to message..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
               </div>
-            ) : (
-              messagingUsers.map(user => {
-                const lastMessage = messages
-                  .filter(msg => 
-                    (msg.senderId === user.id && msg.receiverId === currentUser.id) || 
-                    (msg.senderId === currentUser.id && msg.receiverId === user.id)
-                  )
-                  .sort((a, b) => b.timestamp - a.timestamp)[0];
-                
-                const hasUnread = unreadCounts[user.id] > 0;
-                
-                return (
-                  <div 
-                    key={user.id}
-                    className={`p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 ${
-                      selectedUser?.id === user.id ? 'bg-slate-100 dark:bg-slate-800/50' : ''
-                    }`}
-                    onClick={() => handleSelectUser(user)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <img 
-                          src={user.avatar} 
-                          alt={user.name} 
-                          className="w-12 h-12 rounded-xl object-cover"
-                        />
-                        {hasUnread && (
-                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
-                            {unreadCounts[user.id]}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-black text-slate-900 dark:text-white truncate">{user.name}</h3>
-                          {lastMessage && (
-                            <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                              {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          )}
-                        </div>
-                        {lastMessage && (
-                          <p className={`text-sm truncate ${lastMessage.senderId === currentUser.id ? 'text-right' : 'text-left'} ${
-                            hasUnread ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-600 dark:text-slate-400'
-                          }`}>
-                            {lastMessage.senderId === currentUser.id ? 'You: ' : ''}
-                            {lastMessage.text.length > 30 ? lastMessage.text.substring(0, 30) + '...' : lastMessage.text}
-                          </p>
-                        )}
-                      </div>
+            </div>
+          )}
+          
+          <div className="flex-1 overflow-y-auto">
+            {/* Show search results when searching */}
+            {showSearch && searchQuery.trim() ? (
+              <>
+                {searchableUsers.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center p-8">
+                    <div className="text-center">
+                      <div className="text-4xl mb-4 opacity-30">🔍</div>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white mb-2 uppercase tracking-wider">No Users Found</h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Try searching with a different name
+                      </p>
                     </div>
                   </div>
-                );
-              })
+                ) : (
+                  <>
+                    <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800/50">
+                      <h3 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Search Results</h3>
+                    </div>
+                    {searchableUsers.map(user => (
+                      <div 
+                        key={user.id}
+                        className={`p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                          selectedUser?.id === user.id ? 'bg-slate-100 dark:bg-slate-800/50' : ''
+                        }`}
+                        onClick={() => handleSelectUser(user)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <img 
+                              src={user.avatar} 
+                              alt={user.name} 
+                              className="w-12 h-12 rounded-xl object-cover"
+                            />
+                            {currentUser.acquaintances?.includes(user.id) && (
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full"></div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-black text-slate-900 dark:text-white truncate">{user.name}</h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 truncate">{user.handle}</p>
+                            {currentUser.acquaintances?.includes(user.id) && (
+                              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Connected</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
+            ) : (
+              /* Show conversations when not searching */
+              <>
+                {messagingUsers.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center p-8">
+                    <div className="text-center">
+                      <div className="text-4xl mb-4 opacity-30">💬</div>
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white mb-2 uppercase tracking-wider">No Conversations</h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Use the search button to find people to message
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800/50">
+                      <h3 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Recent Conversations</h3>
+                    </div>
+                    {messagingUsers.map(user => {
+                      const lastMessage = messages
+                        .filter(msg => 
+                          (msg.senderId === user.id && msg.receiverId === currentUser.id) || 
+                          (msg.senderId === currentUser.id && msg.receiverId === user.id)
+                        )
+                        .sort((a, b) => b.timestamp - a.timestamp)[0];
+                      
+                      const hasUnread = unreadCounts[user.id] > 0;
+                      
+                      return (
+                        <div 
+                          key={user.id}
+                          className={`p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                            selectedUser?.id === user.id ? 'bg-slate-100 dark:bg-slate-800/50' : ''
+                          }`}
+                          onClick={() => handleSelectUser(user)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <img 
+                                src={user.avatar} 
+                                alt={user.name} 
+                                className="w-12 h-12 rounded-xl object-cover"
+                              />
+                              {hasUnread && (
+                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                                  {unreadCounts[user.id]}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start">
+                                <h3 className="font-black text-slate-900 dark:text-white truncate">{user.name}</h3>
+                                {lastMessage && (
+                                  <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                    {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                )}
+                              </div>
+                              {lastMessage && (
+                                <p className={`text-sm truncate ${lastMessage.senderId === currentUser.id ? 'text-right' : 'text-left'} ${
+                                  hasUnread ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-600 dark:text-slate-400'
+                                }`}>
+                                  {lastMessage.senderId === currentUser.id ? 'You: ' : ''}
+                                  {lastMessage.text.length > 30 ? lastMessage.text.substring(0, 30) + '...' : lastMessage.text}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>

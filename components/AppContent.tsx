@@ -100,6 +100,8 @@ interface AppContentProps {
   onGenerateAIContent: (prompt: string) => Promise<string>;
   messagingOpen: boolean;
   setMessagingOpen: (open: boolean) => void;
+  messagingInitialUserId?: string;
+  clearMessagingInitialUserId?: () => void;
   messages: Message[];
   getUnreadCounts: () => Record<string, number>;
   handleSendMessage: (receiverId: string, text: string) => void;
@@ -114,7 +116,7 @@ const AppContent: React.FC<AppContentProps> = ({
   isDarkMode, sharingContent, view, setIsAuthenticated, setCurrentUser, setAllUsers, setPosts,
   setAds, setBirthdayAnnouncements, setNotifications, setLoading, setSearchQuery, setActiveEnergy,
   setActiveMediaType, setIsSettingsOpen, setIsAdManagerOpen, setIsCreditStoreOpen, setIsDarkMode,
-  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleSerendipityMode, serendipityModalOpen, setSerendipityModalOpen, serendipityContent, aiGeneratorOpen, setAiGeneratorOpen, onGenerateAIContent, messagingOpen, setMessagingOpen, messages, getUnreadCounts, handleSendMessage, handleMarkMessagesAsRead, onArchiveChat, onDeleteChat, onOpenMessaging, handleDeletePost,
+  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleSerendipityMode, serendipityModalOpen, setSerendipityModalOpen, serendipityContent, aiGeneratorOpen, setAiGeneratorOpen, onGenerateAIContent, messagingOpen, setMessagingOpen, messagingInitialUserId, clearMessagingInitialUserId, messages, getUnreadCounts, handleSendMessage, handleMarkMessagesAsRead, onArchiveChat, onDeleteChat, onOpenMessaging, handleDeletePost,
   handleDeleteComment, handleLike, handleBoostPost, handleBoostUser, handleComment, handleReact,
   handleAddAcquaintance, handleAcceptConnection, handleRemoveAcquaintance, handlePurchaseCredits, handleAuraShare,
   toggleDarkMode
@@ -705,13 +707,17 @@ const AppContent: React.FC<AppContentProps> = ({
         currentUser={currentUser}
         allUsers={allUsers}
         isOpen={messagingOpen}
-        onClose={() => setMessagingOpen(false)}
+        onClose={() => {
+          setMessagingOpen(false);
+          clearMessagingInitialUserId?.();
+        }}
         onSendMessage={handleSendMessage}
         messages={messages}
         unreadCounts={getUnreadCounts()}
         onMarkAsRead={handleMarkMessagesAsRead}
         onArchiveChat={onArchiveChat}
         onDeleteChat={onDeleteChat}
+        initialUserId={messagingInitialUserId}
       />
     </Layout>
   );

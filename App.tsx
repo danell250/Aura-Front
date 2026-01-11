@@ -568,6 +568,7 @@ const App: React.FC = () => {
   // Messaging state
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagingOpen, setMessagingOpen] = useState(false);
+  const [messagingInitialUserId, setMessagingInitialUserId] = useState<string | undefined>(undefined);
   
   // Function to calculate unread message counts
   const getUnreadCounts = useCallback(() => {
@@ -762,8 +763,12 @@ const App: React.FC = () => {
   // Function to open messaging with a specific user
   const handleOpenMessaging = useCallback((userId?: string) => {
     setMessagingOpen(true);
-    // If a specific user is provided, we could potentially auto-select them
-    // For now, we'll just open the messaging system
+    setMessagingInitialUserId(userId);
+  }, []);
+
+  // Function to clear messaging initial user ID
+  const clearMessagingInitialUserId = useCallback(() => {
+    setMessagingInitialUserId(undefined);
   }, []);
   
   const handleDeletePost = useCallback((postId: string) => {
@@ -1287,6 +1292,8 @@ const App: React.FC = () => {
             // Messaging props
             messagingOpen={messagingOpen}
             setMessagingOpen={setMessagingOpen}
+            messagingInitialUserId={messagingInitialUserId}
+            clearMessagingInitialUserId={clearMessagingInitialUserId}
             messages={messages}
             getUnreadCounts={getUnreadCounts}
             handleSendMessage={handleSendMessage}

@@ -4,7 +4,7 @@ import { APP_NAME } from '../constants';
 import { User } from '../types';
 import Logo from './Logo';
 import SocialConnectModal from './SocialConnectModal';
-import { auth, googleProvider, signInWithPopup } from '../services/firebase';
+import { auth, googleProvider, signInWithPopup, signInWithRedirect } from '../services/firebase';
 import { UserService } from '../services/userService';
 
 interface AuthProps {
@@ -57,11 +57,46 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
     }, 1200);
   };
 
+  const handleGoogleLoginRedirect = async () => {
+    setIsProcessing(true);
+    setError(null);
+    
+    try {
+      // Use redirect-based authentication (no COOP issues)
+      await signInWithRedirect(auth, googleProvider);
+      // The page will redirect, so no need to handle result here
+      // Result will be handled by onAuthStateChanged listener
+    } catch (err: any) {
+      console.error("Firebase Auth Redirect Error:", err);
+      setError(err.message || "Login failed. Please try again.");
+      setIsProcessing(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     setIsProcessing(true);
     setError(null);
+    
+    // Open popup manually to avoid COOP issues
+    const popup = window.open(
+      '',               // empty URL to avoid cross-origin issues
+      'firebasePopup',  // name
+      'width=500,height=600'
+    );
+
+    if (!popup) {
+      setError("Popup blocked by browser. Please allow popups and try again.");
+      setIsProcessing(false);
+      return;
+    }
+
     try {
+      // Perform sign-in with popup
       const result = await signInWithPopup(auth, googleProvider);
+      
+      // Close popup safely
+      popup.close();
+      
       const user = result.user;
       
       if (!user.email) {
@@ -102,15 +137,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
     } catch (err: any) {
       console.error("Firebase Auth Error:", err);
       
+      // Close popup if something went wrong
+      if (!popup.closed) popup.close();
+      
       // Handle specific error cases
       if (err.code === 'auth/popup-closed-by-user') {
         setError("Login cancelled. Please try again.");
       } else if (err.code === 'auth/popup-blocked') {
         setError("Popup blocked. Please allow popups for this site and try again.");
-      } else if (err.code === 'auth/network-request-failed') {
-        setError("Network error. Please check your connection and try again.");
       } else {
-        setError(err.message || "Failed to authenticate with Google. Please try again.");
+        setError(err.message || "Login failed. Please try again.");
       }
     } finally {
       setIsProcessing(false);
@@ -314,6 +350,13 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
                   <svg className="w-5 h-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
                   {isProcessing ? 'Connecting...' : 'Login with Google'}
                 </button>
+                
+                {error && error.includes('popup') && (
+                  <button onClick={handleGoogleLoginRedirect} disabled={isProcessing} className={`${socialButtonClasses} text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400`}>
+                    <svg className="w-4 h-4" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+                    Try redirect login instead
+                  </button>
+                )}
               </div>
 
               <div className="mt-12 text-center pt-8 border-t border-slate-100 dark:border-slate-800">
@@ -345,6 +388,13 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
                   <svg className="w-5 h-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
                   {isProcessing ? 'Connecting...' : 'Sign up with Google'}
                 </button>
+                
+                {error && error.includes('popup') && (
+                  <button onClick={handleGoogleLoginRedirect} disabled={isProcessing} className={`${socialButtonClasses} text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400`}>
+                    <svg className="w-4 h-4" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+                    Try redirect signup instead
+                  </button>
+                )}
               </div>
 
               <div className="mt-12 text-center pt-8 border-t border-slate-100 dark:border-slate-800">

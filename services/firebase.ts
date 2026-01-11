@@ -3,7 +3,7 @@
 // See .env.example for reference
 
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
@@ -27,11 +27,11 @@ googleProvider.setCustomParameters({
 });
 
 export { 
-  app, 
   auth, 
   db, 
   googleProvider, 
-  signInWithPopup, 
+  signInWithPopup,
+  signInWithRedirect,
   onAuthStateChanged, 
   signOut, 
   analytics,

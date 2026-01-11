@@ -9,6 +9,7 @@
     "preview": "vite preview --host 0.0.0.0 --port 5000"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "emoji-picker-react": "^4.16.1",
     "firebase": "^12.7.0",
     "react": "^19.2.3",

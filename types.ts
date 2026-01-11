@@ -122,6 +122,8 @@ export interface AdPackage {
   subtitle: string;
   adLimit: number;
   idealFor: string;
+  paymentType?: 'one-time' | 'subscription';
+  subscriptionPlanId?: string;
 }
 
 export interface Notification {

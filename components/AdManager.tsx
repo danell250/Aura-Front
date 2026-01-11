@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { AD_PACKAGES } from '../constants';
 import { AdPackage, Ad, User } from '../types';
 import AdCard from './AdCard';
+import SubscriptionManager from './SubscriptionManager';
+import { subscriptionService } from '../services/subscriptionService';
 
 declare global {
   interface Window {
@@ -19,7 +21,7 @@ interface AdManagerProps {
 }
 
 const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, onAdCancelled, onClose }) => {
-  const [tab, setTab] = useState<'create' | 'manage'>('create');
+  const [tab, setTab] = useState<'create' | 'manage' | 'subscriptions'>('create');
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Select, 2: Pay, 3: Create
   const [selectedPkg, setSelectedPkg] = useState<AdPackage | null>(null);
   const [isPaying, setIsPaying] = useState(false);
@@ -77,10 +79,10 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
         return;
       }
 
-      // Load SDK Dynamically with proper error handling
+      // Load SDK Dynamically with proper error handling - Updated to support subscriptions
       console.log("[Aura] Injecting Payment Neural Link...");
       paypalScript = document.createElement('script');
-      paypalScript.src = "https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=capture&vault=false";
+      paypalScript.src = "https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=subscription&vault=true";
       paypalScript.setAttribute('data-sdk-integration-source', 'button-factory');
       paypalScript.async = true;
       paypalScript.onload = () => {
@@ -152,7 +154,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
         setSdkReady(true);
       } else {
         const script = document.createElement('script');
-        script.src = "https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=capture&vault=false";
+        script.src = "https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=subscription&vault=true";
         script.setAttribute('data-sdk-integration-source', 'button-factory');
         script.async = true;
         script.onload = () => {
@@ -210,38 +212,82 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
             shape: 'rect',
             label: 'pay'
           },
+          createSubscription: (data: any, actions: any) => {
+            if (!selectedPkg) throw new Error("No package selected");
+            // Use subscription for packages marked as subscription type
+            if (selectedPkg.paymentType === 'subscription' && selectedPkg.subscriptionPlanId) {
+              console.log("[Aura] Creating subscription for package:", selectedPkg.name);
+              return actions.subscription.create({
+                'plan_id': selectedPkg.subscriptionPlanId
+              });
+            }
+            return null; // Fall back to one-time payment
+          },
           createOrder: (data: any, actions: any) => {
             if (!selectedPkg) throw new Error("No package selected");
-            // Ensure the PayPal actions object is valid
-            if (!actions || !actions.order) {
-              throw new Error('PayPal actions not available');
+            // Use one-time payment for packages marked as one-time type
+            if (selectedPkg.paymentType === 'one-time') {
+              console.log("[Aura] Creating one-time payment for package:", selectedPkg.name);
+              // Ensure the PayPal actions object is valid
+              if (!actions || !actions.order) {
+                throw new Error('PayPal actions not available');
+              }
+              return actions.order.create({
+                purchase_units: [{
+                  description: `Aura Ad Broadcast: ${selectedPkg.name}`,
+                  amount: {
+                    currency_code: "USD",
+                    value: selectedPkg.numericPrice.toString()
+                  }
+                }]
+              });
             }
-            return actions.order.create({
-              purchase_units: [{
-                description: `Aura Ad Broadcast: ${selectedPkg.name}`,
-                amount: {
-                  currency_code: "USD",
-                  value: selectedPkg.numericPrice.toString()
-                }
-              }]
-            });
+            return null; // Fall back to subscription
           },
           onApprove: async (data: any, actions: any) => {
-            console.log("[Aura] Payment Approved. Capturing...");
+            console.log("[Aura] Payment Approved. Processing...");
             setIsPaying(true);
             try {
-              // Validate actions before capture
-              if (!actions || !actions.order) {
-                throw new Error('PayPal actions not available for capture');
-              }
-              await actions.order.capture();
-              if (isComponentMounted) {
-                setPaymentVerified(true);
-                setIsPaying(false);
-                setTimeout(() => setStep(3), 800);
+              if (data.subscriptionID) {
+                // Handle subscription approval
+                console.log("[Aura] Subscription approved:", data.subscriptionID);
+                
+                // Create subscription record in backend
+                if (selectedPkg && selectedPkg.paymentType === 'subscription') {
+                  try {
+                    await subscriptionService.createSubscription({
+                      userId: currentUser.id,
+                      planId: selectedPkg.subscriptionPlanId || selectedPkg.id,
+                      planName: selectedPkg.name,
+                      paypalSubscriptionId: data.subscriptionID,
+                      amount: selectedPkg.price
+                    });
+                    console.log("[Aura] Subscription record created successfully");
+                  } catch (error) {
+                    console.error("[Aura] Failed to create subscription record:", error);
+                    // Continue anyway - the PayPal subscription is active
+                  }
+                }
+                
+                if (isComponentMounted) {
+                  setPaymentVerified(true);
+                  setIsPaying(false);
+                  setTimeout(() => setStep(3), 800);
+                }
+              } else if (data.orderID && actions && actions.order) {
+                // Handle one-time payment capture
+                console.log("[Aura] Capturing one-time payment:", data.orderID);
+                await actions.order.capture();
+                if (isComponentMounted) {
+                  setPaymentVerified(true);
+                  setIsPaying(false);
+                  setTimeout(() => setStep(3), 800);
+                }
+              } else {
+                throw new Error('Invalid payment data received');
               }
             } catch (err) {
-              console.error('Capture error:', err);
+              console.error('Payment processing error:', err);
               if (isComponentMounted) {
                 setIsPaying(false);
                 setRenderError('Neural Handshake Refused: Transaction failed.');
@@ -405,6 +451,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
               <button onClick={() => setTab('create')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'create' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}>New Stream</button>
               <button onClick={() => setTab('manage')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'manage' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Active Signals</button>
+              <button onClick={() => setTab('subscriptions')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'subscriptions' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Subscriptions</button>
             </div>
           </div>
           <button onClick={onClose} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-75 border border-slate-100 dark:border-slate-700">✕</button>
@@ -435,6 +482,11 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                 {AD_PACKAGES.map(pkg => (
                   <div key={pkg.id} className="bg-slate-50 dark:bg-slate-800 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-700 flex flex-col justify-between group hover:border-emerald-400 transition-all hover:shadow-2xl hover:-translate-y-2 relative overflow-hidden">
                     <div className={`absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r ${pkg.gradient}`}></div>
+                    {pkg.paymentType === 'subscription' && (
+                      <div className="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">
+                        Subscription
+                      </div>
+                    )}
                     <div>
                       <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{pkg.name}</h4>
                       <p className="text-[10px] text-slate-400 font-bold uppercase mt-2 mb-2 tracking-[0.2em]">{pkg.subtitle}</p>
@@ -446,7 +498,9 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                         </li>)}
                       </ul>
                     </div>
-                    <button onClick={() => { setSelectedPkg(pkg); setStep(2); setShowPayPal(false); }} className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all">Select Tier</button>
+                    <button onClick={() => { setSelectedPkg(pkg); setStep(2); setShowPayPal(false); }} className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all">
+                      {pkg.paymentType === 'subscription' ? 'Start Subscription' : 'Select Tier'}
+                    </button>
                   </div>
                 ))}
               </div>
@@ -490,7 +544,9 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                       <div className="w-24 h-24 bg-emerald-50 dark:bg-emerald-950/30 rounded-[2rem] flex items-center justify-center text-4xl mx-auto mb-8 shadow-xl border border-emerald-100 dark:border-emerald-800">💎</div>
                       <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">Review Order</h3>
-                      <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-10">Please confirm your selection</p>
+                      <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-10">
+                        {selectedPkg?.paymentType === 'subscription' ? 'Confirm subscription details' : 'Please confirm your selection'}
+                      </p>
                       
                       <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 mb-8 text-left relative overflow-hidden">
                          <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${selectedPkg?.gradient}`}></div>
@@ -506,7 +562,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                           onClick={() => setShowPayPal(true)}
                           className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all"
                         >
-                          Proceed to Payment
+                          {selectedPkg?.paymentType === 'subscription' ? 'Start Subscription' : 'Proceed to Payment'}
                         </button>
                         <button 
                           onClick={() => setStep(1)}
@@ -519,8 +575,15 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                   ) : (
                     <div className="bg-slate-50 dark:bg-slate-800/80 p-12 rounded-[4rem] border border-slate-100 dark:border-slate-800 shadow-inner relative overflow-hidden">
                       <div className="w-28 h-28 bg-emerald-50 dark:bg-emerald-950/30 rounded-[2.5rem] flex items-center justify-center text-5xl mx-auto mb-10 shadow-2xl border border-emerald-100 dark:border-emerald-800 animate-float">🛡️</div>
-                      <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-4">Finalize Authorization</h3>
-                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] mb-12">Tier: {selectedPkg?.name} • Reserve: {selectedPkg?.price}</p>
+                      <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-4">
+                        {selectedPkg?.paymentType === 'subscription' ? 'Finalize Subscription' : 'Finalize Authorization'}
+                      </h3>
+                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] mb-12">
+                        {selectedPkg?.paymentType === 'subscription' 
+                          ? `Subscription: ${selectedPkg?.name} • Monthly: ${selectedPkg?.price}`
+                          : `Tier: ${selectedPkg?.name} • Reserve: ${selectedPkg?.price}`
+                        }
+                      </p>
                       
                       {renderError && (
                         <div className="mb-8 p-6 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-3xl">
@@ -557,7 +620,12 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                       {isPaying && (
                         <div className="mt-8 flex flex-col items-center gap-4 animate-in fade-in">
                           <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-                          <p className="text-[11px] font-black text-emerald-600 uppercase tracking-widest">Validating Signal Authentication...</p>
+                          <p className="text-[11px] font-black text-emerald-600 uppercase tracking-widest">
+                            {selectedPkg?.paymentType === 'subscription' 
+                              ? 'Activating Subscription...' 
+                              : 'Validating Signal Authentication...'
+                            }
+                          </p>
                         </div>
                       )}
                       
@@ -572,9 +640,18 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                   )
                 ) : (
                   <div className="py-24 animate-in zoom-in duration-700">
-                    <div className="text-8xl mb-10 animate-bounce">⚡</div>
-                    <h3 className="text-4xl font-black text-emerald-600 uppercase tracking-tighter mb-4">Signal Authorized</h3>
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Initializing Neural Broadcast Builder...</p>
+                    <div className="text-8xl mb-10 animate-bounce">
+                      {selectedPkg?.paymentType === 'subscription' ? '🔄' : '⚡'}
+                    </div>
+                    <h3 className="text-4xl font-black text-emerald-600 uppercase tracking-tighter mb-4">
+                      {selectedPkg?.paymentType === 'subscription' ? 'Subscription Active' : 'Signal Authorized'}
+                    </h3>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                      {selectedPkg?.paymentType === 'subscription' 
+                        ? 'Monthly billing activated • Create unlimited ads'
+                        : 'Initializing Neural Broadcast Builder...'
+                      }
+                    </p>
                   </div>
                 )}
               </div>
@@ -629,7 +706,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
               </div>
             )}
           </div>
-        ) : (
+        ) : tab === 'manage' ? (
           <div className="animate-in fade-in duration-500 pb-12">
             {ads.filter(a => a.ownerId === currentUser.id).length === 0 ? (
               <div className="py-48 text-center bg-slate-50 dark:bg-slate-950/20 rounded-[4rem] border-4 border-dashed border-slate-100 dark:border-slate-800">
@@ -650,6 +727,8 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
               </div>
             )}
           </div>
+        ) : (
+          <SubscriptionManager currentUser={currentUser} onClose={onClose} />
         )}
       </div>
     </div>

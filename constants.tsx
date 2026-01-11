@@ -871,31 +871,36 @@ export const AD_PACKAGES: AdPackage[] = [
     adLimit: 1,
     idealFor: 'Flash announcements, quick tests.',
     features: ['1 Active Signal', '7-Day Neural Retention', 'Standard Network Propagation', 'Basic Analytics'],
-    gradient: 'from-blue-500 to-cyan-600'
+    gradient: 'from-blue-500 to-cyan-600',
+    paymentType: 'one-time'
   },
   {
     id: 'pkg-aura-radiance',
     name: 'Aura Radiance',
     subtitle: 'Maximum visibility for creators',
     durationDays: 30,
-    price: '$199 for 30 Days',
+    price: '$199/month',
     numericPrice: 199,
     adLimit: 5,
     idealFor: 'Influencers, Content Creators.',
-    features: ['5 Simultaneous Signals', '30-Day Signal Lock', 'Priority Feed Injection', 'Smart CTA Button'],
-    gradient: 'from-purple-500 to-pink-600'
+    features: ['5 Simultaneous Signals', 'Monthly Signal Renewal', 'Priority Feed Injection', 'Smart CTA Button', 'Cancel Anytime'],
+    gradient: 'from-purple-500 to-pink-600',
+    paymentType: 'subscription',
+    subscriptionPlanId: 'P-5TR6407366314243FNFRU2BY'
   },
   {
     id: 'pkg-universal-signal',
     name: 'Universal Signal',
     subtitle: 'Network saturation',
     durationDays: 30,
-    price: '$699 for 30 Days',
+    price: '$699/month',
     numericPrice: 699,
     adLimit: 20,
     idealFor: 'Brands, Agencies, Power Users.',
-    features: ['20 Simultaneous Signals', 'Global Network Saturation', 'Deep-Dive Neural Analytics', '"Verified" Gold Border on Ads'],
-    gradient: 'from-yellow-500 to-amber-600'
+    features: ['20 Simultaneous Signals', 'Global Network Saturation', 'Deep-Dive Neural Analytics', '"Verified" Gold Border on Ads', 'Cancel Anytime'],
+    gradient: 'from-yellow-500 to-amber-600',
+    paymentType: 'subscription',
+    subscriptionPlanId: 'P-5TR6407366314243FNFRU2BY'
   }
 ];
 

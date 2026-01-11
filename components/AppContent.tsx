@@ -95,13 +95,71 @@ interface AppContentProps {
   toggleDarkMode: () => void;
 }
 
+interface AppContentProps {
+  isAuthenticated: boolean;
+  currentUser: User | null;
+  allUsers: User[];
+  posts: Post[];
+  ads: Ad[];
+  birthdayAnnouncements: BirthdayAnnouncement[];
+  notifications: Notification[];
+  loading: boolean;
+  searchQuery: string;
+  activeEnergy: EnergyType | 'all';
+  activeMediaType: 'all' | 'image' | 'video' | 'document';
+  isSettingsOpen: boolean;
+  isAdManagerOpen: boolean;
+  isCreditStoreOpen: boolean;
+  isDarkMode: boolean;
+  sharingContent: { content: string; url: string; title?: string; image?: string; originalPost?: Post } | null;
+  view: {type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string};
+  setIsAuthenticated: (value: boolean) => void;
+  setCurrentUser: (user: User | null) => void;
+  setAllUsers: (users: User[]) => void;
+  setPosts: (posts: Post[]) => void;
+  setAds: (ads: Ad[]) => void;
+  setBirthdayAnnouncements: (announcements: BirthdayAnnouncement[]) => void;
+  setNotifications: (notifications: Notification[]) => void;
+  setLoading: (loading: boolean) => void;
+  setSearchQuery: (query: string) => void;
+  setActiveEnergy: (energy: EnergyType | 'all') => void;
+  setActiveMediaType: (type: 'all' | 'image' | 'video' | 'document') => void;
+  setIsSettingsOpen: (open: boolean) => void;
+  setIsAdManagerOpen: (open: boolean) => void;
+  setIsCreditStoreOpen: (open: boolean) => void;
+  setIsDarkMode: (dark: boolean) => void;
+  setSharingContent: (content: { content: string; url: string; title?: string; image?: string; originalPost?: Post } | null) => void;
+  setView: (view: {type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string}) => void;
+  handleLogin: (userData: any) => void;
+  handleUpdateProfile: (updates: Partial<User>) => void;
+  handlePost: (content: string, mediaUrl?: string, mediaType?: any, taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => void;
+  handleTimeCapsule: (data: any) => void;
+  handleSerendipityMode: () => void;
+  serendipityModalOpen: boolean;
+  setSerendipityModalOpen: (open: boolean) => void;
+  serendipityContent: any;
+  handleDeletePost: (postId: string) => void;
+  handleDeleteComment: (postId: string, commentId: string) => void;
+  handleLike: (postId: string) => void;
+  handleBoostPost: (postId: string) => void;
+  handleBoostUser: (userId: string) => void;
+  handleComment: (postId: string, text: string, parentId?: string) => void;
+  handleReact: (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => void;
+  handleAddAcquaintance: (targetUser: User) => void;
+  handleAcceptConnection: (notification: Notification) => void;
+  handleRemoveAcquaintance: (userId: string) => void;
+  handlePurchaseCredits: (bundle: CreditBundle) => void;
+  handleAuraShare: (selectedUsers: User[]) => void;
+  toggleDarkMode: () => void;
+}
+
 const AppContent: React.FC<AppContentProps> = ({
   isAuthenticated, currentUser, allUsers, posts, ads, birthdayAnnouncements, notifications, loading,
   searchQuery, activeEnergy, activeMediaType, isSettingsOpen, isAdManagerOpen, isCreditStoreOpen,
   isDarkMode, sharingContent, view, setIsAuthenticated, setCurrentUser, setAllUsers, setPosts,
   setAds, setBirthdayAnnouncements, setNotifications, setLoading, setSearchQuery, setActiveEnergy,
   setActiveMediaType, setIsSettingsOpen, setIsAdManagerOpen, setIsCreditStoreOpen, setIsDarkMode,
-  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleSerendipityMode, handleDeletePost,
+  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleSerendipityMode, serendipityModalOpen, setSerendipityModalOpen, serendipityContent, handleDeletePost,
   handleDeleteComment, handleLike, handleBoostPost, handleBoostUser, handleComment, handleReact,
   handleAddAcquaintance, handleAcceptConnection, handleRemoveAcquaintance, handlePurchaseCredits, handleAuraShare,
   toggleDarkMode

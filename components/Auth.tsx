@@ -77,25 +77,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
     setIsProcessing(true);
     setError(null);
     
-    // Open popup manually to avoid COOP issues
-    const popup = window.open(
-      '',               // empty URL to avoid cross-origin issues
-      'firebasePopup',  // name
-      'width=500,height=600'
-    );
-
-    if (!popup) {
-      setError("Popup blocked by browser. Please allow popups and try again.");
-      setIsProcessing(false);
-      return;
-    }
-
     try {
-      // Perform sign-in with popup
+      // Perform sign-in with popup directly
       const result = await signInWithPopup(auth, googleProvider);
-      
-      // Close popup safely
-      popup.close();
       
       const user = result.user;
       
@@ -136,9 +120,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
       }
     } catch (err: any) {
       console.error("Firebase Auth Error:", err);
-      
-      // Close popup if something went wrong
-      if (!popup.closed) popup.close();
       
       // Handle specific error cases
       if (err.code === 'auth/popup-closed-by-user') {

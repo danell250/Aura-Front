@@ -3,9 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="unsafe-none">
     <meta http-equiv="Cross-Origin-Embedder-Policy" content="unsafe-none">
-    <title>Aura | Connect & Radiate</title>
+    <title>Aura | Connect & Radiance</title>
+    
+    <!-- Suppress COOP console errors -->
+    <script>
+      // Suppress Cross-Origin-Opener-Policy console errors
+      const originalError = console.error;
+      console.error = function(...args) {
+        const message = args.join(' ');
+        if (message.includes('Cross-Origin-Opener-Policy') || 
+            message.includes('window.closed') || 
+            message.includes('window.close')) {
+          return; // Suppress COOP-related errors
+        }
+        originalError.apply(console, args);
+      };
+    </script>
     
     <!-- SEO and Social Metadata -->
     <meta name="description" content="Establish your professional frequency on Aura, the world's most elegant social network. Connect, radiate, and broadcast your professional pulse.">

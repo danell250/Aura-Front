@@ -45,6 +45,6 @@
   
   <!-- Bottom text -->
   <text x="600" y="580" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="400" text-anchor="middle" fill="rgba(255,255,255,0.7)">
-    auraradiance.netlify.app
+    auraradiance.vercel.app
   </text>
 </svg>

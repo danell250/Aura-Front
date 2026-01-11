@@ -126,7 +126,7 @@ const AppContent: React.FC<AppContentProps> = ({
 
   // Set up meta tags for the current page
   const getMetaInfo = useCallback(() => {
-    const baseUrl = 'https://auraradiance.netlify.app';
+    const baseUrl = 'https://auraradiance.vercel.app';
     
     if (view.type === 'profile' && view.targetId) {
       const profileUser = allUsers.find(u => u.id === view.targetId) || currentUser;
@@ -142,7 +142,7 @@ const AppContent: React.FC<AppContentProps> = ({
       return {
         title: sharingContent.title || 'Post on Aura',
         description: sharingContent.content,
-        image: sharingContent.image || 'https://auraradiance.netlify.app/og-image.jpg', // Add image property if available
+        image: sharingContent.image || 'https://auraradiance.vercel.app/og-image.jpg', // Add image property if available
         url: `${baseUrl}/${sharingContent.url}`,
         type: 'article' as const
       };

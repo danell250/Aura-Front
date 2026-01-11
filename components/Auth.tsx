@@ -5,6 +5,7 @@ import { User } from '../types';
 import Logo from './Logo';
 import SocialConnectModal from './SocialConnectModal';
 import { auth, googleProvider, signInWithPopup } from '../services/firebase';
+import { UserService } from '../services/userService';
 
 interface AuthProps {
   onLogin: (userData: any) => void;
@@ -76,15 +77,13 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
 
       // Check if user already exists by email
       const normalizedEmail = user.email.toLowerCase().trim();
-      const existingUser = allUsers.find(u => 
-        u.email?.toLowerCase().trim() === normalizedEmail
-      );
-
-      if (existingUser) {
+      const existingUserResult = await UserService.findUserByEmail(normalizedEmail);
+      
+      if (existingUserResult.success && existingUserResult.user) {
         // Existing user - log them in with updated Google data
         onLogin({
-          ...existingUser,
-          avatar: user.photoURL || existingUser.avatar,
+          ...existingUserResult.user,
+          avatar: user.photoURL || existingUserResult.user.avatar,
           avatarType: 'image' as const
         });
       } else {
@@ -143,7 +142,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
     });
   };
 
-  const handleManualSignup = (e: React.FormEvent) => {
+  const handleManualSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     const { firstName, lastName, phone, dob, email } = formData;
     
@@ -162,11 +161,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
 
     // Check if user already exists (case-insensitive)
     const normalizedEmail = email.toLowerCase().trim();
-    const existingUser = allUsers.find(u => 
-      u.email?.toLowerCase().trim() === normalizedEmail
-    );
+    const existingUserResult = await UserService.findUserByEmail(normalizedEmail);
     
-    if (existingUser) {
+    if (existingUserResult.success && existingUserResult.user) {
       setError("An account with this email already exists. Try logging in.");
       return;
     }
@@ -204,7 +201,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
     setSocialContext(null);
   };
 
-  const handleProfileSetup = (e: React.FormEvent) => {
+  const handleProfileSetup = async (e: React.FormEvent) => {
     e.preventDefault();
     const { firstName, lastName, phone, dob, email, bio, handle, industry, companyName } = formData;
     
@@ -222,16 +219,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
     }
 
     // Check if handle is already taken
-    const existingHandle = allUsers.find(u => 
-      u.handle?.toLowerCase() === cleanHandle.toLowerCase()
-    );
+    const existingHandleResult = await UserService.userExists(undefined, cleanHandle);
     
-    if (existingHandle) {
+    if (existingHandleResult.exists) {
       setError("This handle is already taken. Please choose another one.");
       return;
     }
 
-    simulateProcess(() => {
+    setIsProcessing(true);
+    
+    try {
       // Create complete user profile
       const userData = {
         id: formData.googleId || `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -246,11 +243,30 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
         industry: industry.trim() || undefined,
         companyName: companyName.trim() || undefined,
         avatar: formData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName}`,
-        avatarType: formData.avatarType || 'image'
+        avatarType: formData.avatarType || 'image',
+        acquaintances: [],
+        blockedUsers: [],
+        trustScore: 10,
+        auraCredits: 100,
+        activeGlow: 'none' as const
       };
 
-      onLogin(userData);
-    });
+      // Save user using UserService (saves to both MongoDB and Firestore)
+      const saveResult = await UserService.saveUser(userData);
+      
+      if (saveResult.success) {
+        console.log('✅ User profile created and saved successfully');
+        onLogin(userData);
+      } else {
+        console.error('❌ Failed to save user profile:', saveResult.error);
+        setError("Failed to create profile. Please try again.");
+      }
+    } catch (error) {
+      console.error('❌ Error during profile setup:', error);
+      setError("An error occurred while creating your profile. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const inputClasses = "w-full bg-slate-100 dark:bg-slate-800 border-2 border-transparent rounded-2xl px-6 py-4 text-sm font-semibold outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-400 transition-all text-slate-900 dark:text-white placeholder-slate-400";

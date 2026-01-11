@@ -4,6 +4,7 @@ import AppContent from './components/AppContent';
 import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
 import { auth, onAuthStateChanged } from './services/firebase';
+import { UserService } from './services/userService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -152,22 +153,18 @@ const App: React.FC = () => {
         // Always load from backend, regardless of environment
         console.log('Loading data from backend');
         
-        // Load users from backend API
+        // Load users using UserService (from both MongoDB and Firestore)
         try {
-          const response = await fetch('https://aura-back-s1bw.onrender.com/api/users');
-          if (response.ok) {
-            const backendData = await response.json();
-            const backendUsers = backendData.data || backendData;
-            if (Array.isArray(backendUsers)) {
-              loadedUsers = backendUsers;
-              console.log('Loaded users from backend:', loadedUsers.length);
-            }
+          const usersResult = await UserService.getAllUsers();
+          if (usersResult.success && usersResult.users) {
+            loadedUsers = usersResult.users;
+            console.log('Loaded users from UserService:', loadedUsers.length);
           } else {
-            console.log('Backend users endpoint not available, using mock data');
+            console.log('UserService failed, using mock data');
             loadedUsers = MOCK_USERS;
           }
         } catch (error) {
-          console.log('Backend users endpoint not available, using mock data:', error.message);
+          console.log('UserService not available, using mock data:', error);
           loadedUsers = MOCK_USERS;
         }
 
@@ -319,76 +316,42 @@ const App: React.FC = () => {
       // Normalize email for comparison
       const normalizedEmail = userData.email?.toLowerCase().trim();
       
-      // First, try to find user in backend
-      let backendUser = null;
-      try {
-        const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users`);
-        if (response.ok) {
-          const backendUsers = await response.json();
-          const users = backendUsers.data || backendUsers;
-          if (Array.isArray(users)) {
-            backendUser = users.find((u: any) => {
-              const uEmail = u.email?.toLowerCase().trim();
-              const uHandle = u.handle?.toLowerCase().trim();
-              const dataHandle = userData.handle?.toLowerCase().trim();
-              
-              return (
-                (normalizedEmail && uEmail === normalizedEmail) || 
-                (dataHandle && uHandle === dataHandle) || 
-                (userData.id && u.id === userData.id)
-              );
-            });
-          }
+      // Check if user exists using UserService
+      let existingUser = null;
+      if (normalizedEmail) {
+        const userResult = await UserService.findUserByEmail(normalizedEmail);
+        if (userResult.success && userResult.user) {
+          existingUser = userResult.user;
         }
-      } catch (error) {
-        console.log('Backend user lookup failed:', error);
       }
       
-      // Find existing user in local storage
-      const existingUser = allUsers.find(u => {
-        const uEmail = u.email?.toLowerCase().trim();
-        const uHandle = u.handle?.toLowerCase().trim();
-        const dataHandle = userData.handle?.toLowerCase().trim();
-        
-        return (
-          (normalizedEmail && uEmail === normalizedEmail) || 
-          (dataHandle && uHandle === dataHandle) || 
-          (userData.id && u.id === userData.id)
-        );
-      });
+      // Also check by handle if no email match
+      if (!existingUser && userData.handle) {
+        const handleResult = await UserService.userExists(undefined, userData.handle);
+        if (handleResult.exists && handleResult.user) {
+          existingUser = handleResult.user;
+        }
+      }
 
-      if (backendUser || existingUser) {
+      if (existingUser) {
         console.log('Found existing user, logging in...');
         const isSpecialUser = normalizedEmail === 'danelloosthuizen3@gmail.com';
         
-        // Use backend user if available, otherwise use local user
-        const baseUser = backendUser || existingUser;
-        
         // Update existing user with any new data from login (e.g., updated avatar from Google)
         const updatedUser: User = {
-          ...baseUser,
-          avatar: userData.avatar || baseUser.avatar,
-          avatarType: userData.avatarType || baseUser.avatarType || 'image',
-          email: normalizedEmail || baseUser.email,
-          firstName: userData.firstName || baseUser.firstName,
-          lastName: userData.lastName || baseUser.lastName,
-          name: userData.name || baseUser.name || `${baseUser.firstName} ${baseUser.lastName}`.trim(),
+          ...existingUser,
+          avatar: userData.avatar || existingUser.avatar,
+          avatarType: userData.avatarType || existingUser.avatarType || 'image',
+          email: normalizedEmail || existingUser.email,
+          firstName: userData.firstName || existingUser.firstName,
+          lastName: userData.lastName || existingUser.lastName,
+          name: userData.name || existingUser.name || `${existingUser.firstName} ${existingUser.lastName}`.trim(),
           // Special user gets unlimited credits, others keep their existing credits
-          auraCredits: isSpecialUser ? 999999 : baseUser.auraCredits,
+          auraCredits: isSpecialUser ? 999999 : existingUser.auraCredits,
         };
         
-        // Update backend if user exists there
-        if (backendUser) {
-          try {
-            await fetch(`https://aura-back-s1bw.onrender.com/api/users/${backendUser.id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(updatedUser)
-            });
-          } catch (error) {
-            console.log('Failed to update user in backend:', error);
-          }
-        }
+        // Update user in both MongoDB and Firestore
+        await UserService.updateUser(existingUser.id, updatedUser);
         
         // Update in allUsers array
         const updatedUsers = allUsers.map(u => u.id === updatedUser.id ? updatedUser : u);
@@ -396,7 +359,6 @@ const App: React.FC = () => {
         setCurrentUser(updatedUser);
         setIsAuthenticated(true);
         saveSession(updatedUser);
-        // Removed localStorage saving - relying on backend only
         return;
       }
 
@@ -412,7 +374,11 @@ const App: React.FC = () => {
         const baseHandle = `@${firstName.toLowerCase().replace(/\s+/g, '')}${lastName.toLowerCase().replace(/\s+/g, '')}`;
         let counter = 0;
         handle = baseHandle;
-        while (allUsers.some(u => u.handle?.toLowerCase() === handle.toLowerCase())) {
+        
+        // Check handle uniqueness using UserService
+        while (true) {
+          const handleCheck = await UserService.userExists(undefined, handle);
+          if (!handleCheck.exists) break;
           counter++;
           handle = `${baseHandle}${counter}`;
         }
@@ -444,21 +410,13 @@ const App: React.FC = () => {
       
       console.log('Creating new user:', newUser);
       
-      // Save to backend first
-      try {
-        const response = await fetch('https://aura-back-s1bw.onrender.com/api/users', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newUser)
-        });
-        
-        if (response.ok) {
-          console.log('User saved to backend successfully');
-        } else {
-          console.log('Failed to save user to backend, continuing with local storage');
-        }
-      } catch (error) {
-        console.log('Backend save failed, continuing with local storage:', error);
+      // Save user using UserService (saves to both MongoDB and Firestore)
+      const saveResult = await UserService.saveUser(newUser);
+      
+      if (saveResult.success) {
+        console.log('✅ New user saved successfully to both MongoDB and Firestore');
+      } else {
+        console.log('⚠️ Failed to save user to storage, but continuing with local session');
       }
       
       const updatedUsers = [...allUsers, newUser];
@@ -467,7 +425,6 @@ const App: React.FC = () => {
       setNotifications([]);
       setIsAuthenticated(true);
       saveSession(newUser);
-      // Removed localStorage saving - relying on backend only
       console.log('New user created and session saved');
     } catch (error) {
       console.error('Error during login:', error);
@@ -482,16 +439,16 @@ const App: React.FC = () => {
     if (updates.firstName && updates.lastName) updatedUser.name = `${updates.firstName} ${updates.lastName}`;
     setCurrentUser(updatedUser);
     
-    // Update backend first
+    // Update using UserService (updates both MongoDB and Firestore)
     try {
-      await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedUser)
-      });
-      console.log('User updated in backend successfully');
+      const updateResult = await UserService.updateUser(currentUser.id, updatedUser);
+      if (updateResult.success) {
+        console.log('✅ User updated in both MongoDB and Firestore successfully');
+      } else {
+        console.log('⚠️ Failed to update user in storage:', updateResult.error);
+      }
     } catch (error) {
-      console.log('Failed to update user in backend:', error);
+      console.log('⚠️ Error updating user in storage:', error);
     }
     
     // Update in allUsers array

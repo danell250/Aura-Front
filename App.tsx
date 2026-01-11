@@ -3,7 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AppContent from './components/AppContent';
 import SerendipityModal from './components/SerendipityModal';
 import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, BACKEND_URL } from './constants';
-import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
+import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle, Message } from './types';
+
+
 import { auth, onAuthStateChanged } from './services/firebase';
 import { UserService } from './services/userService';
 import { CacheService } from './services/cacheService';
@@ -562,6 +564,36 @@ const App: React.FC = () => {
   const [serendipityContent, setSerendipityContent] = useState(null);
   
   const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false);
+  
+  // Messaging state
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messagingOpen, setMessagingOpen] = useState(false);
+  
+  // Function to calculate unread message counts
+  const getUnreadCounts = useCallback(() => {
+    const counts: Record<string, number> = {};
+    messages.forEach(msg => {
+      if (msg.receiverId === currentUser?.id && !msg.isRead) {
+        counts[msg.senderId] = (counts[msg.senderId] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [messages, currentUser?.id]);
+  
+  // Function to mark messages as read
+  const handleMarkMessagesAsRead = useCallback((senderId: string) => {
+    if (!currentUser) return;
+    
+    setMessages(prev => 
+      prev.map(msg => 
+        msg.senderId === senderId && 
+        msg.receiverId === currentUser.id && 
+        !msg.isRead 
+          ? { ...msg, isRead: true } 
+          : msg
+      )
+    );
+  }, [currentUser]);
 
   const handleSerendipityMode = () => {
     if (!currentUser) return;
@@ -651,6 +683,52 @@ const App: React.FC = () => {
       throw error;
     }
   };
+  
+  const handleSendMessage = useCallback((receiverId: string, text: string) => {
+    if (!currentUser) return;
+    
+    const newMessage: Message = {
+      id: `msg-${Date.now()}-${Math.random()}`,
+      senderId: currentUser.id,
+      receiverId,
+      text: text,
+      timestamp: Date.now(),
+      isRead: false
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+    
+    // Create notification for the receiver
+    const receiver = allUsers.find(u => u.id === receiverId);
+    if (receiver && receiver.id !== currentUser.id) {
+      const newNotification: Notification = {
+        id: `notif-message-${Date.now()}-${Math.random()}`,
+        type: 'message',
+        fromUser: currentUser,
+        message: 'sent you a message',
+        timestamp: Date.now(),
+        isRead: false
+      };
+      
+      setAllUsers(prevUsers => {
+        return prevUsers.map(u => {
+          if (u.id === receiver.id) {
+            const updatedUser = {
+              ...u,
+              notifications: [newNotification, ...(u.notifications || [])]
+            };
+            // Update current user if they are the receiver
+            if (u.id === currentUser.id) {
+              setCurrentUser(updatedUser);
+              saveSession(updatedUser);
+            }
+            return updatedUser;
+          }
+          return u;
+        });
+      });
+    }
+  }, [currentUser, allUsers]);
   
   const handleDeletePost = useCallback((postId: string) => {
     setPosts(prev => prev.filter(p => p.id !== postId));
@@ -1170,6 +1248,13 @@ const App: React.FC = () => {
             handlePurchaseCredits={handlePurchaseCredits}
             handleAuraShare={handleAuraShare}
             toggleDarkMode={toggleDarkMode}
+            // Messaging props
+            messagingOpen={messagingOpen}
+            setMessagingOpen={setMessagingOpen}
+            messages={messages}
+            getUnreadCounts={getUnreadCounts}
+            handleSendMessage={handleSendMessage}
+            handleMarkMessagesAsRead={handleMarkMessagesAsRead}
           />
         } />
       </Routes>

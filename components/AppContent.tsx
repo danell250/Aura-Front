@@ -19,10 +19,11 @@ import FeedFilters from './FeedFilters';
 import SerendipityModal from './SerendipityModal';
 import AIContentGenerator from './AIContentGenerator';
 import Logo from './Logo';
+import MessagingSystem from './MessagingSystem';
 import { useMetaTags } from '../hooks/useMetaTags';
 import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES, BACKEND_URL } from '../constants';
 import { SearchResult } from '../services/searchService';
-import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from '../types';
+import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle, Message } from '../types';
 import { geminiService } from '../services/gemini';
 
 const STORAGE_KEY = 'aura_user_session';
@@ -97,6 +98,12 @@ interface AppContentProps {
   aiGeneratorOpen: boolean;
   setAiGeneratorOpen: (open: boolean) => void;
   onGenerateAIContent: (prompt: string) => Promise<string>;
+  messagingOpen: boolean;
+  setMessagingOpen: (open: boolean) => void;
+  messages: Message[];
+  getUnreadCounts: () => Record<string, number>;
+  handleSendMessage: (receiverId: string, text: string) => void;
+  handleMarkMessagesAsRead: (senderId: string) => void;
 }
 
 const AppContent: React.FC<AppContentProps> = ({
@@ -105,7 +112,7 @@ const AppContent: React.FC<AppContentProps> = ({
   isDarkMode, sharingContent, view, setIsAuthenticated, setCurrentUser, setAllUsers, setPosts,
   setAds, setBirthdayAnnouncements, setNotifications, setLoading, setSearchQuery, setActiveEnergy,
   setActiveMediaType, setIsSettingsOpen, setIsAdManagerOpen, setIsCreditStoreOpen, setIsDarkMode,
-  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleSerendipityMode, serendipityModalOpen, setSerendipityModalOpen, serendipityContent, aiGeneratorOpen, setAiGeneratorOpen, onGenerateAIContent, handleDeletePost,
+  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleSerendipityMode, serendipityModalOpen, setSerendipityModalOpen, serendipityContent, aiGeneratorOpen, setAiGeneratorOpen, onGenerateAIContent, messagingOpen, setMessagingOpen, messages, getUnreadCounts, handleSendMessage, handleMarkMessagesAsRead, handleDeletePost,
   handleDeleteComment, handleLike, handleBoostPost, handleBoostUser, handleComment, handleReact,
   handleAddAcquaintance, handleAcceptConnection, handleRemoveAcquaintance, handlePurchaseCredits, handleAuraShare,
   toggleDarkMode
@@ -491,6 +498,7 @@ const AppContent: React.FC<AppContentProps> = ({
         setView({ type: 'profile', targetId: id }); 
         navigate(`/profile/${id}`); 
       }} 
+      onOpenMessaging={() => setMessagingOpen(true)}
       ads={ads} posts={posts} users={allUsers} notifications={notifications}
       onOpenCreditStore={() => setIsCreditStoreOpen(true)}
       onSearchResult={handleSearchResult}
@@ -689,6 +697,16 @@ const AppContent: React.FC<AppContentProps> = ({
           // Content will be handled by the stored callback in the event handler
           console.log('Using AI-generated content:', content);
         }}
+      />
+      <MessagingSystem
+        currentUser={currentUser}
+        allUsers={allUsers}
+        isOpen={messagingOpen}
+        onClose={() => setMessagingOpen(false)}
+        onSendMessage={handleSendMessage}
+        messages={messages}
+        unreadCounts={getUnreadCounts()}
+        onMarkAsRead={handleMarkMessagesAsRead}
       />
     </Layout>
   );

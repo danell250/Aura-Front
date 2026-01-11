@@ -135,7 +135,7 @@ export interface AdPackage {
 
 export interface Notification {
   id: string;
-  type: 'reaction' | 'comment' | 'link' | 'credit_received' | 'boost_received' | 'connection_request' | 'profile_view' | 'share' | 'like';
+  type: 'reaction' | 'comment' | 'link' | 'credit_received' | 'boost_received' | 'connection_request' | 'profile_view' | 'share' | 'like' | 'message';
   fromUser: User;
   message: string;
   timestamp: number;
@@ -144,6 +144,7 @@ export interface Notification {
   connectionId?: string;
 }
 
+// Ensure Message interface is exported properly
 export interface Message {
   id: string;
   senderId: string;

@@ -78,8 +78,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
     setError(null);
     
     try {
+      console.log('🔄 Starting Google sign-in...');
+      
       // Perform sign-in with popup directly
       const result = await signInWithPopup(auth, googleProvider);
+      
+      console.log('✅ Google sign-in successful:', result.user.email);
       
       const user = result.user;
       
@@ -94,19 +98,52 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
       const lastName = nameParts.slice(1).join(' ') || '';
       const fullName = displayName || `${firstName} ${lastName}`.trim();
 
-      // Check if user already exists by email
-      const normalizedEmail = user.email.toLowerCase().trim();
-      const existingUserResult = await UserService.findUserByEmail(normalizedEmail);
+      console.log('🔍 Checking if user exists:', user.email);
       
-      if (existingUserResult.success && existingUserResult.user) {
-        // Existing user - log them in with updated Google data
-        onLogin({
-          ...existingUserResult.user,
-          avatar: user.photoURL || existingUserResult.user.avatar,
-          avatarType: 'image' as const
-        });
-      } else {
-        // New user - redirect to profile setup with Google data
+      // Check if user already exists by email with timeout
+      const normalizedEmail = user.email.toLowerCase().trim();
+      
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Operation timed out')), 10000); // 10 second timeout
+      });
+      
+      try {
+        const existingUserResult = await Promise.race([
+          UserService.findUserByEmail(normalizedEmail),
+          timeoutPromise
+        ]);
+        
+        if (existingUserResult.success && existingUserResult.user) {
+          console.log('✅ Existing user found, logging in...');
+          // Existing user - log them in with updated Google data
+          const loginPromise = onLogin({
+            ...existingUserResult.user,
+            avatar: user.photoURL || existingUserResult.user.avatar,
+            avatarType: 'image' as const
+          });
+          
+          // Add timeout to login as well
+          await Promise.race([loginPromise, timeoutPromise]);
+          console.log('✅ Login completed successfully');
+        } else {
+          console.log('👤 New user, setting up profile...');
+          // New user - redirect to profile setup with Google data
+          setMode('profile_setup');
+          setFormData({
+            ...formData,
+            firstName,
+            lastName,
+            email: normalizedEmail,
+            googleId: user.uid,
+            avatar: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
+            avatarType: 'image'
+          });
+          console.log('✅ Profile setup ready');
+        }
+      } catch (timeoutError) {
+        console.warn('⚠️ Backend operation timed out, proceeding with profile setup');
+        // If backend times out, proceed with new user setup
         setMode('profile_setup');
         setFormData({
           ...formData,
@@ -126,10 +163,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin, allUsers }) => {
         setError("Login cancelled. Please try again.");
       } else if (err.code === 'auth/popup-blocked') {
         setError("Popup blocked. Please allow popups for this site and try again.");
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        setError("Login cancelled. Please try again.");
+      } else if (err.message === 'Operation timed out') {
+        setError("Login is taking longer than expected. Please try again.");
       } else {
         setError(err.message || "Login failed. Please try again.");
       }
     } finally {
+      // Always reset processing state
+      console.log('🔄 Resetting processing state');
       setIsProcessing(false);
     }
   };

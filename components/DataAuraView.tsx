@@ -4,6 +4,7 @@ import { User, Post } from '../types';
 import { geminiService } from '../services/gemini';
 import Logo from './Logo';
 import { BACKEND_URL } from '../constants';
+import { apiFetch } from '../utils/api';
 
 interface DataAuraViewProps {
   currentUser: User;
@@ -59,7 +60,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
 
   const loadPrivacySettings = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/privacy-settings`);
+      const response = await apiFetch(`/api/users/${currentUser.id}/privacy-settings`);
       if (response.ok) {
         const data = await response.json();
         setPrivacySettings(data.data);
@@ -94,7 +95,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
     setPrivacySettings(updatedSettings);
 
     try {
-      await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/privacy-settings`, {
+      await apiFetch(`/api/users/${currentUser.id}/privacy-settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [key]: value })
@@ -109,7 +110,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
   const exportPrivacyData = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/privacy-data`);
+      const response = await apiFetch(`/api/users/${currentUser.id}/privacy-data`);
       if (response.ok) {
         const data = await response.json();
         
@@ -145,7 +146,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/clear-data`, {
+      const response = await apiFetch(`/api/users/${currentUser.id}/clear-data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

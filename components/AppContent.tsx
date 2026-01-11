@@ -22,6 +22,7 @@ import Logo from './Logo';
 import MessagingSystem from './MessagingSystem';
 import { useMetaTags } from '../hooks/useMetaTags';
 import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES, BACKEND_URL } from '../constants';
+import { apiFetch } from '../utils/api';
 import { SearchResult } from '../services/searchService';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle, Message } from '../types';
 import { geminiService } from '../services/gemini';
@@ -493,7 +494,7 @@ const AppContent: React.FC<AppContentProps> = ({
       onViewProfile={(id) => { 
         // Record profile view if it's not the current user's own profile
         if (currentUser.id !== id) {
-          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+          apiFetch(`/api/users/${id}/record-profile-view`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ viewerId: currentUser.id })
@@ -540,7 +541,7 @@ const AppContent: React.FC<AppContentProps> = ({
                 if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => { 
         // Record profile view if it's not the current user's own profile
         if (currentUser.id !== id) {
-          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+          apiFetch(`/api/users/${id}/record-profile-view`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ viewerId: currentUser.id })
@@ -558,7 +559,7 @@ const AppContent: React.FC<AppContentProps> = ({
                         onViewProfile={(id) => { 
                           // Record profile view if it's not the current user's own profile
                           if (currentUser.id !== id) {
-                            fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+                            apiFetch(`/api/users/${id}/record-profile-view`, {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ viewerId: currentUser.id })
@@ -575,7 +576,7 @@ const AppContent: React.FC<AppContentProps> = ({
                     : <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl, originalPost: p}); }} onViewProfile={(id) => { 
               // Record profile view if it's not the current user's own profile
               if (currentUser.id !== id) {
-                fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+                apiFetch(`/api/users/${id}/record-profile-view`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ viewerId: currentUser.id })
@@ -587,7 +588,7 @@ const AppContent: React.FC<AppContentProps> = ({
                   : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`, title: `${ad.ownerName} on Aura`, image: ad.mediaUrl})} onSearchTag={setSearchQuery} onViewProfile={(id) => { 
               // Record profile view if it's not the current user's own profile
               if (currentUser.id !== id) {
-                fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+                apiFetch(`/api/users/${id}/record-profile-view`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ viewerId: currentUser.id })
@@ -614,7 +615,7 @@ const AppContent: React.FC<AppContentProps> = ({
           onViewProfile={(id) => { 
         // Record profile view if it's not the current user's own profile
         if (currentUser.id !== id) {
-          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+          apiFetch(`/api/users/${id}/record-profile-view`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ viewerId: currentUser.id })
@@ -639,7 +640,7 @@ const AppContent: React.FC<AppContentProps> = ({
       {view.type === 'chat' && <ChatView currentUser={currentUser} acquaintances={allUsers.filter(u => (currentUser?.acquaintances || []).includes(u.id))} allUsers={allUsers} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} initialContactId={view.targetId} onViewProfile={(id) => { 
         // Record profile view if it's not the current user's own profile
         if (currentUser.id !== id) {
-          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+          apiFetch(`/api/users/${id}/record-profile-view`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ viewerId: currentUser.id })
@@ -655,7 +656,7 @@ const AppContent: React.FC<AppContentProps> = ({
           onViewProfile={(id) => { 
         // Record profile view if it's not the current user's own profile
         if (currentUser.id !== id) {
-          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+          apiFetch(`/api/users/${id}/record-profile-view`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ viewerId: currentUser.id })
@@ -672,7 +673,7 @@ const AppContent: React.FC<AppContentProps> = ({
       {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} onPurchaseGlow={(glow) => handleUpdateProfile({ activeGlow: glow })} onClearData={() => {}} onViewProfile={(id) => { 
         // Record profile view if it's not the current user's own profile
         if (currentUser.id !== id) {
-          fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+          apiFetch(`/api/users/${id}/record-profile-view`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ viewerId: currentUser.id })

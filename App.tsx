@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AppContent from './components/AppContent';
-import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS } from './constants';
+import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, BACKEND_URL } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
 import { auth, onAuthStateChanged } from './services/firebase';
 import { UserService } from './services/userService';
@@ -208,7 +208,7 @@ const App: React.FC = () => {
             // Only fetch users if cache is invalid
             if (!CacheService.isUsersCacheValid()) {
               promises.push(
-                fetch('https://aura-back-s1bw.onrender.com/api/users')
+                fetch(`${BACKEND_URL}/api/users`)
                   .then(res => res.ok ? res.json() : null)
                   .then(data => ({ type: 'users', data }))
                   .catch(() => ({ type: 'users', data: null }))
@@ -218,7 +218,7 @@ const App: React.FC = () => {
             // Only fetch posts if cache is invalid
             if (!CacheService.isPostsCacheValid()) {
               promises.push(
-                fetch('https://aura-back-s1bw.onrender.com/api/posts')
+                fetch(`${BACKEND_URL}/api/posts`)
                   .then(res => res.ok ? res.json() : null)
                   .then(data => ({ type: 'posts', data }))
                   .catch(() => ({ type: 'posts', data: null }))
@@ -228,7 +228,7 @@ const App: React.FC = () => {
             // Only fetch ads if cache is invalid
             if (!CacheService.isAdsCacheValid()) {
               promises.push(
-                fetch('https://aura-back-s1bw.onrender.com/api/ads')
+                fetch(`${BACKEND_URL}/api/ads`)
                   .then(res => res.ok ? res.json() : null)
                   .then(data => ({ type: 'ads', data }))
                   .catch(() => ({ type: 'ads', data: null }))
@@ -597,7 +597,7 @@ const App: React.FC = () => {
     
     // Call backend API to persist the credit deduction
     try {
-      const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/spend-credits`, {
+      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/spend-credits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -643,30 +643,43 @@ const App: React.FC = () => {
       return;
     }
     
-    if (!isSpecialUser) {
-      const newCredits = (currentUser.auraCredits || 0) - boostCost;
-      handleUpdateProfile({ auraCredits: newCredits });
+    // Always deduct credits for both regular and special users
+    const newCredits = (currentUser.auraCredits || 0) - boostCost;
+    handleUpdateProfile({ auraCredits: newCredits });
+    
+    // Also update the current user state immediately to reflect the deduction
+    setCurrentUser(prev => prev ? { ...prev, auraCredits: newCredits } : prev);
+    
+    // Call backend API to persist the credit deduction
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/spend-credits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          credits: boostCost,
+          reason: 'user_boost'
+        })
+      });
       
-      // Also update the current user state immediately to reflect the deduction
-      setCurrentUser(prev => prev ? { ...prev, auraCredits: newCredits } : prev);
-      
-      // Call backend API to persist the credit deduction
-      try {
-        const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/spend-credits`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            credits: boostCost,
-            reason: 'user_boost'
-          })
-        });
-        
-        if (!response.ok) {
-          console.log('Backend credit spending failed, but proceeding with local update');
-        }
-      } catch (error) {
-        console.log('Backend not available for credit spending, using local update:', error);
+      if (!response.ok) {
+        console.log('Backend credit spending failed, but proceeding with local update');
       }
+    } catch (error) {
+      console.log('Backend not available for credit spending, using local update:', error);
+    }
+    
+    // For special users, restore credits after a delay
+    if (isSpecialUser) {
+      setTimeout(() => {
+        setCurrentUser(prev => prev ? { ...prev, auraCredits: 999999 } : prev);
+        setAllUsers(prevUsers => {
+          const updatedUsers = prevUsers.map(u => 
+            u.id === currentUser.id ? { ...u, auraCredits: 999999 } : u
+          );
+          // Removed localStorage saving - relying on backend only
+          return updatedUsers;
+        });
+      }, 2000);
     }
     
     setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, trustScore: Math.min(100, u.trustScore + 10), auraCredits: u.auraCredits + 50 } : u));
@@ -739,7 +752,7 @@ const App: React.FC = () => {
     
     // Try to update credits via backend API first
     try {
-      const response = await fetch(`https://aura-back-s1bw.onrender.com/api/users/${currentUser.id}/purchase-credits`, {
+      const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/purchase-credits`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

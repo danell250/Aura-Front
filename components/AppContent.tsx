@@ -16,6 +16,7 @@ import DataAuraView from './DataAuraView';
 import ShareModal from './ShareModal';
 import CreditStoreModal from './CreditStoreModal';
 import FeedFilters from './FeedFilters';
+import SerendipityModal from './SerendipityModal';
 import Logo from './Logo';
 import { useMetaTags } from '../hooks/useMetaTags';
 import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES, BACKEND_URL } from '../constants';
@@ -76,6 +77,9 @@ interface AppContentProps {
   handlePost: (content: string, mediaUrl?: string, mediaType?: any, taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => void;
   handleTimeCapsule: (data: any) => void;
   handleSerendipityMode: () => void;
+  serendipityModalOpen: boolean;
+  setSerendipityModalOpen: (open: boolean) => void;
+  serendipityContent: any;
   handleDeletePost: (postId: string) => void;
   handleDeleteComment: (postId: string, commentId: string) => void;
   handleLike: (postId: string) => void;
@@ -649,6 +653,15 @@ const AppContent: React.FC<AppContentProps> = ({
       {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={(ad) => setAds([ad, ...ads])} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}
       {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} onCreditsPurchased={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
       {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} title={sharingContent.title} image={sharingContent.image} currentUser={currentUser} onAuraShare={handleAuraShare} originalPost={sharingContent.originalPost} onClose={() => setSharingContent(null)} />}
+      <SerendipityModal 
+        isOpen={serendipityModalOpen} 
+        onClose={() => setSerendipityModalOpen(false)} 
+        content={serendipityContent} 
+        onNavigateToProfile={(userId) => {
+          setView({ type: 'profile', targetId: userId }); 
+          navigate(`/profile/${userId}`); 
+        }}
+      />
     </Layout>
   );
 };

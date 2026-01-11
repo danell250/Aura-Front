@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import AppContent from './components/AppContent';
+import SerendipityModal from './components/SerendipityModal';
 import { INITIAL_POSTS, INITIAL_ADS, MOCK_USERS, BACKEND_URL } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
 import { auth, onAuthStateChanged } from './services/firebase';
@@ -556,6 +557,9 @@ const App: React.FC = () => {
     alert(`🎉 Time Capsule "${data.timeCapsuleTitle}" created successfully! It will unlock on ${unlockDateStr}.`);
   };
 
+  const [serendipityModalOpen, setSerendipityModalOpen] = useState(false);
+  const [serendipityContent, setSerendipityContent] = useState(null);
+
   const handleSerendipityMode = () => {
     if (!currentUser) return;
     
@@ -605,29 +609,32 @@ const App: React.FC = () => {
       const randomIndex = Math.floor(Math.random() * allContent.length);
       const randomItem = allContent[randomIndex];
       
-      // Set the view to show the random content
+      // Calculate time ago
+      let timeLabel = '';
       if (randomItem.type === 'post') {
-        // Navigate to the post's author profile to see the post
-        setView({ type: 'profile', targetId: randomItem.content.author.id });
-        
-        // Show notification about the random discovery
         const timeAgo = Math.floor((Date.now() - randomItem.content.timestamp) / (1000 * 60 * 60 * 24));
-        let timeLabel = `${timeAgo} days ago`;
+        timeLabel = `${timeAgo} days ago`;
         if (timeAgo < 1) timeLabel = 'Today';
         else if (timeAgo === 1) timeLabel = 'Yesterday';
         else if (timeAgo < 30) timeLabel = `${timeAgo} days ago`;
         else if (timeAgo < 365) timeLabel = `${Math.floor(timeAgo / 30)} months ago`;
         else timeLabel = `${Math.floor(timeAgo / 365)} years ago`;
-        
-        alert(`✨ Serendipity Mode: Discovered a post from ${timeLabel}!\nAuthor: ${randomItem.content.author.name}\nContent: ${randomItem.content.content.substring(0, 50)}${randomItem.content.content.length > 50 ? '...' : ''}`);
-      } else if (randomItem.type === 'ad') {
-        // Navigate to the ad owner's profile
-        setView({ type: 'profile', targetId: randomItem.content.ownerId });
-        
-        alert(`✨ Serendipity Mode: Discovered an ad!\nTitle: ${randomItem.content.headline}\nFrom: ${randomItem.content.ownerName}`);
       }
+      
+      // Set content for modal
+      setSerendipityContent({
+        type: randomItem.type,
+        content: randomItem.content,
+        timeAgo: timeLabel,
+        authorName: randomItem.type === 'post' ? randomItem.content.author.name : randomItem.content.ownerName
+      });
+      
+      // Open the modal
+      setSerendipityModalOpen(true);
     } else {
-      alert('✨ Serendipity Mode: Nothing to discover yet! Try again when there\'s more content in your network.');
+      // Show notification for no content
+      setSerendipityContent(null);
+      setSerendipityModalOpen(true);
     }
   };
 
@@ -1130,6 +1137,9 @@ const App: React.FC = () => {
             handlePost={handlePost}
             handleTimeCapsule={handleTimeCapsule}
             handleSerendipityMode={handleSerendipityMode}
+            serendipityModalOpen={serendipityModalOpen}
+            setSerendipityModalOpen={setSerendipityModalOpen}
+            serendipityContent={serendipityContent}
             handleDeletePost={handleDeletePost}
             handleDeleteComment={handleDeleteComment}
             handleLike={handleLike}
@@ -1146,7 +1156,7 @@ const App: React.FC = () => {
           />
         } />
       </Routes>
-    </Router>
+  </Router>
   );
 }
 

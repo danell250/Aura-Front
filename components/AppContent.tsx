@@ -5,6 +5,7 @@ import PostCard from './PostCard';
 import CreatePost from './CreatePost';
 import BirthdayPost from './BirthdayPost';
 import AdCard from './AdCard';
+import TimeCapsuleCard from './TimeCapsuleCard';
 import Auth from './Auth';
 import ProfileView from './ProfileView';
 import ChatView from './ChatView';
@@ -73,6 +74,7 @@ interface AppContentProps {
   handleLogin: (userData: any) => void;
   handleUpdateProfile: (updates: Partial<User>) => void;
   handlePost: (content: string, mediaUrl?: string, mediaType?: any, taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => void;
+  handleTimeCapsule: (data: any) => void;
   handleDeletePost: (postId: string) => void;
   handleDeleteComment: (postId: string, commentId: string) => void;
   handleLike: (postId: string) => void;
@@ -94,7 +96,7 @@ const AppContent: React.FC<AppContentProps> = ({
   isDarkMode, sharingContent, view, setIsAuthenticated, setCurrentUser, setAllUsers, setPosts,
   setAds, setBirthdayAnnouncements, setNotifications, setLoading, setSearchQuery, setActiveEnergy,
   setActiveMediaType, setIsSettingsOpen, setIsAdManagerOpen, setIsCreditStoreOpen, setIsDarkMode,
-  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleDeletePost,
+  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleDeletePost,
   handleDeleteComment, handleLike, handleBoostPost, handleBoostUser, handleComment, handleReact,
   handleAddAcquaintance, handleAcceptConnection, handleRemoveAcquaintance, handlePurchaseCredits, handleAuraShare,
   toggleDarkMode
@@ -459,7 +461,7 @@ const AppContent: React.FC<AppContentProps> = ({
     >
       {view.type === 'feed' && (
         <div className="space-y-6">
-          <CreatePost allUsers={allUsers} currentUser={currentUser} onPost={handlePost} />
+          <CreatePost allUsers={allUsers} currentUser={currentUser} onPost={handlePost} onTimeCapsule={handleTimeCapsule} />
           
           <FeedFilters 
             activeMediaType={activeMediaType}
@@ -495,7 +497,29 @@ const AppContent: React.FC<AppContentProps> = ({
         navigate(`/profile/${id}`); 
       }} />;
                 return 'content' in item 
-                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl, originalPost: p}); }} onViewProfile={(id) => { 
+                  ? (item as Post).isTimeCapsule 
+                    ? <TimeCapsuleCard 
+                        key={item.id} 
+                        post={item as Post} 
+                        currentUser={currentUser} 
+                        onViewProfile={(id) => { 
+                          // Record profile view if it's not the current user's own profile
+                          if (currentUser.id !== id) {
+                            fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ viewerId: currentUser.id })
+                            }).catch(err => console.log('Failed to record profile view:', err));
+                          }
+                          setView({ type: 'profile', targetId: id }); 
+                          navigate(`/profile/${id}`); 
+                        }}
+                        onLike={handleLike}
+                        onComment={handleComment}
+                        onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl, originalPost: p}); }}
+                        onDeletePost={handleDeletePost}
+                      />
+                    : <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => { setSharingContent({content: p.content, url: `post/${p.id}`, title: `${p.author.name} on Aura`, image: p.mediaUrl, originalPost: p}); }} onViewProfile={(id) => { 
               // Record profile view if it's not the current user's own profile
               if (currentUser.id !== id) {
                 fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {

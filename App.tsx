@@ -519,6 +519,43 @@ const App: React.FC = () => {
     setPosts([newPost, ...posts]);
   };
 
+  const handleTimeCapsule = (data: any) => {
+    if (!currentUser) return;
+    
+    const newPost: Post = {
+      id: `tc-${Date.now()}`,
+      author: currentUser,
+      content: data.content,
+      mediaUrl: data.mediaUrl,
+      mediaType: data.mediaType,
+      energy: data.energy || EnergyType.NEUTRAL,
+      radiance: 0,
+      timestamp: Date.now(),
+      reactions: {},
+      comments: [],
+      userReactions: [],
+      isBoosted: false,
+      // Time Capsule specific fields
+      isTimeCapsule: true,
+      unlockDate: data.unlockDate,
+      isUnlocked: false,
+      timeCapsuleType: data.timeCapsuleType,
+      invitedUsers: data.invitedUsers,
+      timeCapsuleTitle: data.timeCapsuleTitle
+    };
+    
+    setPosts([newPost, ...posts]);
+    
+    // Show success message
+    const unlockDateStr = new Date(data.unlockDate).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    alert(`🎉 Time Capsule "${data.timeCapsuleTitle}" created successfully! It will unlock on ${unlockDateStr}.`);
+  };
+
   const handleDeletePost = useCallback((postId: string) => {
     setPosts(prev => prev.filter(p => p.id !== postId));
   }, []);
@@ -1016,6 +1053,7 @@ const App: React.FC = () => {
             handleLogin={handleLogin}
             handleUpdateProfile={handleUpdateProfile}
             handlePost={handlePost}
+            handleTimeCapsule={handleTimeCapsule}
             handleDeletePost={handleDeletePost}
             handleDeleteComment={handleDeleteComment}
             handleLike={handleLike}

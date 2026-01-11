@@ -5,9 +5,12 @@ import { geminiService } from '../services/gemini';
 import { uploadService } from '../services/upload';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import Logo from './Logo';
+import TimeCapsuleModal, { TimeCapsuleData } from './TimeCapsuleModal';
+import TimeCapsuleTutorial from './TimeCapsuleTutorial';
 
 interface CreatePostProps {
   onPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video' | 'document', taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => void;
+  onTimeCapsule: (data: TimeCapsuleData) => void;
   currentUser: User;
   allUsers: User[];
 }
@@ -29,7 +32,7 @@ const ActionButton = ({ icon, label, onClick, color, isSpecial }: any) => (
   </button>
 );
 
-const CreatePost: React.FC<CreatePostProps> = ({ onPost, currentUser, allUsers }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, currentUser, allUsers }) => {
   const [content, setContent] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isProcessingMedia, setIsProcessingMedia] = useState(false);
@@ -41,6 +44,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, currentUser, allUsers }
   const [mediaPreview, setMediaPreview] = useState<{ url: string, type: 'image' | 'video' | 'document', name?: string } | null>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedEnergy, setSelectedEnergy] = useState<EnergyType>(EnergyType.NEUTRAL);
+  const [showTimeCapsuleModal, setShowTimeCapsuleModal] = useState(false);
+  const [showTimeCapsuleTutorial, setShowTimeCapsuleTutorial] = useState(false);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -129,6 +134,27 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, currentUser, allUsers }
     setContent(suggestion);
     setIsGenerating(false);
     setShowInspiration(false);
+  };
+
+  const handleTimeCapsuleSubmit = (data: TimeCapsuleData) => {
+    onTimeCapsule(data);
+    setShowTimeCapsuleModal(false);
+  };
+
+  const handleTimeCapsuleClick = () => {
+    // Check if user has seen tutorial
+    const hasSeenTutorial = localStorage.getItem('aura_timecapsule_tutorial');
+    if (!hasSeenTutorial) {
+      setShowTimeCapsuleTutorial(true);
+    } else {
+      setShowTimeCapsuleModal(true);
+    }
+  };
+
+  const handleTutorialComplete = () => {
+    localStorage.setItem('aura_timecapsule_tutorial', 'true');
+    setShowTimeCapsuleTutorial(false);
+    setShowTimeCapsuleModal(true);
   };
 
   return (
@@ -248,6 +274,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, currentUser, allUsers }
                 <ActionButton onClick={() => videoInputRef.current?.click()} icon="🎬" label="Video" color="text-purple-600" />
                 <ActionButton onClick={() => docInputRef.current?.click()} icon="📎" label="File" color="text-green-600" />
                 <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+                <ActionButton onClick={handleTimeCapsuleClick} icon="⏰" label="Time Capsule" color="text-purple-600" isSpecial={true} />
                 <div className="relative" ref={emojiPickerRef}>
                   <ActionButton onClick={() => setShowEmojiPicker(!showEmojiPicker)} icon="😄" label="Emoji" color="text-yellow-600" />
                   {showEmojiPicker && (
@@ -320,6 +347,22 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, currentUser, allUsers }
       <input type="file" ref={imageInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'image')} />
       <input type="file" ref={videoInputRef} className="hidden" accept="video/mp4" onChange={(e) => handleFileChange(e, 'video')} />
       <input type="file" ref={docInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => handleFileChange(e, 'document')} />
+
+      {/* Time Capsule Tutorial */}
+      <TimeCapsuleTutorial
+        isOpen={showTimeCapsuleTutorial}
+        onClose={() => setShowTimeCapsuleTutorial(false)}
+        onComplete={handleTutorialComplete}
+      />
+
+      {/* Time Capsule Modal */}
+      <TimeCapsuleModal
+        isOpen={showTimeCapsuleModal}
+        onClose={() => setShowTimeCapsuleModal(false)}
+        onSubmit={handleTimeCapsuleSubmit}
+        currentUser={currentUser}
+        allUsers={allUsers}
+      />
     </div>
   );
 };

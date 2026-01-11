@@ -85,6 +85,13 @@ export interface Post {
   comments: Comment[];
   isBoosted?: boolean;
   hashtags?: string[];
+  // Time Capsule fields
+  isTimeCapsule?: boolean;
+  unlockDate?: number; // timestamp when the post becomes visible
+  isUnlocked?: boolean; // whether the post is currently visible
+  timeCapsuleType?: 'personal' | 'group';
+  invitedUsers?: string[]; // user IDs for group time capsules
+  timeCapsuleTitle?: string; // custom title for the time capsule
 }
 
 export type AdPlacement = 'feed' | 'left' | 'right';

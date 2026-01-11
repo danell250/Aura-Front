@@ -39,9 +39,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenera
   const [isProcessingMedia, setIsProcessingMedia] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingType, setProcessingType] = useState<'image' | 'video' | 'document' | null>(null);
-  const [showInspiration, setShowInspiration] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [topic, setTopic] = useState('');
   const [mediaPreview, setMediaPreview] = useState<{ url: string, type: 'image' | 'video' | 'document', name?: string } | null>(null);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedEnergy, setSelectedEnergy] = useState<EnergyType>(EnergyType.NEUTRAL);
@@ -71,7 +69,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenera
     onPost(content, mediaPreview?.url, mediaPreview?.type, taggedUserIds, mediaPreview?.name, selectedEnergy);
     setContent('');
     setMediaPreview(null);
-    setShowInspiration(false);
     setShowEmojiPicker(false);
     setSelectedEnergy(EnergyType.NEUTRAL);
   };
@@ -128,23 +125,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenera
     setCursorPosition(cursorPosition + emoji.length);
   };
 
-  const handleInspiration = async () => {
-    if (!topic.trim()) return;
-    setIsGenerating(true);
-    try {
-      // Use the enhanced AI content generation function passed from parent
-      const suggestion = await onGenerateAIContent(topic);
-      setContent(suggestion);
-    } catch (error) {
-      console.error('Error generating content:', error);
-      // Fallback to the original gemini service
-      const fallbackSuggestion = await geminiService.generatePostInspiration(topic);
-      setContent(fallbackSuggestion);
-    } finally {
-      setIsGenerating(false);
-      setShowInspiration(false);
-    }
-  };
+
 
   const handleTimeCapsuleSubmit = (data: TimeCapsuleData) => {
     onTimeCapsule(data);
@@ -294,7 +275,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenera
                   )}
                 </div>
               </div>
-              <ActionButton onClick={() => setShowInspiration(!showInspiration)} icon="✨" label="AI Inspire" color="text-indigo-600" isSpecial />
                 <ActionButton onClick={() => {
                   // Open the AI Content Generator modal via a custom event
                   const event = new CustomEvent('openAIContentGenerator', { detail: { setPostContent: setContent } });
@@ -313,66 +293,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenera
           </div>
         </div>
 
-        {/* Professional AI inspiration section */}
-        {showInspiration && (
-          <div className="mt-6 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">AI Content Generator</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Get inspiration for your post</p>
-              </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <input 
-                  type="text" 
-                  value={topic}
-                  onChange={e => setTopic(e.target.value)}
-                  placeholder="What would you like to write about?"
-                  className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-                />
-              </div>
-              <button 
-                onClick={handleInspiration}
-                disabled={isGenerating || !topic.trim()}
-                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-600 flex-shrink-0 flex items-center gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Generating...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Generate</span>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                  </>
-                )}
-              </button>
-            </div>
-            
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3">OR</p>
-              <button 
-                onClick={() => {
-                  // Open the AI Content Generator modal
-                  const event = new CustomEvent('openAIContentGenerator', { detail: { setPostContent: setContent } });
-                  window.dispatchEvent(event);
-                }}
-                className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <span>🤖 AI Content Generator</span>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
+
         </div>
       </div>
 

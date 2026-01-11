@@ -7,23 +7,25 @@ import Logo from './Logo';
 interface ChatViewProps {
   currentUser: User;
   acquaintances: User[];
+  allUsers: User[]; // Add all users prop
   onBack: () => void;
   initialContactId?: string;
   onViewProfile?: (userId: string) => void;
 }
 
-const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack, initialContactId, onViewProfile }) => {
+const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUsers, onBack, initialContactId, onViewProfile }) => {
   const [activeContact, setActiveContact] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [contactSearch, setContactSearch] = useState('');
-  const [sidebarTab, setSidebarTab] = useState<'active' | 'archived'>('active');
+  const [sidebarTab, setSidebarTab] = useState<'recent' | 'all' | 'search'>('recent');
   const [archivedIds, setArchivedIds] = useState<string[]>([]);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [conversations, setConversations] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<User[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const headerMenuRef = useRef<HTMLDivElement>(null);
 
@@ -85,13 +87,31 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
   // Handle initial contact selection
   useEffect(() => {
     if (initialContactId) {
-      const contact = acquaintances.find(u => u.id === initialContactId);
+      const contact = allUsers.find(u => u.id === initialContactId);
       if (contact) {
         setActiveContact(contact);
-        if (archivedIds.includes(contact.id)) setSidebarTab('archived');
+        if (archivedIds.includes(contact.id)) setSidebarTab('recent');
       }
     }
-  }, [initialContactId, acquaintances, archivedIds]);
+  }, [initialContactId, allUsers, archivedIds]);
+
+  // Handle search functionality
+  useEffect(() => {
+    if (contactSearch.trim()) {
+      const filtered = allUsers.filter(u => 
+        u.id !== currentUser.id && // Exclude current user
+        (u.name.toLowerCase().includes(contactSearch.toLowerCase()) || 
+         u.handle.toLowerCase().includes(contactSearch.toLowerCase()))
+      );
+      setSearchResults(filtered);
+      setSidebarTab('search');
+    } else {
+      setSearchResults([]);
+      if (sidebarTab === 'search') {
+        setSidebarTab('recent');
+      }
+    }
+  }, [contactSearch, allUsers, currentUser.id, sidebarTab]);
 
   const handleSend = async () => {
     if (!inputText.trim() || !activeContact || isSending) return;
@@ -150,16 +170,21 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
   };
 
   const filteredContacts = useMemo(() => {
-    return acquaintances
-      .filter(u => {
-        const matchesSearch = u.name.toLowerCase().includes(contactSearch.toLowerCase()) || 
-                             u.handle.toLowerCase().includes(contactSearch.toLowerCase());
-        const isArchived = archivedIds.includes(u.id);
-        
-        if (sidebarTab === 'active') return matchesSearch && !isArchived;
-        return matchesSearch && isArchived;
-      });
-  }, [acquaintances, contactSearch, sidebarTab, archivedIds]);
+    if (sidebarTab === 'search') {
+      return searchResults;
+    }
+    
+    if (sidebarTab === 'all') {
+      return allUsers.filter(u => u.id !== currentUser.id);
+    }
+    
+    // Recent conversations - users who have had conversations
+    const recentUserIds = conversations.map(conv => conv._id);
+    return allUsers.filter(u => 
+      u.id !== currentUser.id && 
+      recentUserIds.includes(u.id)
+    );
+  }, [sidebarTab, searchResults, allUsers, currentUser.id, conversations]);
 
   const getLastMessage = (userId: string) => {
     // Find conversation data from backend
@@ -187,16 +212,16 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
           {/* Sidebar Tabs */}
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl mb-6">
             <button 
-              onClick={() => setSidebarTab('active')}
-              className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${sidebarTab === 'active' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 dark:text-slate-500'}`}
+              onClick={() => setSidebarTab('recent')}
+              className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${sidebarTab === 'recent' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 dark:text-slate-500'}`}
             >
-              Active
+              Recent
             </button>
             <button 
-              onClick={() => setSidebarTab('archived')}
-              className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${sidebarTab === 'archived' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 dark:text-slate-500'}`}
+              onClick={() => setSidebarTab('all')}
+              className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${sidebarTab === 'all' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 dark:text-slate-500'}`}
             >
-              Archived
+              All Users
             </button>
           </div>
 
@@ -206,7 +231,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
             </span>
             <input 
               type="text" 
-              placeholder="Filter nodes..." 
+              placeholder="Search users to message..." 
               value={contactSearch} 
               onChange={e => setContactSearch(e.target.value)} 
               className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl pl-11 pr-4 py-3.5 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-400/30 transition-all text-slate-900 dark:text-white"
@@ -217,11 +242,17 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
         <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-8 space-y-2">
           {filteredContacts.length === 0 ? (
             <div className="py-10 text-center opacity-30">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Empty Orbit</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+                {sidebarTab === 'search' ? 'No users found' : 
+                 sidebarTab === 'recent' ? 'No recent conversations' : 
+                 'No users available'}
+              </p>
             </div>
           ) : (
             filteredContacts.map(user => {
               const lastMsg = getLastMessage(user.id);
+              const isAcquaintance = acquaintances.some(acq => acq.id === user.id);
+              
               return (
                 <button 
                   key={user.id} 
@@ -232,6 +263,9 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
                     <img src={user.avatar} className="w-12 h-12 rounded-2xl object-cover ring-4 ring-white/10 group-hover:scale-110 transition-transform" alt="" />
                     {user.trustScore > 80 && (
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full shadow-lg"></div>
+                    )}
+                    {!isAcquaintance && (
+                      <div className="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 border-2 border-white dark:border-slate-900 rounded-full shadow-lg" title="Not connected"></div>
                     )}
                   </div>
                   <div className="text-left overflow-hidden flex-1">
@@ -245,7 +279,9 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, onBack,
                       {user.name}
                     </button>
                     <p className={`text-[9px] truncate tracking-wide mt-2 font-bold ${activeContact?.id === user.id ? 'text-white/70' : 'text-slate-400'}`}>
-                      {lastMsg ? lastMsg.text : 'Secure link established'}
+                      {lastMsg ? lastMsg.text : 
+                       isAcquaintance ? 'Connected • Ready to message' : 
+                       'Click to start conversation'}
                     </p>
                   </div>
                   {lastMsg && (

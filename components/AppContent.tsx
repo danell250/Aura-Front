@@ -634,7 +634,7 @@ const AppContent: React.FC<AppContentProps> = ({
           onOpenMessaging={onOpenMessaging}
         />
       )}
-      {view.type === 'chat' && <ChatView currentUser={currentUser} acquaintances={allUsers.filter(u => (currentUser?.acquaintances || []).includes(u.id))} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} initialContactId={view.targetId} onViewProfile={(id) => { 
+      {view.type === 'chat' && <ChatView currentUser={currentUser} acquaintances={allUsers.filter(u => (currentUser?.acquaintances || []).includes(u.id))} allUsers={allUsers} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} initialContactId={view.targetId} onViewProfile={(id) => { 
         // Record profile view if it's not the current user's own profile
         if (currentUser.id !== id) {
           fetch(`${BACKEND_URL}/api/users/${id}/record-profile-view`, {

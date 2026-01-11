@@ -32,8 +32,18 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Filter users for messaging (excluding current user)
-  const messagingUsers = allUsers.filter(user => user.id !== currentUser.id);
+  // Filter users for messaging - only show users with actual message history
+  const messagingUsers = allUsers.filter(user => {
+    if (user.id === currentUser.id) return false;
+    
+    // Check if there are any messages between current user and this user
+    const hasMessages = messages.some(msg => 
+      (msg.senderId === user.id && msg.receiverId === currentUser.id) || 
+      (msg.senderId === currentUser.id && msg.receiverId === user.id)
+    );
+    
+    return hasMessages;
+  });
 
   // Filter messages for the selected user
   const userMessages = selectedUser 
@@ -93,66 +103,87 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
       <div className="bg-white dark:bg-slate-900 w-full max-w-4xl h-[80vh] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex overflow-hidden">
         {/* User list sidebar */}
         <div className="w-1/3 border-r border-slate-200 dark:border-slate-800 flex flex-col">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
               <span>💬</span> Messages
             </h2>
+            <button 
+              onClick={onClose}
+              className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              aria-label="Close messages"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
           
           <div className="flex-1 overflow-y-auto">
-            {messagingUsers.map(user => {
-              const lastMessage = messages
-                .filter(msg => 
-                  (msg.senderId === user.id && msg.receiverId === currentUser.id) || 
-                  (msg.senderId === currentUser.id && msg.receiverId === user.id)
-                )
-                .sort((a, b) => b.timestamp - a.timestamp)[0];
-              
-              const hasUnread = unreadCounts[user.id] > 0;
-              
-              return (
-                <div 
-                  key={user.id}
-                  className={`p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 ${
-                    selectedUser?.id === user.id ? 'bg-slate-100 dark:bg-slate-800/50' : ''
-                  }`}
-                  onClick={() => handleSelectUser(user)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <img 
-                        src={user.avatar} 
-                        alt={user.name} 
-                        className="w-12 h-12 rounded-xl object-cover"
-                      />
-                      {hasUnread && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
-                          {unreadCounts[user.id]}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-black text-slate-900 dark:text-white truncate">{user.name}</h3>
-                        {lastMessage && (
-                          <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                            {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+            {messagingUsers.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center p-8">
+                <div className="text-center">
+                  <div className="text-4xl mb-4 opacity-30">💬</div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white mb-2 uppercase tracking-wider">No Conversations</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Start messaging someone to see your chats here
+                  </p>
+                </div>
+              </div>
+            ) : (
+              messagingUsers.map(user => {
+                const lastMessage = messages
+                  .filter(msg => 
+                    (msg.senderId === user.id && msg.receiverId === currentUser.id) || 
+                    (msg.senderId === currentUser.id && msg.receiverId === user.id)
+                  )
+                  .sort((a, b) => b.timestamp - a.timestamp)[0];
+                
+                const hasUnread = unreadCounts[user.id] > 0;
+                
+                return (
+                  <div 
+                    key={user.id}
+                    className={`p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                      selectedUser?.id === user.id ? 'bg-slate-100 dark:bg-slate-800/50' : ''
+                    }`}
+                    onClick={() => handleSelectUser(user)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <img 
+                          src={user.avatar} 
+                          alt={user.name} 
+                          className="w-12 h-12 rounded-xl object-cover"
+                        />
+                        {hasUnread && (
+                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                            {unreadCounts[user.id]}
+                          </div>
                         )}
                       </div>
-                      {lastMessage && (
-                        <p className={`text-sm truncate ${lastMessage.senderId === currentUser.id ? 'text-right' : 'text-left'} ${
-                          hasUnread ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-600 dark:text-slate-400'
-                        }`}>
-                          {lastMessage.senderId === currentUser.id ? 'You: ' : ''}
-                          {lastMessage.text.length > 30 ? lastMessage.text.substring(0, 30) + '...' : lastMessage.text}
-                        </p>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-black text-slate-900 dark:text-white truncate">{user.name}</h3>
+                          {lastMessage && (
+                            <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                              {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                        {lastMessage && (
+                          <p className={`text-sm truncate ${lastMessage.senderId === currentUser.id ? 'text-right' : 'text-left'} ${
+                            hasUnread ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-600 dark:text-slate-400'
+                          }`}>
+                            {lastMessage.senderId === currentUser.id ? 'You: ' : ''}
+                            {lastMessage.text.length > 30 ? lastMessage.text.substring(0, 30) + '...' : lastMessage.text}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -294,9 +325,12 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center p-8">
                 <div className="text-6xl mb-4">💬</div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Select a conversation</h3>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Select a Conversation</h3>
                 <p className="text-slate-600 dark:text-slate-400">
-                  Choose a contact from the list to start messaging
+                  {messagingUsers.length === 0 
+                    ? "No conversations yet. Start messaging someone from their profile!" 
+                    : "Choose a conversation from the list to continue messaging"
+                  }
                 </p>
               </div>
             </div>

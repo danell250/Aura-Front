@@ -22,10 +22,11 @@ interface ProfileViewProps {
   onEditProfile?: () => void;
   onDeletePost?: (postId: string) => void;
   onDeleteComment?: (postId: string, commentId: string) => void;
+  onSerendipityMode?: () => void;
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({ 
-  user, posts, currentUser, allUsers, onBack, onReact, onComment, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment
+  user, posts, currentUser, allUsers, onBack, onReact, onComment, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode
 }) => {
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
   const isSelf = currentUser.id === user.id;
@@ -86,7 +87,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                 </button>
               )}
               {isSelf ? (
-                <button onClick={onEditProfile} className="px-8 py-4 bg-slate-900 dark:bg-slate-800 text-white font-black uppercase tracking-widest rounded-2xl text-[11px] shadow-xl hover:brightness-110 active:scale-95 transition-all">Edit Profile</button>
+                <>
+                  <button onClick={onEditProfile} className="px-8 py-4 bg-slate-900 dark:bg-slate-800 text-white font-black uppercase tracking-widest rounded-2xl text-[11px] shadow-xl hover:brightness-110 active:scale-95 transition-all">Edit Profile</button>
+                  <button onClick={onSerendipityMode} className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl text-[11px] shadow-xl hover:from-purple-700 hover:to-indigo-700 active:scale-95 transition-all flex items-center gap-2">
+                    <span>✨</span> Serendipity
+                  </button>
+                </>
               ) : (
                 <button onClick={() => isAcquaintance ? onRemoveAcquaintance(user.id) : (isRequested ? null : onAddAcquaintance(user))} className={`px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 ${isAcquaintance ? 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/40 dark:text-rose-400' : isRequested ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-500' : 'aura-bg-gradient text-white'}`}>{isAcquaintance ? 'Unlink' : isRequested ? 'Requested' : 'Connect'}</button>
               )}

@@ -75,6 +75,7 @@ interface AppContentProps {
   handleUpdateProfile: (updates: Partial<User>) => void;
   handlePost: (content: string, mediaUrl?: string, mediaType?: any, taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => void;
   handleTimeCapsule: (data: any) => void;
+  handleSerendipityMode: () => void;
   handleDeletePost: (postId: string) => void;
   handleDeleteComment: (postId: string, commentId: string) => void;
   handleLike: (postId: string) => void;
@@ -96,7 +97,7 @@ const AppContent: React.FC<AppContentProps> = ({
   isDarkMode, sharingContent, view, setIsAuthenticated, setCurrentUser, setAllUsers, setPosts,
   setAds, setBirthdayAnnouncements, setNotifications, setLoading, setSearchQuery, setActiveEnergy,
   setActiveMediaType, setIsSettingsOpen, setIsAdManagerOpen, setIsCreditStoreOpen, setIsDarkMode,
-  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleDeletePost,
+  setSharingContent, setView, handleLogin, handleUpdateProfile, handlePost, handleTimeCapsule, handleSerendipityMode, handleDeletePost,
   handleDeleteComment, handleLike, handleBoostPost, handleBoostUser, handleComment, handleReact,
   handleAddAcquaintance, handleAcceptConnection, handleRemoveAcquaintance, handlePurchaseCredits, handleAuraShare,
   toggleDarkMode
@@ -596,6 +597,7 @@ const AppContent: React.FC<AppContentProps> = ({
           onEditProfile={() => setIsSettingsOpen(true)} 
           onDeletePost={handleDeletePost} 
           onDeleteComment={handleDeleteComment} 
+          onSerendipityMode={handleSerendipityMode} 
         />
       )}
       {view.type === 'chat' && <ChatView currentUser={currentUser} acquaintances={allUsers.filter(u => (currentUser?.acquaintances || []).includes(u.id))} onBack={() => { setView({ type: 'feed' }); navigate('/'); }} initialContactId={view.targetId} onViewProfile={(id) => { 

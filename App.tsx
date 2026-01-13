@@ -199,6 +199,24 @@ const App: React.FC = () => {
       }
 
       setAds(savedAds ? JSON.parse(savedAds) : INITIAL_ADS);
+
+      // Optional eager hydration of comments for first N posts
+      try {
+        const firstN = 5;
+        const targets = (savedPosts ? JSON.parse(savedPosts) : undefined) ? posts.slice(0, firstN) : posts.slice(0, firstN);
+        const hydrated = await Promise.allSettled(targets.map(async (p) => {
+          const resp = await CommentService.getComments(p.id);
+          return resp.success ? { id: p.id, comments: resp.data || [] } : { id: p.id, comments: [] };
+        }));
+        setPosts(prev => prev.map(p => {
+          const found = hydrated.find(r => (r.status === 'fulfilled') && (r as any).value.id === p.id) as any;
+          if (found && found.value) {
+            return { ...p, comments: found.value.comments };
+          }
+          return p;
+        }));
+      } catch {}
+
       setLoading(false);
     };
 
@@ -822,6 +840,7 @@ const App: React.FC = () => {
             allUsers={allUsers}
             onDeletePost={handleDeletePost}
             onDeleteComment={handleDeleteComment}
+            onLoadComments={(postId, comments) => setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments } : p))}
             />
           ))}
         </div>

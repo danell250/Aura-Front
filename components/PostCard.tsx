@@ -21,16 +21,18 @@ interface PostCardProps {
   onOpenCreditStore?: () => void;
   allUsers: User[];
   onSendConnectionRequest?: (senderId: string, receiverId: string) => void;
+  onLoadComments?: (postId: string, comments: Comment[]) => void;
   key?: React.Key;
 }
 
 const PostCard: React.FC<PostCardProps> = React.memo(({ 
-  post, onReact, onComment, currentUser, onViewProfile, onSearchTag, onLike, onShare, onBoost, onDeletePost, onDeleteComment, onOpenCreditStore, allUsers
+  post, onReact, onComment, currentUser, onViewProfile, onSearchTag, onLike, onShare, onBoost, onDeletePost, onDeleteComment, onOpenCreditStore, allUsers, onLoadComments
 }) => {
   const [commentText, setCommentText] = useState('');
   const [replyText, setReplyText] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [activeCommentEmojiPicker, setActiveCommentEmojiPicker] = useState<string | null>(null);
@@ -112,6 +114,26 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
       onBoost(post.id, credits);
     }
   };
+
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (!onLoadComments) return;
+      if (post.comments && post.comments.length > 0) return; // already loaded
+      setIsLoadingComments(true);
+      try {
+        const { CommentService } = await import('../services/commentService');
+        const resp = await CommentService.getComments(post.id);
+        if (resp.success && resp.data) {
+          onLoadComments(post.id, resp.data as unknown as Comment[]);
+        }
+      } catch (e) {
+        console.error('Failed to load comments for post', post.id, e);
+      } finally {
+        setIsLoadingComments(false);
+      }
+    };
+    if (showComments) fetchComments();
+  }, [showComments, post.id, onLoadComments, post.comments]);
 
   const handleAISuggestion = async () => {
     if (isSuggesting) return;
@@ -348,8 +370,11 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
         </div>
 
         {showComments && (
-          <div className="mt-8 pt-8 border-t border-slate-50 dark:border-slate-800/50 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="flex gap-3">
+        <div className="mt-8 pt-8 border-t border-slate-50 dark:border-slate-800/50 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+        {isLoadingComments && (
+        <div className="text-center text-xs text-slate-400">Loading comments...</div>
+        )}
+        <div className="flex gap-3">
               <div className="w-9 h-9 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shrink-0 flex items-center justify-center">
                 <Avatar 
                   src={currentUser.avatar} 

@@ -136,6 +136,37 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
     if (showComments) fetchComments();
   }, [showComments, post.id, onLoadComments, post.comments]);
 
+  // Live comment polling while comments are open
+  useEffect(() => {
+    if (!showComments || !onLoadComments) return;
+    let intervalId: number | undefined;
+    const poll = async () => {
+      try {
+        const { CommentService } = await import('../services/commentService');
+        const resp = await CommentService.getComments(post.id);
+        if (resp.success && Array.isArray(resp.data)) {
+          // Only update if counts differ or latest timestamp changed
+          const currentCount = (post.comments || []).length;
+          const newCount = resp.data.length;
+          if (newCount !== currentCount) {
+            onLoadComments(post.id, resp.data as unknown as Comment[]);
+          } else {
+            const currentLatest = Math.max(0, ...((post.comments || []).map(c => c.timestamp || 0)));
+            const newLatest = Math.max(0, ...(resp.data.map((c: any) => c.timestamp || 0)));
+            if (newLatest > currentLatest) {
+              onLoadComments(post.id, resp.data as unknown as Comment[]);
+            }
+          }
+        }
+      } catch {
+        // ignore polling errors
+      }
+    };
+    poll();
+    intervalId = window.setInterval(poll, 7000);
+    return () => { if (intervalId) window.clearInterval(intervalId); };
+  }, [showComments, post.id, onLoadComments, post.comments]);
+
   const handleAISuggestion = async () => {
     if (isSuggesting) return;
     setIsSuggesting(true);

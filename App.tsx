@@ -301,6 +301,42 @@ const App: React.FC = () => {
     };
   }, [currentUser.id]);
 
+  // Live sync reactions and comment counts
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let intervalId: number | undefined;
+    const syncPosts = async () => {
+      try {
+        const tokenHdr = localStorage.getItem('aura_auth_token') || '';
+        const resp = await fetch(`${API_BASE_URL}/posts?page=1&limit=50`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(tokenHdr ? { 'Authorization': `Bearer ${tokenHdr}` } : {})
+          },
+          credentials: 'include' as RequestCredentials
+        });
+        const result = await resp.json().catch(() => ({} as any));
+        if (resp.ok && result?.success && Array.isArray(result.data)) {
+          setPosts(prev => prev.map(p => {
+            const latest = result.data.find((d: any) => d.id === p.id);
+            if (!latest) return p;
+            return {
+              ...p,
+              reactions: latest.reactions || p.reactions,
+              userReactions: latest.userReactions || p.userReactions,
+              commentCount: typeof latest.commentCount === 'number' ? latest.commentCount : p.commentCount
+            };
+          }));
+        }
+      } catch {
+        // ignore network errors in background sync
+      }
+    };
+    syncPosts();
+    intervalId = window.setInterval(syncPosts, 7000);
+    return () => { if (intervalId) window.clearInterval(intervalId); };
+  }, [isAuthenticated]);
+
   // Helper to sync view from current URL path
   const syncViewFromPath = useCallback(() => {
     const path = window.location.pathname || '/';

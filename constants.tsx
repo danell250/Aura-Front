@@ -249,38 +249,43 @@ export const AD_PACKAGES: AdPackage[] = [
   {
     id: 'pkg-starter',
     name: 'Personal Pulse',
-    subtitle: 'Boost your digital radiance',
-    durationDays: 7,
-    price: '$49 for 7 Days',
-    numericPrice: 49,
+    subtitle: 'Start the signal',
+    durationDays: 14,
+    price: '$39 • 14 Days',
+    numericPrice: 39,
     adLimit: 1,
-    idealFor: 'Flash announcements, quick tests.',
-    features: ['1 Active Signal', '7-Day Neural Retention', 'Standard Network Propagation', 'Basic Analytics'],
-    gradient: 'from-slate-400 to-slate-600'
+    idealFor: 'First-time users, quick launches, testing ideas',
+    features: ['1 Active Signal', 'Up to 5,000 targeted impressions', '14-Day Signal Retention', 'Standard Feed Distribution', 'Basic Reach & Click Analytics', 'Ideal for announcements, promos, and experiments'],
+    gradient: 'from-slate-400 to-slate-600',
+    paymentType: 'one-time'
   },
   {
     id: 'pkg-pro',
     name: 'Aura Radiance',
-    subtitle: 'Maximum visibility for creators',
+    subtitle: 'Grow your presence',
     durationDays: 30,
-    price: '$199 for 30 Days',
+    price: '$199 / month',
     numericPrice: 199,
     adLimit: 5,
-    idealFor: 'Influencers, Content Creators.',
-    features: ['5 Simultaneous Signals', '30-Day Signal Lock', 'Priority Feed Injection', 'Smart CTA Button'],
-    gradient: 'from-emerald-500 to-emerald-700'
+    idealFor: 'Creators, influencers, side hustles',
+    features: ['5 Active Signals at once', 'Up to 50,000 monthly impressions', 'Priority Feed Injection', 'Smart CTA Button (click + conversion tracking)', 'Creator Analytics Dashboard', 'Monthly Signal Refresh', 'Cancel anytime'],
+    gradient: 'from-emerald-500 to-emerald-700',
+    paymentType: 'subscription',
+    subscriptionPlanId: 'P-5TR6407366314243FNFRU2BY'
   },
   {
     id: 'pkg-enterprise',
     name: 'Universal Signal',
-    subtitle: 'Network saturation',
+    subtitle: 'Own the network',
     durationDays: 30,
-    price: '$699 for 30 Days',
+    price: '$699 / month',
     numericPrice: 699,
     adLimit: 20,
-    idealFor: 'Brands, Agencies, Power Users.',
-    features: ['20 Simultaneous Signals', 'Global Network Saturation', 'Deep-Dive Neural Analytics', '"Verified" Gold Border on Ads'],
-    gradient: 'from-slate-900 via-emerald-900 to-black'
+    idealFor: 'Brands, agencies, power users',
+    features: ['20 Active Signals simultaneously', 'Up to 250,000+ impressions / month', 'Maximum Network Penetration', 'Deep-Dive Neural Analytics', '– audience behavior', '– timing optimization', '– conversion insights', 'Verified Gold Aura Badge on all signals', 'Priority / White-Glove Support', 'Cancel anytime'],
+    gradient: 'from-slate-900 via-emerald-900 to-black',
+    paymentType: 'subscription',
+    subscriptionPlanId: 'P-5TR6407366314243FNFRU2BY'
   }
 ];
 

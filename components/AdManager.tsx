@@ -724,12 +724,29 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                       </div>
 
                       <div className="flex flex-col gap-4">
-                        <button 
-                          onClick={() => setShowPayPal(true)}
-                          className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all"
-                        >
-                          {selectedPkg?.paymentType === 'subscription' ? 'Start Subscription' : 'Proceed to Payment'}
-                        </button>
+                        {selectedPkg?.id === 'pkg-starter' ? (
+                          // Simple PayPal button for Personal Pulse
+                          <div className="space-y-4">
+                            <a 
+                              href="https://www.paypal.com/ncp/payment/SMLPVSKBVZ8P6" 
+                              target="_blank" 
+                              className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all text-center block"
+                            >
+                              Buy Personal Pulse – $39
+                            </a>
+                            <p className="text-[9px] text-slate-400 text-center">
+                              Opens PayPal in a new tab • Return here to create your ad
+                            </p>
+                          </div>
+                        ) : (
+                          // Regular PayPal SDK for other packages
+                          <button 
+                            onClick={() => setShowPayPal(true)}
+                            className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all"
+                          >
+                            {selectedPkg?.paymentType === 'subscription' ? 'Start Subscription' : 'Proceed to Payment'}
+                          </button>
+                        )}
                         <button 
                           onClick={() => setStep(1)}
                           className="w-full py-4 bg-transparent text-slate-400 font-black uppercase rounded-2xl text-[10px] tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-all"

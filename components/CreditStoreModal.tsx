@@ -193,8 +193,10 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
         isRenderingRef.current = true;
         setRenderError(null);
         
-        // Clear container before rendering new buttons
-        container.innerHTML = '';
+        // Clear container before rendering new buttons - safer approach
+        while (container.firstChild && container.parentNode) {
+          container.removeChild(container.firstChild);
+        }
 
         try {
           console.log("[Aura] Initializing PayPal buttons for credits...");

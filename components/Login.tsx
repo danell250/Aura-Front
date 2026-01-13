@@ -61,7 +61,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
   const handleGoogleLogin = async () => {
     // Redirect to backend Google OAuth flow
     const backendUrl = API_BASE_URL.replace('/api', '');
-    window.location.href = `${backendUrl}/auth/google`;
+    window.location.href = `${backendUrl}/login`;
   };
 
   const handleManualLogin = async (e: React.FormEvent) => {

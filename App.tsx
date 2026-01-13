@@ -21,6 +21,7 @@ import { geminiService } from './services/gemini';
 import { UserService } from './services/userService';
 import { SearchResult } from './services/searchService';
 import { MessageService } from './services/messageService';
+import { CommentService } from './services/commentService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -396,10 +397,45 @@ const App: React.FC = () => {
     }));
   }, []);
 
-  const handleComment = useCallback((postId: string, text: string, parentId?: string) => {
-    const newComment: Comment = { id: `c-${Date.now()}`, author: currentUser, text, timestamp: Date.now(), parentId, reactions: {}, userReactions: [] };
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p));
+  const handleComment = useCallback(async (postId: string, text: string, parentId?: string) => {
+    const optimistic: Comment = { id: `c-${Date.now()}`, author: currentUser, text, timestamp: Date.now(), parentId, reactions: {}, userReactions: [] };
+    // Optimistic UI
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, optimistic] } : p));
+    try {
+      const resp = await CommentService.createComment(postId, text, currentUser.id, parentId);
+      if (resp.success && resp.data) {
+        // Replace optimistic with server comment (matching on text+timestamp parentId is brittle; append server comment and filter out optimistic by id prefix)
+        setPosts(prev => prev.map(p => {
+          if (p.id !== postId) return p;
+          const comments = p.comments.filter(c => c.id !== optimistic.id);
+          return { ...p, comments: [...comments, resp.data as Comment] };
+        }));
+      } else {
+        console.error('Create comment failed', resp.error);
+        // Rollback optimistic
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: p.comments.filter(c => c.id !== optimistic.id) } : p));
+        alert('Failed to add comment.');
+      }
+    } catch (e) {
+      console.error('Error creating comment:', e);
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: p.comments.filter(c => c.id !== optimistic.id) } : p));
+      alert('Network error while creating comment.');
+    }
   }, [currentUser]);
+
+  const handleDeleteComment = useCallback(async (postId: string, commentId: string) => {
+    const prev = posts;
+    // Optimistically remove
+    setPosts(ps => ps.map(p => p.id === postId ? { ...p, comments: p.comments.filter(c => c.id !== commentId) } : p));
+    try {
+      const resp = await CommentService.deleteComment(commentId);
+      if (!resp.success) throw new Error(resp.error || 'Delete failed');
+    } catch (e) {
+      console.error('Delete comment failed', e);
+      setPosts(prev); // rollback
+      alert('Failed to delete comment.');
+    }
+  }, [posts]);
 
   const handleDeletePost = useCallback(async (postId: string) => {
     const target = posts.find(p => p.id === postId);
@@ -785,6 +821,7 @@ const App: React.FC = () => {
             onSendConnectionRequest={handleSendConnectionRequest}
             allUsers={allUsers}
             onDeletePost={handleDeletePost}
+            onDeleteComment={handleDeleteComment}
             />
           ))}
         </div>

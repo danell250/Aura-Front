@@ -83,6 +83,7 @@ export interface Post {
   reactions: Record<string, number>;
   userReactions?: string[];
   comments: Comment[];
+  commentCount?: number;
   isBoosted?: boolean;
   hashtags?: string[];
   // Time Capsule fields

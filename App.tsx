@@ -418,7 +418,11 @@ const App: React.FC = () => {
   const handleComment = useCallback(async (postId: string, text: string, parentId?: string) => {
     const optimistic: Comment = { id: `c-${Date.now()}`, author: currentUser, text, timestamp: Date.now(), parentId, reactions: {}, userReactions: [] };
     // Optimistic UI
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...(p.comments || []), optimistic] } : p));
+    setPosts(prev => prev.map(p => p.id === postId ? { 
+      ...p, 
+      comments: [...(p.comments || []), optimistic],
+      commentCount: (p.commentCount || (p.comments || []).length) + 1
+    } : p));
     try {
       const resp = await CommentService.createComment(postId, text, currentUser.id, parentId);
       if (resp.success && resp.data) {
@@ -431,12 +435,20 @@ const App: React.FC = () => {
       } else {
         console.error('Create comment failed', resp.error);
         // Rollback optimistic
-        setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: (p.comments || []).filter(c => c.id !== optimistic.id) } : p));
+        setPosts(prev => prev.map(p => p.id === postId ? { 
+          ...p, 
+          comments: (p.comments || []).filter(c => c.id !== optimistic.id),
+          commentCount: Math.max(0, (p.commentCount || (p.comments || []).length) - 1)
+        } : p));
         alert('Failed to add comment.');
       }
     } catch (e) {
       console.error('Error creating comment:', e);
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: (p.comments || []).filter(c => c.id !== optimistic.id) } : p));
+      setPosts(prev => prev.map(p => p.id === postId ? { 
+        ...p, 
+        comments: (p.comments || []).filter(c => c.id !== optimistic.id),
+        commentCount: Math.max(0, (p.commentCount || (p.comments || []).length) - 1)
+      } : p));
       alert('Network error while creating comment.');
     }
   }, [currentUser]);
@@ -444,7 +456,11 @@ const App: React.FC = () => {
   const handleDeleteComment = useCallback(async (postId: string, commentId: string) => {
     const prev = posts;
     // Optimistically remove
-    setPosts(ps => ps.map(p => p.id === postId ? { ...p, comments: (p.comments || []).filter(c => c.id !== commentId) } : p));
+    setPosts(ps => ps.map(p => p.id === postId ? { 
+      ...p, 
+      comments: (p.comments || []).filter(c => c.id !== commentId),
+      commentCount: Math.max(0, (p.commentCount || (p.comments || []).length) - 1)
+    } : p));
     try {
       const resp = await CommentService.deleteComment(commentId);
       if (!resp.success) throw new Error(resp.error || 'Delete failed');

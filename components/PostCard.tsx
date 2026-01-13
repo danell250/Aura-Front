@@ -119,6 +119,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
     const fetchComments = async () => {
       if (!onLoadComments) return;
       if (post.comments && post.comments.length > 0) return; // already loaded
+      if (post.commentCount === 0) return; // No comments to load
       setIsLoadingComments(true);
       try {
         const { CommentService } = await import('../services/commentService');
@@ -357,7 +358,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
               </button>
               <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-2 transition-all group/comments ${showComments ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-indigo-600'}`}>
                 <span className={`text-xl transition-transform ${showComments ? 'scale-110' : 'group-hover/comments:scale-110'}`}>💬</span>
-                <span className="text-xs font-bold uppercase tracking-wider">{(post.comments || []).length}</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{post.commentCount ?? (post.comments || []).length}</span>
               </button>
        </div>
            

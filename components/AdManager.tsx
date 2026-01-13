@@ -72,7 +72,26 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const loadActiveSubscriptions = async () => {
     try {
       const subscriptions = await adSubscriptionService.getActiveSubscriptions(currentUser.id);
-      setActiveSubscriptions(subscriptions);
+      
+      // For testing: Add mock subscription for special user if none exist
+      if (isSpecialUser && subscriptions.length === 0) {
+        const mockSubscription = {
+          id: 'mock-sub-1',
+          userId: currentUser.id,
+          packageId: 'pkg-pro',
+          packageName: 'Aura Radiance',
+          status: 'active' as const,
+          startDate: Date.now() - (7 * 24 * 60 * 60 * 1000), // 7 days ago
+          endDate: Date.now() + (23 * 24 * 60 * 60 * 1000), // 23 days from now
+          adsUsed: 2,
+          adLimit: 5,
+          createdAt: Date.now() - (7 * 24 * 60 * 60 * 1000),
+          updatedAt: Date.now()
+        };
+        setActiveSubscriptions([mockSubscription]);
+      } else {
+        setActiveSubscriptions(subscriptions);
+      }
     } catch (error) {
       console.error('Failed to load active subscriptions:', error);
     }
@@ -595,13 +614,18 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
             {step === 1 && (
               <div className="pb-10">
                 {/* Show active subscriptions first if user has any */}
-                {!isSpecialUser && activeSubscriptions.length > 0 && (
+                {activeSubscriptions.length > 0 && (
                   <div className="mb-12">
                     <div className="flex items-center gap-4 mb-8">
                       <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Your Active Plans</h3>
                       <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-black uppercase tracking-widest">
                         {activeSubscriptions.length} active
                       </span>
+                      {isSpecialUser && (
+                        <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-[10px] font-black uppercase tracking-widest">
+                          Premium Access
+                        </span>
+                      )}
                     </div>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                       {activeSubscriptions.map(subscription => {

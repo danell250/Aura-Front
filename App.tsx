@@ -5,7 +5,7 @@ import PostCard from './components/PostCard';
 import CreatePost from './components/CreatePost';
 import BirthdayPost from './components/BirthdayPost';
 import AdCard from './components/AdCard';
-import Auth from './components/Auth';
+import Login from './components/Login';
 import ProfileView from './components/ProfileView';
 import ChatView from './components/ChatView';
 import SettingsModal from './components/SettingsModal';
@@ -246,9 +246,39 @@ const App: React.FC = () => {
     setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, trustScore: Math.min(100, u.trustScore + 10), auraCredits: u.auraCredits + 50 } : u));
   }, [currentUser.auraCredits, currentUser.email]);
 
+  const handleTimeCapsule = useCallback((data: any) => {
+    // Handle time capsule creation
+    console.log('Time capsule created:', data);
+  }, []);
+
+  const handleGenerateAIContent = useCallback(async (prompt: string): Promise<string> => {
+    try {
+      // Call AI service for content generation
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      const result = await response.json();
+      return result.content || 'Generated content';
+    } catch (error) {
+      console.error('AI content generation failed:', error);
+      return 'Failed to generate content';
+    }
+  }, []);
+
+  const handleSendConnectionRequest = useCallback((targetUserId: string) => {
+    // Handle sending connection request
+    setAllUsers(prev => prev.map(u => 
+      u.id === currentUser.id 
+        ? { ...u, sentAcquaintanceRequests: [...(u.sentAcquaintanceRequests || []), targetUserId] }
+        : u
+    ));
+  }, [currentUser.id]);
+
   const handleAdCreated = useCallback(async (ad: Ad) => {
     // Ensure ad is active immediately so it shows in feed
-    const newAd = { ...ad, status: 'active' };
+    const newAd = { ...ad, status: 'active' as const };
 
     // Optimistically add to local state
     setAds(prev => [newAd, ...prev]);
@@ -474,7 +504,7 @@ const App: React.FC = () => {
   }, [handleAcceptConnection]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950 transition-colors"><Logo size="lg" className="animate-float" /></div>;
-  if (!isAuthenticated) return <Auth onLogin={handleLogin} allUsers={allUsers} />;
+  if (!isAuthenticated) return <Login onLogin={handleLogin} allUsers={allUsers} />;
 
   return (
     <Layout 
@@ -482,16 +512,17 @@ const App: React.FC = () => {
       onLogout={() => { setIsAuthenticated(false); localStorage.removeItem(STORAGE_KEY); }}
       currentUser={currentUser} isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode}
       onStartCampaign={() => setIsAdManagerOpen(true)} onViewSettings={() => setIsSettingsOpen(true)} 
-      onViewChat={(id) => setView({ type: 'chat', targetId: id })} 
-      onViewFriends={() => setView({ type: 'acquaintances' })} onViewPrivacy={() => setView({ type: 'data_aura' })}
-      onGoHome={() => { setView({ type: 'feed' }); setActiveEnergy('all'); setSearchQuery(''); }} 
-      onViewProfile={(id) => setView({ type: 'profile', targetId: id })} 
-      ads={ads} notifications={notifications}
       onOpenCreditStore={() => setIsCreditStoreOpen(true)}
+      posts={posts} users={allUsers} ads={ads} notifications={notifications}
+      onGoHome={() => setView({ type: 'feed' })} 
+      onViewChat={(userId) => setView({ type: 'chat', targetId: userId || '' })}
+      onViewFriends={() => setView({ type: 'acquaintances' })}
+      onViewPrivacy={() => setView({ type: 'data_aura' })} 
+      onViewProfile={(userId) => setView({ type: 'profile', targetId: userId })}
     >
       {view.type === 'feed' && (
         <div className="space-y-6">
-          <CreatePost allUsers={allUsers} currentUser={currentUser} onPost={handlePost} />
+          <CreatePost allUsers={allUsers} currentUser={currentUser} onPost={handlePost} onTimeCapsule={handleTimeCapsule} onGenerateAIContent={handleGenerateAIContent} />
           
           <FeedFilters 
             activeMediaType={activeMediaType}
@@ -532,6 +563,7 @@ const App: React.FC = () => {
           onBack={() => setView({ type: 'feed' })} 
           onLike={handleLike} 
           onComment={handleComment} 
+          onSendConnectionRequest={handleSendConnectionRequest} 
           onReact={handleReact} 
           onViewProfile={(id) => setView({ type: 'profile', targetId: id })} 
           onShare={() => {}} 
@@ -545,7 +577,7 @@ const App: React.FC = () => {
           onDeleteComment={handleDeleteComment} 
         />
       )}
-      {view.type === 'chat' && <ChatView currentUser={currentUser} acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} onBack={() => setView({ type: 'feed' })} initialContactId={view.targetId} />}
+      {view.type === 'chat' && <ChatView currentUser={currentUser} allUsers={allUsers} acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} onBack={() => setView({ type: 'feed' })} initialContactId={view.targetId} />}
       {view.type === 'acquaintances' && (
         <AcquaintancesView 
           currentUser={currentUser} 
@@ -559,7 +591,7 @@ const App: React.FC = () => {
       {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => setView({ type: 'feed' })} onPurchaseGlow={(glow) => handleUpdateProfile({ activeGlow: glow })} onClearData={() => {}} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
       {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={handleAdCreated} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}
-      {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} onCreditsPurchased={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
+      {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} bundles={CREDIT_BUNDLES} onPurchase={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
       {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} onClose={() => setSharingContent(null)} />}
     </Layout>
   );

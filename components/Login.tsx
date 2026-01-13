@@ -2,19 +2,25 @@ import React, { useState } from 'react';
 import { APP_NAME } from '../constants';
 import { User } from '../types';
 import Logo from './Logo';
-import { auth, googleProvider, signInWithPopup } from '../../services/firebase';
 
-// Mock authentication functions
-const authenticateWithGoogle = async (userData: any) => {
-  // This would typically integrate with Firebase Google auth
-  console.warn('authenticateWithGoogle is mocked for TypeScript compatibility');
-  return { success: false, user: userData, error: 'AuthService not implemented' };
-};
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-backend-production.up.railway.app/api';
 
-const loginWithEmailAndPassword = async (email: string, password: string) => {
-  // This would typically integrate with Firebase email/password auth
-  console.warn('loginWithEmailAndPassword is mocked for TypeScript compatibility');
-  return { success: false, user: null, error: 'AuthService not implemented' };
+const loginWithEmailAndPassword = async (identifier: string, password: string) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ identifier, password })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return { success: false, user: null, error: data.message || 'Login failed' };
+    }
+    return { success: true, user: data.user };
+  } catch (err: any) {
+    return { success: false, user: null, error: err.message || 'Network error' };
+  }
 };
 
 interface LoginProps {
@@ -53,31 +59,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
   };
 
   const handleGoogleLogin = async () => {
-    setIsProcessing(true);
-    setError(null);
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      
-      const googleAuthResult = await authenticateWithGoogle({
-        googleId: user.uid,
-        email: user.email!,
-        name: user.displayName!,
-        picture: user.photoURL || undefined,
-      });
-      
-      if (googleAuthResult.success) {
-        // Update user context
-        onLogin(googleAuthResult.user);
-      } else {
-        setError(googleAuthResult.error || 'Failed to authenticate with Google');
-      }
-    } catch (err: any) {
-      console.error("Google Auth Error:", err);
-      setError(err.message || "Failed to authenticate with Google");
-    } finally {
-      setIsProcessing(false);
-    }
+    // Redirect to backend Google OAuth flow
+    window.location.href = `${API_BASE_URL.replace('/api', '')}/auth/google`;
   };
 
   const handleManualLogin = async (e: React.FormEvent) => {

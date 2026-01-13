@@ -1,0 +1,4 @@
+Temporary note:
+- Routing is currently handled manually via view state.
+- We'll start wiring window.history paths for login, feed, acquaintances, profile, chat, and data-aura without introducing react-router yet.
+

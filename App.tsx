@@ -14,6 +14,7 @@ import ShareModal from './components/ShareModal';
 import CreditStoreModal from './components/CreditStoreModal';
 import FeedFilters from './components/FeedFilters';
 import Logo from './components/Logo';
+import Login from './components/Login';
 import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
 import { geminiService } from './services/gemini';
@@ -23,6 +24,7 @@ const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
 const ADS_KEY = 'aura_ads_data';
 const USERS_KEY = 'aura_all_users';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-backend-production.up.railway.app/api';
 
 interface BirthdayAnnouncement {
   id: string;
@@ -48,6 +50,7 @@ const App: React.FC = () => {
   const [isCreditStoreOpen, setIsCreditStoreOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [view, setView] = useState<{ type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string }>({ type: 'feed' });
 
@@ -98,7 +101,11 @@ const App: React.FC = () => {
           if (newUsers.length > 0) {
             const updatedUsers = [...usersToProcess, ...newUsers];
             setAllUsers(updatedUsers);
-            localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+            try {
+              localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+            } catch (e) {
+              console.warn('Failed to persist users to localStorage (quota exceeded). Continuing without persist.', e);
+            }
             console.log(`🔄 Synced ${newUsers.length} new users from backend/firestore`);
           }
         }
@@ -120,15 +127,16 @@ const App: React.FC = () => {
         // Refresh user data from the latest users list
         const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
         setCurrentUser(refreshedUser);
+        setIsAuthenticated(true);
       } catch (e) { localStorage.removeItem(STORAGE_KEY); }
     }
 
-    const savedPosts = localStorage.getItem(POSTS_KEY);
-    const savedAds = localStorage.getItem(ADS_KEY);
+      const savedPosts = localStorage.getItem(POSTS_KEY);
+      const savedAds = localStorage.getItem(ADS_KEY);
 
     setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
     setAds(savedAds ? JSON.parse(savedAds) : INITIAL_ADS);
-    setLoading(false);
+        setLoading(false);
 
     return () => {
       clearInterval(syncInterval);
@@ -168,6 +176,51 @@ const App: React.FC = () => {
       clearTimeout(timeoutId);
     };
   }, [currentUser.id]);
+
+  // Helper to sync view from current URL path
+  const syncViewFromPath = useCallback(() => {
+    const path = window.location.pathname || '/';
+    if (path === '/login') {
+      setView({ type: 'feed' });
+        return;
+      }
+
+    if (path.startsWith('/post/')) {
+      // Deep link to a specific post: keep user on feed view
+      setView({ type: 'feed' });
+      return;
+    }
+
+    if (path.startsWith('/profile/')) {
+      const userId = path.split('/')[2];
+      setView({ type: 'profile', targetId: userId });
+    } else if (path.startsWith('/acquaintances')) {
+      setView({ type: 'acquaintances' });
+    } else if (path.startsWith('/data-aura')) {
+      setView({ type: 'data_aura' });
+    } else if (path.startsWith('/chat')) {
+      const userId = path.split('/')[2];
+      setView({ type: 'chat', targetId: userId });
+    } else {
+      setView({ type: 'feed' });
+    }
+  }, []);
+
+  // Initialize view from URL once authenticated
+  useEffect(() => {
+    if (loading || !isAuthenticated) return;
+    syncViewFromPath();
+  }, [loading, isAuthenticated, syncViewFromPath]);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const handler = () => {
+      if (!isAuthenticated) return;
+      syncViewFromPath();
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, [isAuthenticated, syncViewFromPath]);
 
   useEffect(() => { if (posts.length > 0) localStorage.setItem(POSTS_KEY, JSON.stringify(posts)); }, [posts]);
   useEffect(() => { if (ads.length > 0) localStorage.setItem(ADS_KEY, JSON.stringify(ads)); }, [ads]);
@@ -314,29 +367,29 @@ const App: React.FC = () => {
         console.log('✅ Connection request accepted successfully');
 
         // Update current user's acquaintances
-        const updatedCurrentUser = {
-          ...currentUser,
+    const updatedCurrentUser = {
+      ...currentUser,
           acquaintances: Array.from(new Set([...(currentUser.acquaintances || []), notification.fromUser.id]))
-        };
-        setCurrentUser(updatedCurrentUser);
-
+    };
+    setCurrentUser(updatedCurrentUser);
+    
         // Update all users list
         setAllUsers(prev => prev.map(u => {
-          if (u.id === currentUser.id) return updatedCurrentUser;
+        if (u.id === currentUser.id) return updatedCurrentUser;
           if (u.id === notification.fromUser.id) {
-            return {
-              ...u,
-              acquaintances: Array.from(new Set([...(u.acquaintances || []), currentUser.id]))
-            };
-          }
-          return u;
+          return {
+            ...u,
+            acquaintances: Array.from(new Set([...(u.acquaintances || []), currentUser.id]))
+          };
+        }
+        return u;
         }));
 
         // Mark notification as read
         setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
 
         // Update localStorage
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCurrentUser));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCurrentUser));
 
         // Load fresh notifications
         loadNotifications();
@@ -401,8 +454,8 @@ const App: React.FC = () => {
       const result = await UserService.removeAcquaintance(currentUser.id, userId);
 
       if (result.success) {
-        const updatedAcquaintances = (currentUser.acquaintances || []).filter(id => id !== userId);
-        const updatedUser = { ...currentUser, acquaintances: updatedAcquaintances };
+    const updatedAcquaintances = (currentUser.acquaintances || []).filter(id => id !== userId);
+    const updatedUser = { ...currentUser, acquaintances: updatedAcquaintances };
         setCurrentUser(updatedUser);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
 
@@ -417,9 +470,11 @@ const App: React.FC = () => {
   const handleSearchResult = useCallback((result: SearchResult) => {
     if (result.type === 'user') {
       setView({ type: 'profile', targetId: result.id });
+      window.history.pushState(null, '', `/profile/${result.id}`);
     } else if (result.type === 'post') {
       setView({ type: 'feed' });
       setSearchQuery('');
+      window.history.pushState(null, '', '/');
     }
   }, []);
 
@@ -439,17 +494,70 @@ const App: React.FC = () => {
     });
   }, [posts, searchQuery, activeEnergy, activeMediaType]);
 
+  const handleLogin = useCallback((userData: any) => {
+    if (!userData) return;
+    const user = userData as User;
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    } catch (e) {
+      console.warn('Failed to persist session to localStorage', e);
+    }
+
+    setAllUsers(prev => {
+      const exists = prev.some(u => u.id === user.id);
+      const updated = exists ? prev.map(u => u.id === user.id ? user : u) : [...prev, user];
+      try {
+        localStorage.setItem(USERS_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Failed to persist users after login', e);
+      }
+      return updated;
+    });
+
+    window.history.replaceState(null, '', '/');
+    setView({ type: 'feed' });
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.warn('Logout request failed, continuing client-side logout', error);
+    }
+
+    localStorage.removeItem(STORAGE_KEY);
+    setCurrentUser(CURRENT_USER);
+    setIsAuthenticated(false);
+    setView({ type: 'feed' });
+    window.history.replaceState(null, '', '/login');
+  }, []);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950 transition-colors"><Logo size="lg" className="animate-float" /></div>;
+
+  if (!isAuthenticated) {
+    if (window.location.pathname !== '/login') {
+      window.history.replaceState(null, '', '/login');
+    }
+    return <Login onLogin={handleLogin} allUsers={allUsers} />;
+  }
 
   return (
     <Layout
       activeView={view.type} searchQuery={searchQuery} onSearchChange={setSearchQuery}
-      onLogout={() => { localStorage.removeItem(STORAGE_KEY); }}
+      onLogout={handleLogout}
       currentUser={currentUser} isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode}
       onStartCampaign={() => setIsAdManagerOpen(true)} onViewSettings={() => setIsSettingsOpen(true)}
-      onViewPrivacy={() => setView({ type: 'data_aura' })} onGoHome={() => setView({ type: 'feed' })}
-      onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
-      onViewChat={() => setView({ type: 'chat' })} onViewFriends={() => setView({ type: 'acquaintances' })}
+      onViewPrivacy={() => { setView({ type: 'data_aura' }); window.history.pushState(null, '', '/data-aura'); }}
+      onGoHome={() => { setView({ type: 'feed' }); window.history.pushState(null, '', '/'); }}
+      onViewProfile={(id) => { setView({ type: 'profile', targetId: id }); window.history.pushState(null, '', `/profile/${id}`); }}
+      onViewChat={(id) => { setView({ type: 'chat', targetId: id }); window.history.pushState(null, '', id ? `/chat/${id}` : '/chat'); }}
+      onViewFriends={() => { setView({ type: 'acquaintances' }); window.history.pushState(null, '', '/acquaintances'); }}
       onOpenCreditStore={() => setIsCreditStoreOpen(true)}
       ads={ads} notifications={notifications} posts={posts} users={allUsers}
       onSearchResult={handleSearchResult}
@@ -502,7 +610,7 @@ const App: React.FC = () => {
               }}
               onComment={handleComment}
               onBoost={handleBoost}
-              onShare={(post) => setSharingContent({ content: post.content, url: post.mediaUrl || `p/${post.id}` })}
+              onShare={(post) => setSharingContent({ content: post.content, url: `post/${post.id}` })}
               onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
               onSearchTag={setSearchQuery}
               onLike={() => {}}
@@ -526,7 +634,7 @@ const App: React.FC = () => {
           }}
           onComment={handleComment}
           onBoost={handleBoost}
-          onShare={(post) => setSharingContent({ content: post.content, url: post.mediaUrl || `p/${post.id}` })}
+          onShare={(post) => setSharingContent({ content: post.content, url: `post/${post.id}` })}
           onSendConnectionRequest={handleSendConnectionRequest}
           onRemoveAcquaintance={handleRemoveAcquaintance}
           onAddAcquaintance={() => {}}

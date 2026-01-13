@@ -265,7 +265,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
               <div className="relative">
                 <button onClick={() => setActiveCommentEmojiPicker(isEmojiPickerActive ? null : comment.id)} className="text-[9px] font-black text-slate-400 hover:text-emerald-500 uppercase tracking-widest transition-colors">React</button>
                 {isEmojiPickerActive && (
-                  <div className="absolute bottom-full left-0 mb-4 z-[100] shadow-2xl rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-2" ref={commentEmojiPickerRef}>
+                  <div className="absolute bottom-full left-0 mb-4 z-[9999] shadow-2xl rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-2" ref={commentEmojiPickerRef}>
                     <EmojiPicker 
                       onEmojiClick={(ed) => handleCommentEmojiClick(ed, comment.id)} 
                       theme={document.documentElement.classList.contains('dark') ? Theme.DARK : Theme.LIGHT} 
@@ -459,7 +459,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 4v16m8-8H4" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
               {showEmojiPicker && (
-                <div className="absolute bottom-full left-0 mb-4 z-[100] shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300" ref={emojiPickerRef}>
+                <div className="absolute bottom-full left-0 mb-4 z-[9999] shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300" ref={emojiPickerRef}>
                   <EmojiPicker 
                     onEmojiClick={handlePostEmojiClick} 
                     theme={document.documentElement.classList.contains('dark') ? Theme.DARK : Theme.LIGHT} 

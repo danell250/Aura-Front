@@ -104,6 +104,7 @@ export interface Ad {
   ownerName: string;
   ownerAvatar: string;
   ownerAvatarType?: 'image' | 'video';
+  ownerEmail?: string; // For special user detection
   headline: string;
   description: string;
   mediaUrl: string;

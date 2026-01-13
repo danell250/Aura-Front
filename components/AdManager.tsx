@@ -527,6 +527,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
       ownerName: currentUser.name,
       ownerAvatar: currentUser.avatar,
       ownerAvatarType: currentUser.avatarType,
+      ownerEmail: currentUser.email, // Add email for special user detection
       headline: form.headline,
       description: form.description,
       mediaUrl: form.mediaUrl || 'https://picsum.photos/id/32/800/450',

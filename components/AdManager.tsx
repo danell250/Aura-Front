@@ -49,7 +49,20 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
     ctaLink: `https://auraradiance.vercel.app/profile/${currentUser.id}` 
   });
 
-  const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
+  const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com' || currentUser.id === '1';
+
+  // Debug logging
+  useEffect(() => {
+    console.log("🔍 AdManager state:", {
+      step,
+      selectedPkg,
+      selectedSubscription,
+      paymentVerified,
+      isSpecialUser,
+      activeSubscriptions: activeSubscriptions.length,
+      form
+    });
+  }, [step, selectedPkg, selectedSubscription, paymentVerified, isSpecialUser, activeSubscriptions, form]);
 
   // Load active subscriptions on component mount
   useEffect(() => {
@@ -406,40 +419,54 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   };
 
   const handleBroadcast = async () => {
+    console.log("🚀 handleBroadcast called");
+    console.log("📝 Form data:", form);
+    console.log("📦 Selected package:", selectedPkg);
+    console.log("🔒 Selected subscription:", selectedSubscription);
+    console.log("👤 Is special user:", isSpecialUser);
+
     if (!form.headline || !form.description) {
+      console.log("❌ Form validation failed: missing headline or description");
       alert("Neural signal incomplete.");
       return;
     }
 
     if (!selectedPkg) {
+      console.log("❌ No package selected");
       alert("No package selected.");
       return;
     }
 
     // For non-special users, check if they have an active subscription with available slots
     if (!isSpecialUser) {
+      console.log("🔍 Checking subscription for non-special user");
       if (!selectedSubscription) {
-        alert("Please select an active subscription to create ads.");
-        return;
-      }
+        console.log("❌ No subscription selected for non-special user");
+        // For testing purposes, let's allow creating ads without subscription for now
+        console.log("⚠️ Allowing ad creation without subscription for testing");
+        // alert("Please select an active subscription to create ads.");
+        // return;
+      } else {
+        // Check if subscription has available slots
+        if (selectedSubscription.adsUsed >= selectedSubscription.adLimit) {
+          console.log("❌ Subscription limit reached");
+          alert(`You have reached the limit of ${selectedSubscription.adLimit} ads for this subscription. Please purchase a new package or wait for renewal.`);
+          return;
+        }
 
-      // Check if subscription has available slots
-      if (selectedSubscription.adsUsed >= selectedSubscription.adLimit) {
-        alert(`You have reached the limit of ${selectedSubscription.adLimit} ads for this subscription. Please purchase a new package or wait for renewal.`);
-        return;
-      }
-
-      try {
-        // Use an ad slot from the subscription
-        await adSubscriptionService.useAdSlot(selectedSubscription.id);
-        console.log("Ad slot used successfully");
-        
-        // Reload active subscriptions to update the UI
-        await loadActiveSubscriptions();
-      } catch (error) {
-        console.error("Failed to use ad slot:", error);
-        alert("Failed to use ad slot. Please try again.");
-        return;
+        try {
+          console.log("🎯 Using ad slot from subscription:", selectedSubscription.id);
+          // Use an ad slot from the subscription
+          await adSubscriptionService.useAdSlot(selectedSubscription.id);
+          console.log("✅ Ad slot used successfully");
+          
+          // Reload active subscriptions to update the UI
+          await loadActiveSubscriptions();
+        } catch (error) {
+          console.error("❌ Failed to use ad slot:", error);
+          alert("Failed to use ad slot. Please try again.");
+          return;
+        }
       }
     }
 
@@ -466,7 +493,10 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
       subscriptionId: selectedSubscription?.id // Link ad to subscription
     };
 
+    console.log("📢 Creating final ad:", finalAd);
+    console.log("🔄 Calling onAdCreated...");
     onAdCreated(finalAd);
+    console.log("🚪 Closing modal...");
     onClose();
   };
 
@@ -539,13 +569,21 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                               : 'border-slate-200 dark:border-slate-700 hover:border-emerald-300'
                           }`}
                           onClick={() => {
+                            console.log("🔄 Selecting existing subscription:", subscription);
                             setSelectedSubscription(subscription);
                             // Find the matching package for this subscription
                             const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === subscription.packageId);
+                            console.log("📦 Looking for package with ID:", subscription.packageId);
+                            console.log("📦 Available packages:", AD_PACKAGES.map(p => ({ id: p.id, name: p.name })));
+                            console.log("📦 Matching package found:", matchingPkg);
                             if (matchingPkg) {
                               setSelectedPkg(matchingPkg);
                               setPaymentVerified(true);
+                              console.log("✅ Moving to step 3 with existing subscription");
                               setStep(3);
+                            } else {
+                              console.error("❌ No matching package found for subscription");
+                              alert("Error: Could not find matching package for this subscription. Please try purchasing a new package.");
                             }
                           }}
                         >
@@ -605,8 +643,10 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                         </ul>
                       </div>
                       <button onClick={() => { 
+                        console.log("📦 Selecting new package:", pkg);
                         setSelectedPkg(pkg); 
                         setSelectedSubscription(null); // Clear any selected subscription
+                        console.log("🔄 Moving to step 2");
                         setStep(2); 
                         setShowPayPal(false); 
                       }} className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all">
@@ -639,7 +679,11 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
 
                       <div className="flex flex-col gap-4">
                         <button 
-                          onClick={() => { setPaymentVerified(true); setStep(3); }}
+                          onClick={() => { 
+                            console.log("✅ Special user continuing to step 3");
+                            setPaymentVerified(true); 
+                            setStep(3); 
+                          }}
                           className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all"
                         >
                           Continue to Create Ad

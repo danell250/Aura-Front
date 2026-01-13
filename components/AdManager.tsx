@@ -142,21 +142,27 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
     };
   }, []);
 
-  const cleanupPayPal = useCallback(async () => {
-    if (activeInstanceRef.current) {
-      const instance = activeInstanceRef.current;
-      activeInstanceRef.current = null;
-      try {
-        if (instance && typeof instance.close === 'function') {
-          await instance.close();
+  const cleanupPayPal = useCallback(() => {
+    console.log("[Aura] Cleaning up PayPal instance...");
+    
+    try {
+      // Clear any existing PayPal containers
+      const containers = document.querySelectorAll('[id^="paypal-container-"]');
+      containers.forEach(container => {
+        if (container && container.parentNode) {
+          while (container.firstChild) {
+            container.removeChild(container.firstChild);
+          }
         }
-      } catch (e) {
-        console.debug("[Aura] SDK Handshake Closed", e);
-      }
+      });
+      
+      // Reset rendering state
+      isRenderingRef.current = false;
+      setRenderError(null);
+      setButtonsRendered(false);
+    } catch (error) {
+      console.error("[Aura] Cleanup error:", error);
     }
-    isRenderingRef.current = false;
-    setButtonsRendered(false);
-    setRenderError(null);
   }, []);
   
   // Function to reset PayPal state and retry
@@ -219,13 +225,21 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
       // Ensure we target the element only after it exists in the DOM
       const containerId = `paypal-container-${mountKey}`;
       const container = document.getElementById(containerId);
-      if (!container || isRenderingRef.current) return;
+      if (!container || isRenderingRef.current || !container.parentNode) return;
 
       isRenderingRef.current = true;
       setRenderError(null);
       
-      // Clear container before rendering new buttons
-      container.innerHTML = '';
+      // Clear container before rendering new buttons - safest approach
+      try {
+        while (container.firstChild && container.parentNode) {
+          container.removeChild(container.firstChild);
+        }
+      } catch (domError) {
+        console.warn("[Aura] DOM cleanup warning:", domError);
+        // Fallback: clear container content
+        container.innerHTML = '';
+      }
 
       try {
         console.log("[Aura] Initializing Payment Node...");
@@ -725,21 +739,26 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
 
                       <div className="flex flex-col gap-4">
                         {selectedPkg?.id === 'pkg-starter' ? (
-                          // Simple PayPal button for Personal Pulse
+                          // Simple PayPal button for Personal Pulse - one-time payment only
                           <div className="space-y-4">
                             <a 
-                              href="https://www.paypal.com/ncp/payment/SMLPVSKBVZ8P6" 
+                              href="https://www.paypal.com/ncp/payment/SMLPVSKBVZ8P6?return_url=https://aura-front-s1bw.onrender.com/payment-success&cancel_url=https://aura-front-s1bw.onrender.com/payment-cancelled" 
                               target="_blank" 
                               className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all text-center block"
                             >
                               Buy Personal Pulse – $39
                             </a>
                             <p className="text-[9px] text-slate-400 text-center">
-                              Opens PayPal in a new tab • Return here to create your ad
+                              One-time payment • 14-day access • Auto-returns after payment
                             </p>
+                            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-4">
+                              <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                                💡 After payment, you'll return here to create your ad with 14-day access activated
+                              </p>
+                            </div>
                           </div>
                         ) : (
-                          // Regular PayPal SDK for other packages
+                          // Regular PayPal SDK for subscription packages
                           <button 
                             onClick={() => setShowPayPal(true)}
                             className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all"

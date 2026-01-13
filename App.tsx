@@ -120,6 +120,14 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       syncBirthdays(allUsers);
+      
+      // Restore credits from localStorage if not already loaded
+      const persistedCredits = localStorage.getItem('aura_credits');
+      if (persistedCredits && currentUser && currentUser.auraCredits === 0) {
+        const updatedUser = { ...currentUser, auraCredits: parseInt(persistedCredits) };
+        setCurrentUser(updatedUser);
+        console.log('💰 Restored credits in useEffect:', updatedUser.auraCredits);
+      }
     }
   }, [isAuthenticated, allUsers, syncBirthdays]);
 
@@ -145,6 +153,11 @@ const App: React.FC = () => {
     );
 
     if (existingUser) {
+      const persistedCredits = localStorage.getItem('aura_credits');
+      if (persistedCredits) {
+        existingUser.auraCredits = parseInt(persistedCredits);
+        console.log('💰 Restored credits on app load:', existingUser.auraCredits);
+      }
       setCurrentUser(existingUser);
       setIsAuthenticated(true);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(existingUser));
@@ -167,8 +180,16 @@ const App: React.FC = () => {
     };
     
     // Update both state and localStorage consistently
+    const persistedCredits = localStorage.getItem('aura_credits');
+    if (persistedCredits) {
+      newUser.auraCredits = parseInt(persistedCredits);
+      console.log('💰 Restored persisted credits:', newUser.auraCredits);
+    }
+    
+    // Update both state and localStorage consistently
     const updatedUsers = [...allUsers, newUser];
     setAllUsers(updatedUsers);
+
     setCurrentUser(newUser);
     setIsAuthenticated(true);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
@@ -179,9 +200,42 @@ const App: React.FC = () => {
   const handleUpdateProfile = (updates: Partial<User>) => {
     const updatedUser = { ...currentUser, ...updates };
     if (updates.firstName && updates.lastName) updatedUser.name = `${updates.firstName} ${updates.lastName}`;
+    
+    // Persist credits to localStorage
+    if (updates.auraCredits !== undefined) {
+      localStorage.setItem('aura_credits', updates.auraCredits.toString());
+      console.log('💰 Credits updated and persisted:', updates.auraCredits);
+    }
+    
     setCurrentUser(updatedUser);
+    
+    // Also update in allUsers array
     setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    
+    // TODO: Sync with backend
+    const syncCreditsWithBackend = async (credits: number) => {
+      try {
+        const token = localStorage.getItem('aura_auth_token');
+        if (!token) return;
+        
+        const response = await fetch('/api/users/credits', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ credits })
+        });
+        
+        if (response.ok) {
+          console.log('💰 Credits synced with backend:', credits);
+        }
+      } catch (error) {
+        console.error('Failed to sync credits with backend:', error);
+      }
+    };
+    
+    syncCreditsWithBackend(updates.auraCredits);
   };
 
   const handlePost = (content: string, mediaUrl?: string, mediaType?: any, taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => {

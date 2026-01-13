@@ -35,6 +35,8 @@ interface LayoutProps {
   onOpenMessaging?: () => void;
   onReadNotification?: (id: string) => void;
   onAcceptAcquaintance?: (notification: Notification) => void;
+  onRejectAcquaintance?: (notification: Notification) => void;
+  onNavigateNotification?: (notification: Notification) => void;
   unreadMessageCount?: number;
   messagePulse?: boolean;
 }
@@ -44,7 +46,7 @@ const Layout: React.FC<LayoutProps> = ({
   onGoHome, onViewProfile, onViewChat, onViewFriends,
   onViewSettings, onViewPrivacy, onStartCampaign, onOpenCreditStore, ads, posts, users, notifications,
   activeView, isDarkMode, onToggleDarkMode, onSearchResult, onSearchTag, onOpenMessaging,
-  onReadNotification, onAcceptAcquaintance, unreadMessageCount = 0, messagePulse = false
+  onReadNotification, onAcceptAcquaintance, onRejectAcquaintance, onNavigateNotification, unreadMessageCount = 0, messagePulse = false
 }) => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -145,6 +147,8 @@ const Layout: React.FC<LayoutProps> = ({
                 onClose={() => setIsNotificationsOpen(false)} 
                 onRead={onReadNotification || (() => {})}
                 onAccept={onAcceptAcquaintance}
+                onReject={onRejectAcquaintance}
+                onNavigate={onNavigateNotification}
               />
             )}
           </div>

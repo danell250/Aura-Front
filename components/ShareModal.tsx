@@ -14,7 +14,7 @@ interface ShareModalProps {
 const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onClose, currentUser, onAuraShare, originalPost }) => {
   const [copied, setCopied] = useState(false);
   const baseUrl = 'https://auraradiance.vercel.app';
-  const shareUrl = `${baseUrl}/${url}`;
+  const shareUrl = url.startsWith('http') ? url : `${baseUrl}/${url}`;
   const shareTitle = title || 'Check out this post on Aura';
   const shareText = `${content}\n\n${shareUrl}`;
 

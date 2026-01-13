@@ -1,6 +1,6 @@
 import { Post } from '../types';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
 
 export class PostService {
   /**
@@ -13,7 +13,13 @@ export class PostService {
       
       console.log('🔍 Searching posts with query:', normalizedQuery);
       
-      const response = await fetch(`${BACKEND_URL}/posts/search?q=${encodeURIComponent(normalizedQuery)}`);
+      const response = await fetch(`${API_BASE_URL}/posts/search?q=${encodeURIComponent(normalizedQuery)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' as RequestCredentials
+      });
       
       if (response.ok) {
         const result = await response.json();
@@ -27,6 +33,65 @@ export class PostService {
     } catch (error) {
       console.error('❌ Error searching posts:', error);
       return { success: false, error: 'Failed to search posts' };
+    }
+  }
+
+  /**
+   * Get all posts with privacy filtering
+   */
+  static async getAllPosts(page = 1, limit = 20, userId?: string): Promise<{ success: boolean; posts?: Post[]; pagination?: any; error?: string }> {
+    try {
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('limit', limit.toString());
+      if (userId) params.append('userId', userId);
+
+      const response = await fetch(`${API_BASE_URL}/posts?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' as RequestCredentials
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          return { success: true, posts: result.data, pagination: result.pagination };
+        }
+      }
+      
+      return { success: false, error: 'Failed to fetch posts' };
+    } catch (error) {
+      console.error('❌ Error fetching posts:', error);
+      return { success: false, error: 'Failed to fetch posts' };
+    }
+  }
+
+  /**
+   * Get post by ID with privacy filtering
+   */
+  static async getPostById(postId: string): Promise<{ success: boolean; post?: Post; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' as RequestCredentials
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          return { success: true, post: result.data };
+        }
+      }
+      
+      return { success: false, error: 'Post not found or private' };
+    } catch (error) {
+      console.error('❌ Error fetching post:', error);
+      return { success: false, error: 'Failed to fetch post' };
     }
   }
 }

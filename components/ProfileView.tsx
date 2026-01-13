@@ -119,6 +119,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       {user.handle}
                     </p>
                     <OnlineStatus userId={user.id} showText={false} size="md" />
+                    {user.isPrivate && (
+                      <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-medium">
+                        <span>🔒</span>
+                        <span>Private</span>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Action Buttons - Moved here from right side */}
@@ -237,30 +243,57 @@ const ProfileView: React.FC<ProfileViewProps> = ({
         <div className="p-4 pt-6">
           {activeTab === 'posts' ? (
             <div className="space-y-6">
-              {posts.length === 0 ? (
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-12 text-center">
-                  <div className="text-4xl mb-4 opacity-30">📝</div>
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No posts yet</h3>
-                  <p className="text-slate-500 dark:text-slate-400">Posts will appear here when they're shared</p>
+              {/* Privacy Notice for Private Profiles */}
+              {user.isPrivate && !isSelf && !isAcquaintance && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-8 text-center">
+                  <div className="text-4xl mb-4">🔒</div>
+                  <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-200 mb-2">Private Profile</h3>
+                  <p className="text-amber-700 dark:text-amber-300 mb-4">
+                    This user's posts are private. Connect with them to see their content.
+                  </p>
+                  <button 
+                    onClick={() => !isRequested && onAddAcquaintance(user)} 
+                    className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                      isRequested 
+                        ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed' 
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md hover:shadow-lg'
+                    }`}
+                    disabled={isRequested}
+                  >
+                    {isRequested ? 'Connection Requested' : 'Send Connection Request'}
+                  </button>
                 </div>
-              ) : (
-                posts.map(post => (
-                  <PostCard 
-                    key={post.id} 
-                    post={post} 
-                    currentUser={currentUser} 
-                    allUsers={allUsers} 
-                    onLike={handleLike} 
-                    onComment={handleComment} 
-                    onReact={handleReact} 
-                    onShare={onShare} 
-                    onViewProfile={onViewProfile} 
-                    onSearchTag={onSearchTag} 
-                    onBoost={onBoostPost} 
-                    onDeletePost={onDeletePost} 
-                    onDeleteComment={onDeleteComment} 
-                  />
-                ))
+              )}
+              
+              {/* Posts */}
+              {(!user.isPrivate || isSelf || isAcquaintance) && (
+                <>
+                  {posts.length === 0 ? (
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-12 text-center">
+                      <div className="text-4xl mb-4 opacity-30">📝</div>
+                      <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No posts yet</h3>
+                      <p className="text-slate-500 dark:text-slate-400">Posts will appear here when they're shared</p>
+                    </div>
+                  ) : (
+                    posts.map(post => (
+                      <PostCard 
+                        key={post.id} 
+                        post={post} 
+                        currentUser={currentUser} 
+                        allUsers={allUsers} 
+                        onLike={handleLike} 
+                        onComment={handleComment} 
+                        onReact={handleReact} 
+                        onShare={onShare} 
+                        onViewProfile={onViewProfile} 
+                        onSearchTag={onSearchTag} 
+                        onBoost={onBoostPost} 
+                        onDeletePost={onDeletePost} 
+                        onDeleteComment={onDeleteComment} 
+                      />
+                    ))
+                  )}
+                </>
               )}
             </div>
           ) : (

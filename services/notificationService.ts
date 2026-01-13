@@ -41,11 +41,12 @@ export class NotificationService {
    */
   static async markAsRead(notificationId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/notifications/${notificationId}/read`, {
+      const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include' as RequestCredentials
       });
 
       if (response.ok) {
@@ -90,11 +91,12 @@ export class NotificationService {
    */
   static async deleteNotification(notificationId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/notifications/${notificationId}`, {
+      const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include' as RequestCredentials
       });
 
       if (response.ok) {

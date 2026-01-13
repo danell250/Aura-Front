@@ -29,6 +29,7 @@ const POSTS_KEY = 'aura_posts_data';
 const ADS_KEY = 'aura_ads_data';
 const USERS_KEY = 'aura_all_users';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
+const SHARE_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
 
 interface BirthdayAnnouncement {
   id: string;
@@ -1143,6 +1144,27 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
+  const handleRejectAcquaintance = useCallback(async (notification: Notification) => {
+    try {
+      const { UserService } = await import('./services/userService');
+      const result = await UserService.rejectConnectionRequest(notification.fromUser.id, currentUser.id);
+
+      if (result.success) {
+        console.log('✅ Connection request rejected successfully');
+
+        // Mark notification as read (rejected)
+        setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
+
+        // Load fresh notifications to get any rejection notification for the requester
+        loadNotifications();
+      } else {
+        console.warn('⚠️ Failed to reject connection request:', result.error);
+      }
+    } catch (error) {
+      console.error('❌ Error rejecting connection request:', error);
+    }
+  }, [currentUser]);
+
   const handleReadNotification = useCallback(async (notificationId: string) => {
     try {
       const { NotificationService } = await import('./services/notificationService');
@@ -1156,6 +1178,127 @@ const App: React.FC = () => {
       }
     } catch (error) {
       console.error('❌ Error marking notification as read:', error);
+    }
+  }, []);
+
+  const handleNavigateNotification = useCallback((notification: Notification) => {
+    console.log('🧭 Navigating to notification:', notification);
+    
+    switch (notification.type) {
+      case 'reaction':
+      case 'comment':
+      case 'boost_received':
+      case 'like':
+        // Navigate to the specific post
+        if (notification.postId) {
+          setView({ type: 'feed' });
+          window.history.pushState(null, '', `/post/${notification.postId}`);
+          
+          // Scroll to the post after a brief delay to ensure the feed is rendered
+          setTimeout(() => {
+            const postElement = document.getElementById(`post-${notification.postId}`);
+            if (postElement) {
+              postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Add a highlight effect based on notification type
+              const ringColor = notification.type === 'reaction' || notification.type === 'like' 
+                ? 'ring-rose-500' 
+                : notification.type === 'comment' 
+                ? 'ring-blue-500' 
+                : 'ring-emerald-500';
+              
+              postElement.classList.add('ring-2', ringColor, 'ring-opacity-50', 'transition-all', 'duration-300');
+              setTimeout(() => {
+                postElement.classList.remove('ring-2', ringColor, 'ring-opacity-50', 'transition-all', 'duration-300');
+              }, 3000);
+            } else {
+              // If post not found in current feed, show a message
+              console.warn('⚠️ Post not found in current feed, staying on feed view');
+            }
+          }, 100);
+        } else {
+          // If no postId, go to feed
+          setView({ type: 'feed' });
+          window.history.pushState(null, '', '/');
+        }
+        break;
+        
+      case 'connection_request':
+      case 'acquaintance_request':
+        // For connection requests, don't navigate - let the user handle accept/reject
+        console.log('📝 Connection request notification - no navigation needed');
+        break;
+        
+      case 'acquaintance_accepted':
+      case 'acquaintance_rejected':
+      case 'profile_view':
+        // Navigate to the user's profile
+        if (notification.fromUser?.id) {
+          setView({ type: 'profile', targetId: notification.fromUser.id });
+          window.history.pushState(null, '', `/profile/${notification.fromUser.id}`);
+        }
+        break;
+        
+      case 'time_capsule_unlocked':
+        // Navigate to the specific time capsule post
+        if (notification.postId) {
+          setView({ type: 'feed' });
+          window.history.pushState(null, '', `/post/${notification.postId}`);
+          
+          setTimeout(() => {
+            const postElement = document.getElementById(`post-${notification.postId}`);
+            if (postElement) {
+              postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              postElement.classList.add('ring-2', 'ring-amber-500', 'ring-opacity-50', 'transition-all', 'duration-300');
+              setTimeout(() => {
+                postElement.classList.remove('ring-2', 'ring-amber-500', 'ring-opacity-50', 'transition-all', 'duration-300');
+              }, 3000);
+            }
+          }, 100);
+        } else {
+          setView({ type: 'feed' });
+          window.history.pushState(null, '', '/');
+        }
+        break;
+        
+      case 'credit_received':
+        // Navigate to credit store or data aura view
+        setView({ type: 'data_aura' });
+        window.history.pushState(null, '', '/data-aura');
+        break;
+        
+      case 'message':
+        // Navigate to chat with the user
+        if (notification.fromUser?.id) {
+          setView({ type: 'chat', targetId: notification.fromUser.id });
+          window.history.pushState(null, '', `/chat/${notification.fromUser.id}`);
+        }
+        break;
+        
+      case 'share':
+        // Navigate to the shared post
+        if (notification.postId) {
+          setView({ type: 'feed' });
+          window.history.pushState(null, '', `/post/${notification.postId}`);
+          
+          setTimeout(() => {
+            const postElement = document.getElementById(`post-${notification.postId}`);
+            if (postElement) {
+              postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              postElement.classList.add('ring-2', 'ring-purple-500', 'ring-opacity-50', 'transition-all', 'duration-300');
+              setTimeout(() => {
+                postElement.classList.remove('ring-2', 'ring-purple-500', 'ring-opacity-50', 'transition-all', 'duration-300');
+              }, 3000);
+            }
+          }, 100);
+        }
+        break;
+        
+      default:
+        // For any other notification types, go to feed
+        console.log('🏠 Unknown notification type, navigating to feed');
+        setView({ type: 'feed' });
+        window.history.pushState(null, '', '/');
+        break;
     }
   }, []);
 
@@ -1336,6 +1479,8 @@ const App: React.FC = () => {
       onSearchResult={handleSearchResult}
       onReadNotification={handleReadNotification}
       onAcceptAcquaintance={handleAcceptAcquaintance}
+      onRejectAcquaintance={handleRejectAcquaintance}
+      onNavigateNotification={handleNavigateNotification}
       unreadMessageCount={unreadMessageCount}
       messagePulse={messagePulse}
     >
@@ -1385,7 +1530,7 @@ const App: React.FC = () => {
                 }}
                 onComment={handleComment}
                 onBoost={handleBoost}
-                onShare={(post) => setSharingContent({ content: post.content, url: `post/${post.id}` })}
+                onShare={(post) => setSharingContent({ content: post.content, url: `${SHARE_BASE_URL}/share/post/${post.id}` })}
                 onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
                 onSearchTag={setSearchQuery}
                 onLike={() => {}}
@@ -1402,7 +1547,7 @@ const App: React.FC = () => {
                   key={`ad-${Math.floor(index / 3) % ads.length}`}
                   ad={ads[Math.floor(index / 3) % ads.length]}
                   onReact={handleAdReaction}
-                  onShare={(ad) => setSharingContent({ content: ad.headline, url: `ad/${ad.id}` })}
+                  onShare={(ad) => setSharingContent({ content: ad.headline, url: `${SHARE_BASE_URL}/share/ad/${ad.id}` })}
                   onSearchTag={setSearchQuery}
                   onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
                 />
@@ -1425,7 +1570,7 @@ const App: React.FC = () => {
           }}
           onComment={handleComment}
           onBoost={handleBoost}
-          onShare={(post) => setSharingContent({ content: post.content, url: `post/${post.id}` })}
+          onShare={(post) => setSharingContent({ content: post.content, url: `${SHARE_BASE_URL}/share/post/${post.id}` })}
           onSendConnectionRequest={handleSendConnectionRequest}
           onRemoveAcquaintance={handleRemoveAcquaintance}
           onAddAcquaintance={(user) => handleSendConnectionRequest(user.id)}

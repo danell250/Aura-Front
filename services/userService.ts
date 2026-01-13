@@ -1,12 +1,12 @@
 import { User } from '../types';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
 
 export class UserService {
   // Get current user with token
   static async getMe(token: string): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/auth/user`, {
+      const response = await fetch(`${API_BASE_URL}/auth/user`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -29,7 +29,7 @@ export class UserService {
     try {
       console.log('Saving user to MongoDB:', userData.id);
       
-      const response = await fetch(`${BACKEND_URL}/users`, {
+      const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ export class UserService {
   // Search users by query
   static async searchUsers(query: string): Promise<{ success: boolean; users?: User[]; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/users/search?q=${encodeURIComponent(query)}`, {
+      const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ export class UserService {
   // Get user by ID from MongoDB backend
   static async getUserById(userId: string): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/users/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ export class UserService {
   // Get all users from MongoDB backend
   static async getAllUsers(): Promise<{ success: boolean; users?: User[]; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/users`, {
+      const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ export class UserService {
   // Update user
   static async updateUser(userId: string, updates: Partial<User>): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/users/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +147,7 @@ export class UserService {
   // Send connection request
   static async sendConnectionRequest(fromUserId: string, toUserId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/users/${toUserId}/connect`, {
+      const response = await fetch(`${API_BASE_URL}/users/${toUserId}/connect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -170,12 +170,12 @@ export class UserService {
   // Accept connection request
   static async acceptConnectionRequest(fromUserId: string, toUserId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/users/${toUserId}/accept-connection`, {
+      const response = await fetch(`${API_BASE_URL}/users/${toUserId}/accept-connection`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ fromUserId })
+        body: JSON.stringify({ requesterId: fromUserId })
       });
 
       if (response.ok) {
@@ -190,10 +190,33 @@ export class UserService {
     }
   }
 
+  // Reject connection request
+  static async rejectConnectionRequest(fromUserId: string, toUserId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${toUserId}/reject-connection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ requesterId: fromUserId })
+      });
+
+      if (response.ok) {
+        return { success: true };
+      } else {
+        const errorData = await response.json();
+        return { success: false, error: errorData.message || 'Failed to reject connection request' };
+      }
+    } catch (error) {
+      console.error('Error rejecting connection request:', error);
+      return { success: false, error: 'Network error' };
+    }
+  }
+
   // Remove acquaintance
   static async removeAcquaintance(userId: string, acquaintanceId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/users/${userId}/remove-acquaintance`, {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/remove-acquaintance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -221,7 +244,7 @@ export class UserService {
       
       // Try MongoDB backend
       try {
-        const response = await fetch(`${BACKEND_URL}/users/search?q=${encodeURIComponent(normalizedEmail)}`, {
+        const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(normalizedEmail)}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -261,7 +284,7 @@ export class UserService {
         
         // Try MongoDB backend
         try {
-          const response = await fetch(`${BACKEND_URL}/users/search?q=${encodeURIComponent(normalizedHandle)}`, {
+          const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(normalizedHandle)}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -290,7 +313,7 @@ export class UserService {
   // Purchase credits
   static async purchaseCredits(userId: string, amount: number): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/users/${userId}/purchase-credits`, {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/purchase-credits`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

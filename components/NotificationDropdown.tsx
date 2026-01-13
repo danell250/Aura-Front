@@ -7,11 +7,57 @@ interface NotificationDropdownProps {
   onClose: () => void;
   onRead: (id: string) => void;
   onAccept?: (notification: Notification) => void;
+  onReject?: (notification: Notification) => void;
+  onNavigate?: (notification: Notification) => void;
 }
 
-const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notifications, onClose, onRead, onAccept }) => {
+const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notifications, onClose, onRead, onAccept, onReject, onNavigate }) => {
   const formatDate = (ts: number) => {
     return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric' }).format(ts);
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark as read first
+    if (!notification.isRead) {
+      onRead(notification.id);
+    }
+    
+    // Navigate to the relevant content if it's not a connection request
+    if (notification.type !== 'acquaintance_request' && notification.type !== 'connection_request' && onNavigate) {
+      onNavigate(notification);
+      onClose(); // Close the dropdown after navigation
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'reaction':
+      case 'like':
+        return '❤️';
+      case 'comment':
+        return '💬';
+      case 'boost_received':
+        return '🚀';
+      case 'acquaintance_request':
+      case 'connection_request':
+        return '🤝';
+      case 'acquaintance_accepted':
+        return '✅';
+      case 'acquaintance_rejected':
+        return '❌';
+      case 'profile_view':
+        return '👁️';
+      case 'time_capsule_unlocked':
+        return '⏰';
+      case 'credit_received':
+        return '💰';
+      case 'message':
+        return '📩';
+      case 'share':
+        return '🔄';
+      default:
+        return '🔔';
+    }
   };
 
   return (
@@ -33,15 +79,20 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
           notifications.map(notif => (
             <div 
               key={notif.id} 
-              onClick={() => notif.type !== 'acquaintance_request' && onRead(notif.id)}
-              className={`p-4 flex gap-3 hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${!notif.isRead ? 'bg-indigo-50/30' : ''}`}
+              onClick={() => handleNotificationClick(notif)}
+              className={`p-4 flex gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer border-b border-slate-50 dark:border-slate-800 last:border-0 ${!notif.isRead ? 'bg-indigo-50/30 dark:bg-indigo-950/20' : ''}`}
             >
-              <img src={notif.fromUser.avatar} className="w-10 h-10 rounded-xl object-cover" alt="" />
+              <div className="relative">
+                <img src={notif.fromUser.avatar} className="w-10 h-10 rounded-xl object-cover" alt="" />
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center text-xs border border-slate-200 dark:border-slate-700">
+                  {getNotificationIcon(notif.type)}
+                </div>
+              </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-slate-800 leading-tight">
+                <p className="text-sm text-slate-800 dark:text-slate-200 leading-tight">
                   <span className="font-bold">{notif.fromUser.name}</span> {notif.message}
                 </p>
-                {notif.type === 'acquaintance_request' && !notif.isRead && (
+                {(notif.type === 'acquaintance_request' || notif.type === 'connection_request') && !notif.isRead && (
                   <div className="mt-2 flex gap-2">
                     <button 
                       onClick={(e) => {
@@ -55,15 +106,15 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        onRead(notif.id);
+                        if (onReject) onReject(notif);
                       }}
-                      className="px-3 py-1 bg-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-slate-300 transition-colors"
+                      className="px-3 py-1 bg-rose-500 text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm hover:bg-rose-600 transition-colors"
                     >
-                      Ignore
+                      Reject
                     </button>
                   </div>
                 )}
-                <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase">{formatDate(notif.timestamp)}</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-1 uppercase">{formatDate(notif.timestamp)}</p>
               </div>
               {!notif.isRead && <div className="w-2 h-2 bg-indigo-500 rounded-full mt-2"></div>}
             </div>

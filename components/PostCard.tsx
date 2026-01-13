@@ -297,7 +297,11 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   const radianceGlow = post.radiance > 10 ? `0 20px 40px -10px rgba(16, 185, 129, ${Math.min(post.radiance / 100, 0.4)})` : 'none';
 
   return (
-    <div className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] overflow-hidden mb-8 group relative ${post.isBoosted ? 'ring-1 ring-emerald-500/30' : ''}`} style={{ boxShadow: radianceGlow }}>
+    <div 
+      id={`post-${post.id}`}
+      className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] overflow-hidden mb-8 group relative ${post.isBoosted ? 'ring-1 ring-emerald-500/30' : ''}`} 
+      style={{ boxShadow: radianceGlow }}
+    >
       <div className="p-6">
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0" onClick={() => onViewProfile(post.author.id)}>
@@ -326,6 +330,15 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
                 </button>
                 <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0"></span>
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">{post.energy}</span>
+                {(post.author as any).isPrivate && (
+                  <>
+                    <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0"></span>
+                    <span className="text-[8px] text-amber-600 dark:text-amber-400 font-medium shrink-0 flex items-center gap-1">
+                      <span>🔒</span>
+                      <span>Private</span>
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>

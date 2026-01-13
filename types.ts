@@ -138,7 +138,7 @@ export interface AdPackage {
 
 export interface Notification {
   id: string;
-  type: 'reaction' | 'comment' | 'link' | 'credit_received' | 'boost_received' | 'connection_request' | 'acquaintance_request' | 'profile_view' | 'share' | 'like' | 'message' | 'time_capsule_unlocked';
+  type: 'reaction' | 'comment' | 'link' | 'credit_received' | 'boost_received' | 'connection_request' | 'acquaintance_request' | 'acquaintance_accepted' | 'acquaintance_rejected' | 'profile_view' | 'share' | 'like' | 'message' | 'time_capsule_unlocked';
   fromUser: User;
   message: string;
   timestamp: number;

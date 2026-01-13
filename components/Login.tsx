@@ -3,7 +3,7 @@ import { APP_NAME } from '../constants';
 import { User } from '../types';
 import Logo from './Logo';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-backend-production.up.railway.app/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
 
 const loginWithEmailAndPassword = async (identifier: string, password: string) => {
   try {
@@ -60,7 +60,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
 
   const handleGoogleLogin = async () => {
     // Redirect to backend Google OAuth flow
-    window.location.href = `${API_BASE_URL.replace('/api', '')}/auth/google`;
+    const backendUrl = API_BASE_URL.replace('/api', '');
+    window.location.href = `${backendUrl}/auth/google`;
   };
 
   const handleManualLogin = async (e: React.FormEvent) => {

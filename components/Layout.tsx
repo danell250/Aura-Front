@@ -34,6 +34,7 @@ interface LayoutProps {
   onSearchTag?: (hashtag: string) => void;
   onOpenMessaging?: () => void;
   onReadNotification?: (id: string) => void;
+  onMarkAllNotificationsRead?: () => void;
   onAcceptAcquaintance?: (notification: Notification) => void;
   onRejectAcquaintance?: (notification: Notification) => void;
   onNavigateNotification?: (notification: Notification) => void;
@@ -46,7 +47,7 @@ const Layout: React.FC<LayoutProps> = ({
   onGoHome, onViewProfile, onViewChat, onViewFriends,
   onViewSettings, onViewPrivacy, onStartCampaign, onOpenCreditStore, ads, posts, users, notifications,
   activeView, isDarkMode, onToggleDarkMode, onSearchResult, onSearchTag, onOpenMessaging,
-  onReadNotification, onAcceptAcquaintance, onRejectAcquaintance, onNavigateNotification, unreadMessageCount = 0, messagePulse = false
+  onReadNotification, onMarkAllNotificationsRead, onAcceptAcquaintance, onRejectAcquaintance, onNavigateNotification, unreadMessageCount = 0, messagePulse = false
 }) => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -136,7 +137,12 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
           <div className="relative">
             <button 
-              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+              onClick={() => {
+                if (!isNotificationsOpen && onMarkAllNotificationsRead) {
+                  onMarkAllNotificationsRead();
+                }
+                setIsNotificationsOpen(!isNotificationsOpen);
+              }}
               className="p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg relative transition-colors"
             >
               🔔 {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-emerald-500 text-[9px] text-white flex items-center justify-center rounded-full font-bold ring-2 ring-white dark:ring-slate-900">{unreadCount}</span>}

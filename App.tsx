@@ -1181,6 +1181,27 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const handleMarkAllNotificationsRead = useCallback(async () => {
+    try {
+      const unreadNotifications = notifications.filter(n => !n.isRead);
+      if (unreadNotifications.length === 0) return;
+
+      const { NotificationService } = await import('./services/notificationService');
+      
+      // Use the more efficient markAllAsRead method
+      const result = await NotificationService.markAllAsRead(currentUser.id);
+      
+      if (result.success) {
+        // Update local notifications state
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      } else {
+        console.warn('⚠️ Failed to mark all notifications as read:', result.error);
+      }
+    } catch (error) {
+      console.error('❌ Error marking all notifications as read:', error);
+    }
+  }, [notifications, currentUser.id]);
+
   const handleNavigateNotification = useCallback((notification: Notification) => {
     console.log('🧭 Navigating to notification:', notification);
     
@@ -1478,6 +1499,7 @@ const App: React.FC = () => {
       ads={ads} notifications={notifications} posts={posts} users={allUsers}
       onSearchResult={handleSearchResult}
       onReadNotification={handleReadNotification}
+      onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
       onAcceptAcquaintance={handleAcceptAcquaintance}
       onRejectAcquaintance={handleRejectAcquaintance}
       onNavigateNotification={handleNavigateNotification}
@@ -1492,7 +1514,7 @@ const App: React.FC = () => {
             allUsers={allUsers}
             onTimeCapsule={handleTimeCapsule}
             onGenerateAIContent={handleGenerateAIContent}
-            onCreateAd={() => setShowAdManager(true)}
+            onCreateAd={() => setIsAdManagerOpen(true)}
           />
 
           <FeedFilters

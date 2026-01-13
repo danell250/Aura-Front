@@ -367,7 +367,8 @@ const App: React.FC = () => {
     return geminiService.generateContent(prompt);
   }, []);
 
-  const handleReaction = useCallback((postId: string, emoji: string) => {
+  const handleReaction = useCallback(async (postId: string, emoji: string) => {
+    // Optimistic update
     setPosts(prev => prev.map(p => {
       if (p.id === postId) {
         const newReactions = { ...p.reactions };
@@ -386,7 +387,48 @@ const App: React.FC = () => {
       }
       return p;
     }));
-  }, []);
+
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const res = await fetch(`${API_BASE_URL}/posts/${postId}/react`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        credentials: 'include',
+        body: JSON.stringify({ reaction: emoji, userId: currentUser.id })
+      });
+      
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to react');
+      }
+    } catch (e) {
+      console.error('Reaction failed, rolling back:', e);
+      // Rollback by toggling again
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          const newReactions = { ...p.reactions };
+          const newUserReactions = [...p.userReactions];
+          
+          if (newUserReactions.includes(emoji)) {
+            newReactions[emoji] = Math.max(0, (newReactions[emoji] || 0) - 1);
+            const index = newUserReactions.indexOf(emoji);
+            newUserReactions.splice(index, 1);
+          } else {
+            newReactions[emoji] = (newReactions[emoji] || 0) + 1;
+            newUserReactions.push(emoji);
+          }
+
+          return { ...p, reactions: newReactions, userReactions: newUserReactions };
+        }
+        return p;
+      }));
+      // Optional: alert user
+      // alert('Failed to update reaction.');
+    }
+  }, [currentUser.id]);
 
   const handleCommentReaction = useCallback((postId: string, commentId: string, emoji: string) => {
     setPosts(prev => prev.map(p => {

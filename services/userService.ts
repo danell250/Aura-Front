@@ -3,6 +3,27 @@ import { User } from '../types';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : '/api';
 
 export class UserService {
+  // Get current user with token
+  static async getMe(token: string): Promise<{ success: boolean; user?: User; error?: string }> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/user`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, user: result.user };
+      }
+      return { success: false, error: 'Failed to fetch user' };
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      return { success: false, error: 'Network error' };
+    }
+  }
+
   // Save user to MongoDB backend
   static async saveUser(userData: User): Promise<{ success: boolean; user?: User; error?: string }> {
     try {

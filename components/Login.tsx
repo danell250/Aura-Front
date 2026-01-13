@@ -17,7 +17,7 @@ const loginWithEmailAndPassword = async (identifier: string, password: string) =
     if (!res.ok || !data.success) {
       return { success: false, user: null, error: data.message || 'Login failed' };
     }
-    return { success: true, user: data.user };
+    return { success: true, user: data.user, token: data.token };
   } catch (err: any) {
     return { success: false, user: null, error: err.message || 'Network error' };
   }
@@ -82,6 +82,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
 
       if (loginResult.success) {
         // Update user context
+        if (loginResult.token) {
+          localStorage.setItem('aura_auth_token', loginResult.token);
+        }
         onLogin(loginResult.user);
       } else {
         setError(loginResult.error || 'Login failed');

@@ -18,6 +18,7 @@ import Login from './components/Login';
 import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
 import { geminiService } from './services/gemini';
+import { UserService } from './services/userService';
 import { SearchResult } from './services/searchService';
 
 const STORAGE_KEY = 'aura_user_session';
@@ -120,23 +121,61 @@ const App: React.FC = () => {
     // Sync every 30 seconds
     const syncInterval = setInterval(syncUsers, 30000);
 
-    const savedSession = localStorage.getItem(STORAGE_KEY);
-    if (savedSession) {
-      try {
-        const user = JSON.parse(savedSession);
-        // Refresh user data from the latest users list
-        const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
-        setCurrentUser(refreshedUser);
-        setIsAuthenticated(true);
-      } catch (e) { localStorage.removeItem(STORAGE_KEY); }
-    }
+    const initAuth = async () => {
+      // Check for token in URL (from OAuth redirect)
+      const params = new URLSearchParams(window.location.search);
+      const urlToken = params.get('token');
+      
+      // Get token from URL or storage
+      let token = urlToken || localStorage.getItem('aura_auth_token');
+      
+      if (urlToken) {
+        // Clear token from URL to keep it clean
+        window.history.replaceState({}, document.title, window.location.pathname);
+        localStorage.setItem('aura_auth_token', urlToken);
+      }
+
+      let authenticatedWithToken = false;
+
+      if (token) {
+        try {
+          const result = await UserService.getMe(token);
+          if (result.success && result.user) {
+            setCurrentUser(result.user);
+            setIsAuthenticated(true);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(result.user));
+            authenticatedWithToken = true;
+          } else {
+            // Token invalid
+            localStorage.removeItem('aura_auth_token');
+          }
+        } catch (error) {
+          console.error('Auth token verification failed:', error);
+        }
+      }
+
+      if (!authenticatedWithToken) {
+        const savedSession = localStorage.getItem(STORAGE_KEY);
+        if (savedSession) {
+          try {
+            const user = JSON.parse(savedSession);
+            // Refresh user data from the latest users list
+            const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
+            setCurrentUser(refreshedUser);
+            setIsAuthenticated(true);
+          } catch (e) { localStorage.removeItem(STORAGE_KEY); }
+        }
+      }
 
       const savedPosts = localStorage.getItem(POSTS_KEY);
       const savedAds = localStorage.getItem(ADS_KEY);
 
-    setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
-    setAds(savedAds ? JSON.parse(savedAds) : INITIAL_ADS);
-        setLoading(false);
+      setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
+      setAds(savedAds ? JSON.parse(savedAds) : INITIAL_ADS);
+      setLoading(false);
+    };
+
+    initAuth();
 
     return () => {
       clearInterval(syncInterval);
@@ -532,6 +571,7 @@ const App: React.FC = () => {
     }
 
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('aura_auth_token');
     setCurrentUser(CURRENT_USER);
     setIsAuthenticated(false);
     setView({ type: 'feed' });

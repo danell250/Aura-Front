@@ -261,7 +261,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   };
 
   const displayMediaUrl = post.mediaUrl || (post.content.match(/https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov|gif|gifv|jpg|jpeg|png|webp)/i)?.[0] || (getEmbedUrl(post.content) ? post.content.match(/https?:\/\/[^\s]+/)?.[0] : null));
-  const rootComments = post.comments.filter(c => !c.parentId);
+  const rootComments = (post.comments || []).filter(c => !c.parentId);
   const radianceGlow = post.radiance > 10 ? `0 20px 40px -10px rgba(16, 185, 129, ${Math.min(post.radiance / 100, 0.4)})` : 'none';
 
   return (
@@ -357,8 +357,8 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
               </button>
               <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-2 transition-all group/comments ${showComments ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-indigo-600'}`}>
                 <span className={`text-xl transition-transform ${showComments ? 'scale-110' : 'group-hover/comments:scale-110'}`}>💬</span>
-            <span className="text-xs font-bold uppercase tracking-wider">{comments.length}</span>
-          </button>
+                <span className="text-xs font-bold uppercase tracking-wider">{(post.comments || []).length}</span>
+              </button>
        </div>
            
            <div className="flex items-center gap-2">

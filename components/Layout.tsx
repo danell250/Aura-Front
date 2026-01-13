@@ -35,6 +35,8 @@ interface LayoutProps {
   onOpenMessaging?: () => void;
   onReadNotification?: (id: string) => void;
   onAcceptAcquaintance?: (notification: Notification) => void;
+  unreadMessageCount?: number;
+  messagePulse?: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -42,7 +44,7 @@ const Layout: React.FC<LayoutProps> = ({
   onGoHome, onViewProfile, onViewChat, onViewFriends,
   onViewSettings, onViewPrivacy, onStartCampaign, onOpenCreditStore, ads, posts, users, notifications,
   activeView, isDarkMode, onToggleDarkMode, onSearchResult, onSearchTag, onOpenMessaging,
-  onReadNotification, onAcceptAcquaintance
+  onReadNotification, onAcceptAcquaintance, unreadMessageCount = 0, messagePulse = false
 }) => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -117,9 +119,19 @@ const Layout: React.FC<LayoutProps> = ({
               </svg>
             )}
           </button>
-          <button onClick={() => onOpenMessaging ? onOpenMessaging() : onViewChat()} className="p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
-            💬
-          </button>
+          <div className="relative">
+            <button onClick={() => onOpenMessaging ? onOpenMessaging() : onViewChat()} className={`p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors relative ${messagePulse ? 'animate-pulse' : ''}`}>
+              💬
+              {unreadMessageCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-[9px] text-white flex items-center justify-center rounded-full font-bold ring-2 ring-white dark:ring-slate-900">
+                  {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                </span>
+              )}
+              {messagePulse && (
+                <span className="absolute -top-1 -right-1 inline-flex h-5 w-5 rounded-full bg-rose-400 opacity-75 animate-ping"></span>
+              )}
+            </button>
+          </div>
           <div className="relative">
             <button 
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}

@@ -28,6 +28,8 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const headerMenuRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Load conversations and messages from backend
   useEffect(() => {
@@ -167,6 +169,32 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
       setShowHeaderMenu(false);
       setActiveContact(null);
     }
+  };
+
+  const handleTextAreaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    // Reset height then set to scrollHeight for auto-grow
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 240) + 'px'; // cap ~10-12 lines
+    setInputText(el.value);
+  };
+
+  const insertEmoji = (emoji: string) => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart || 0;
+    const end = el.selectionEnd || 0;
+    const newValue = inputText.slice(0, start) + emoji + inputText.slice(end);
+    setInputText(newValue);
+    requestAnimationFrame(() => {
+      el.focus();
+      const caret = start + emoji.length;
+      el.setSelectionRange(caret, caret);
+      // adjust height after insertion
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 240) + 'px';
+    });
+    setShowEmojiPicker(false);
   };
 
   const filteredContacts = useMemo(() => {
@@ -398,20 +426,40 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                 <button className="w-14 h-14 flex-shrink-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 active:scale-90 shadow-sm">
                     <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                 </button>
-                <div className="flex-1 relative group">
-                  <input 
-                    type="text" 
-                    value={inputText} 
-                    onChange={e => setInputText(e.target.value)} 
-                    onKeyDown={e => e.key === 'Enter' && !isSending && handleSend()} 
-                    placeholder="Synthesize neural message..." 
+                <div className="flex-1 relative">
+                  <div className="absolute left-3 top-3 text-slate-300 dark:text-slate-600 pointer-events-none">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m2 0a8 8 0 11-16 0 8 8 0 0116 0z" /></svg>
+                  </div>
+                  <textarea
+                    ref={textareaRef}
+                    value={inputText}
+                    onChange={handleTextAreaInput}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (!isSending) handleSend();
+                      }
+                    }}
+                    placeholder="Synthesize neural message..."
                     disabled={isSending}
-                    className="w-full pl-8 pr-32 py-5 bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.2rem] border-2 border-transparent outline-none focus:ring-12 focus:ring-emerald-500/5 dark:focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-400/20 transition-all text-base font-bold text-slate-900 dark:text-white shadow-inner disabled:opacity-50" 
+                    rows={1}
+                    className="w-full pl-10 pr-32 py-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-[1.6rem] border-2 border-transparent outline-none focus:ring-12 focus:ring-emerald-500/5 dark:focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-400/20 transition-all text-base font-bold text-slate-900 dark:text-white shadow-inner disabled:opacity-50 resize-none overflow-y-auto max-h-60"
                   />
+
+                  {/* Emoji Button */}
+                  <button
+                    onClick={() => setShowEmojiPicker(v => !v)}
+                    className="absolute right-24 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700"
+                    title="Insert emoji"
+                  >
+                    😊
+                  </button>
+
+                  {/* Send Button */}
                   <button 
                     onClick={handleSend} 
                     disabled={!inputText.trim() || isSending} 
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 px-10 py-3.5 aura-bg-gradient text-white rounded-[1.75rem] shadow-xl shadow-emerald-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-20 text-[11px] font-black uppercase tracking-[0.3em] min-w-[80px]"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 px-10 py-3.5 aura-bg-gradient text-white rounded-[1.5rem] shadow-xl shadow-emerald-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-20 text-[11px] font-black uppercase tracking-[0.3em] min-w-[80px]"
                   >
                     {isSending ? (
                       <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
@@ -419,6 +467,19 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                       'Sync'
                     )}
                   </button>
+
+                  {/* Emoji Picker Popover */}
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-16 right-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-3 w-64 max-h-60 overflow-y-auto z-50">
+                      <div className="grid grid-cols-8 gap-2 text-xl">
+                        {['😀','😁','😂','🤣','😊','😍','😘','😜','🤔','😎','😇','🤗','👍','🙏','👏','🔥','🎉','💯','✅','✨','❤️','💪','🤝','🥳','😅','😭','😤','🥰','😏','🙌','🤩','😴','🤪','😬','😱','🤓','😔','🤷','👌','👀','👋','👑','🌟','🚀','🌈','🍀','🍕','☕','🧠'].map(e => (
+                          <button key={e} onClick={() => insertEmoji(e)} className="hover:scale-125 transition-transform" title={e}>
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

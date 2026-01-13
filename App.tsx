@@ -20,6 +20,7 @@ import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from 
 import { geminiService } from './services/gemini';
 import { UserService } from './services/userService';
 import { SearchResult } from './services/searchService';
+import { MessageService } from './services/messageService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -52,6 +53,9 @@ const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [messagePulse, setMessagePulse] = useState(false);
+  const prevUnreadRef = React.useRef(0);
 
   const [view, setView] = useState<{ type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string }>({ type: 'feed' });
 
@@ -358,7 +362,45 @@ const App: React.FC = () => {
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p));
   }, [currentUser]);
 
-  const handleBoost = useCallback((postId: string, creditsToSpend: number) => {
+  const handleDeletePost = useCallback(async (postId: string) => {
+    const target = posts.find(p => p.id === postId);
+    if (!target) return;
+    if (target.author.id !== currentUser.id) {
+      alert('You can only delete your own posts.');
+      return;
+    }
+    const prevPosts = posts;
+    // Optimistic removal
+    setPosts(prev => prev.filter(p => p.id !== postId));
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const res = await fetch(`${API_BASE_URL}/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        credentials: 'include' as RequestCredentials
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || (data && data.success === false)) {
+        throw new Error((data && data.message) || 'Failed to delete');
+      }
+    } catch (e) {
+      // Rollback on failure
+      setPosts(prevPosts);
+      alert('Failed to delete post. Please try again.');
+    }
+  }, [posts, currentUser.id]);
+
+  const handleBoost = useCallback(async (postId: string, creditsToSpend: number) => {
+    const prevBalance = currentUser.auraCredits || 0;
+    if (prevBalance < creditsToSpend) {
+      alert('Not enough credits to boost this post.');
+      return;
+    }
+
+    // Optimistic UI update
     setPosts(prev => prev.map(p => {
       if (p.id === postId) {
         return { ...p, radiance: p.radiance + (creditsToSpend * 2), isBoosted: true };
@@ -366,11 +408,25 @@ const App: React.FC = () => {
       return p;
     }));
 
-    setCurrentUser(prev => ({
-      ...prev,
-      auraCredits: (prev.auraCredits || 0) - creditsToSpend
-    }));
-  }, []);
+    const newBalance = prevBalance - creditsToSpend;
+    const updatedUser = { ...currentUser, auraCredits: newBalance };
+    setCurrentUser(updatedUser);
+    try {
+      const res = await UserService.updateUser(currentUser.id, { auraCredits: newBalance });
+      if (!res.success) throw new Error(res.error || 'Failed to update credits');
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser)); } catch {}
+    } catch (e) {
+      // Rollback on failure
+      setCurrentUser({ ...currentUser, auraCredits: prevBalance });
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          return { ...p, radiance: Math.max(0, p.radiance - (creditsToSpend * 2)), isBoosted: p.isBoosted };
+        }
+        return p;
+      }));
+      alert('Failed to deduct credits. Please try again.');
+    }
+  }, [currentUser, posts]);
 
   const handleUpdateProfile = useCallback((updates: Partial<User>) => {
     const updatedUser = { ...currentUser, ...updates };
@@ -486,6 +542,36 @@ const App: React.FC = () => {
       return () => clearInterval(notificationInterval);
     }
   }, [currentUser.id, loadNotifications]);
+
+  // Poll unread messages count
+  useEffect(() => {
+    let intervalId: number | undefined;
+    const pollUnread = async () => {
+      if (!currentUser.id) return;
+      try {
+        const resp = await MessageService.getConversations(currentUser.id);
+        if (resp && resp.success && Array.isArray(resp.data)) {
+          const total = resp.data.reduce((sum: number, conv: any) => sum + (conv.unreadCount || conv.unread || 0), 0);
+          // trigger pulse if count increased
+          if (total > prevUnreadRef.current) {
+            setMessagePulse(true);
+            window.setTimeout(() => setMessagePulse(false), 2500);
+          }
+          prevUnreadRef.current = total;
+          setUnreadMessageCount(total);
+        }
+      } catch (e) {
+        // ignore errors
+      }
+    };
+    if (isAuthenticated && currentUser.id) {
+      pollUnread();
+      intervalId = window.setInterval(pollUnread, 5000);
+    }
+    return () => {
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [isAuthenticated, currentUser.id]);
 
   const handleRemoveAcquaintance = useCallback(async (userId: string) => {
     try {
@@ -603,6 +689,8 @@ const App: React.FC = () => {
       onSearchResult={handleSearchResult}
       onReadNotification={handleReadNotification}
       onAcceptAcquaintance={handleAcceptAcquaintance}
+      unreadMessageCount={unreadMessageCount}
+      messagePulse={messagePulse}
     >
       {view.type === 'feed' && (
         <div className="space-y-8">
@@ -641,21 +729,22 @@ const App: React.FC = () => {
 
           {filteredPosts.map(post => (
             <PostCard
-              key={post.id}
-              post={post}
-              currentUser={currentUser}
-              onReact={(postId, emoji, targetType, commentId) => {
-                if (targetType === 'post') return handleReaction(postId, emoji);
-                if (targetType === 'comment' && commentId) return handleCommentReaction(postId, commentId, emoji);
-              }}
-              onComment={handleComment}
-              onBoost={handleBoost}
-              onShare={(post) => setSharingContent({ content: post.content, url: `post/${post.id}` })}
-              onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
-              onSearchTag={setSearchQuery}
-              onLike={() => {}}
-              onSendConnectionRequest={handleSendConnectionRequest}
-              allUsers={allUsers}
+            key={post.id}
+            post={post}
+            currentUser={currentUser}
+            onReact={(postId, emoji, targetType, commentId) => {
+            if (targetType === 'post') return handleReaction(postId, emoji);
+            if (targetType === 'comment' && commentId) return handleCommentReaction(postId, commentId, emoji);
+            }}
+            onComment={handleComment}
+            onBoost={handleBoost}
+            onShare={(post) => setSharingContent({ content: post.content, url: `post/${post.id}` })}
+            onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
+            onSearchTag={setSearchQuery}
+            onLike={() => {}}
+            onSendConnectionRequest={handleSendConnectionRequest}
+            allUsers={allUsers}
+            onDeletePost={handleDeletePost}
             />
           ))}
         </div>
@@ -707,7 +796,20 @@ const App: React.FC = () => {
 
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
       {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={(ad) => setAds([ad, ...ads])} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}
-      {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} onClose={() => setIsCreditStoreOpen(false)} onPurchase={(bundle: CreditBundle) => handleUpdateProfile({ auraCredits: (currentUser.auraCredits || 0) + bundle.credits })} bundles={CREDIT_BUNDLES} />}
+      {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} onClose={() => setIsCreditStoreOpen(false)} onPurchase={async (bundle: CreditBundle) => {
+        const prev = currentUser.auraCredits || 0;
+        const newBal = prev + bundle.credits;
+        const updated = { ...currentUser, auraCredits: newBal };
+        setCurrentUser(updated);
+        try {
+          const res = await UserService.updateUser(currentUser.id, { auraCredits: newBal });
+          if (!res.success) throw new Error(res.error || 'Failed to update credits');
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); } catch {}
+        } catch (e) {
+          setCurrentUser({ ...currentUser, auraCredits: prev });
+          alert('Failed to apply credit purchase. Please try again.');
+        }
+      }} bundles={CREDIT_BUNDLES} />}
       {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} onClose={() => setSharingContent(null)} />}
     </Layout>
   );

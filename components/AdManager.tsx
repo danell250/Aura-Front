@@ -86,6 +86,21 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
     }
   }, [isSpecialUser, step, selectedPkg]);
 
+  // Auto-select first active subscription if available and no package selected
+  useEffect(() => {
+    if (step === 1 && activeSubscriptions.length > 0 && !selectedSubscription && !selectedPkg) {
+      const firstSub = activeSubscriptions[0];
+      const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === firstSub.packageId);
+      if (matchingPkg) {
+        console.log("📦 Auto-selecting first active subscription:", firstSub);
+        setSelectedSubscription(firstSub);
+        setSelectedPkg(matchingPkg);
+        setPaymentVerified(true);
+        setStep(3);
+      }
+    }
+  }, [step, activeSubscriptions, selectedSubscription, selectedPkg]);
+
   // Detect or Load PayPal SDK
   useEffect(() => {
     let isMounted = true;
@@ -582,64 +597,98 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                 {/* Show active subscriptions first if user has any */}
                 {!isSpecialUser && activeSubscriptions.length > 0 && (
                   <div className="mb-12">
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-6">Use Existing Subscription</h3>
+                    <div className="flex items-center gap-4 mb-8">
+                      <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Your Active Plans</h3>
+                      <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-black uppercase tracking-widest">
+                        {activeSubscriptions.length} active
+                      </span>
+                    </div>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                      {activeSubscriptions.map(subscription => (
-                        <div 
-                          key={subscription.id} 
-                          className={`bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-lg ${
-                            selectedSubscription?.id === subscription.id 
-                              ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' 
-                              : 'border-slate-200 dark:border-slate-700 hover:border-emerald-300'
-                          }`}
-                          onClick={() => {
-                            console.log("🔄 Selecting existing subscription:", subscription);
-                            setSelectedSubscription(subscription);
-                            // Find the matching package for this subscription
-                            const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === subscription.packageId);
-                            console.log("📦 Looking for package with ID:", subscription.packageId);
-                            console.log("📦 Available packages:", AD_PACKAGES.map(p => ({ id: p.id, name: p.name })));
-                            console.log("📦 Matching package found:", matchingPkg);
-                            if (matchingPkg) {
-                              setSelectedPkg(matchingPkg);
-                              setPaymentVerified(true);
-                              console.log("✅ Moving to step 3 with existing subscription");
-                              setStep(3);
-                            } else {
-                              console.error("❌ No matching package found for subscription");
-                              alert("Error: Could not find matching package for this subscription. Please try purchasing a new package.");
-                            }
-                          }}
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <h4 className="text-lg font-black text-slate-900 dark:text-white">{subscription.packageName}</h4>
-                            <span className="text-xs font-bold px-2 py-1 bg-emerald-500 text-white rounded-full">
-                              {subscription.status}
-                            </span>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              <span className="font-semibold">{subscription.adLimit - subscription.adsUsed}</span> ads remaining
-                            </p>
-                            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                              <div 
-                                className="bg-emerald-500 h-2 rounded-full transition-all" 
-                                style={{ width: `${((subscription.adLimit - subscription.adsUsed) / subscription.adLimit) * 100}%` }}
-                              ></div>
-                            </div>
-                            {subscription.endDate && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
-                                Expires: {new Date(subscription.endDate).toLocaleDateString()}
-                              </p>
+                      {activeSubscriptions.map(subscription => {
+                        const hasAvailableSlots = subscription.adsUsed < subscription.adLimit;
+                        return (
+                          <div 
+                            key={subscription.id} 
+                            className={`bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-lg relative overflow-hidden ${
+                              selectedSubscription?.id === subscription.id 
+                                ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' 
+                                : 'border-slate-200 dark:border-slate-700 hover:border-emerald-300'
+                            } ${!hasAvailableSlots ? 'opacity-60' : ''}`}
+                            onClick={() => {
+                              if (!hasAvailableSlots) {
+                                alert("This plan has reached its ad limit. Purchase a new plan to continue.");
+                                return;
+                              }
+                              console.log("🔄 Selecting existing subscription:", subscription);
+                              setSelectedSubscription(subscription);
+                              const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === subscription.packageId);
+                              if (matchingPkg) {
+                                setSelectedPkg(matchingPkg);
+                                setPaymentVerified(true);
+                                console.log("✅ Moving to step 3 with existing subscription");
+                                setStep(3);
+                              } else {
+                                console.error("❌ No matching package found for subscription");
+                                alert("Error: Could not find matching package for this subscription.");
+                              }
+                            }}
+                          >
+                            {!hasAvailableSlots && (
+                              <div className="absolute top-2 right-2 bg-rose-500 text-white px-2 py-1 rounded text-[8px] font-black uppercase">
+                                Limit Reached
+                              </div>
                             )}
+                            <div className="flex justify-between items-start mb-3">
+                              <h4 className="text-lg font-black text-slate-900 dark:text-white">{subscription.packageName}</h4>
+                              <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                hasAvailableSlots 
+                                  ? 'bg-emerald-500 text-white' 
+                                  : 'bg-rose-500 text-white'
+                              }`}>
+                                {subscription.status}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{subscription.adLimit - subscription.adsUsed}</span> / <span className="font-semibold">{subscription.adLimit}</span> ads available
+                              </p>
+                              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all ${hasAvailableSlots ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                                  style={{ width: `${((subscription.adLimit - subscription.adsUsed) / subscription.adLimit) * 100}%` }}
+                                ></div>
+                              </div>
+                              {subscription.endDate && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  Expires: {new Date(subscription.endDate).toLocaleDateString()}
+                                </p>
+                              )}
+                              {hasAvailableSlots && (
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedSubscription(subscription);
+                                    const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === subscription.packageId);
+                                    if (matchingPkg) {
+                                      setSelectedPkg(matchingPkg);
+                                      setPaymentVerified(true);
+                                      setStep(3);
+                                    }
+                                  }}
+                                  className="w-full mt-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase rounded text-[9px] tracking-widest transition-all"
+                                >
+                                  Create Ad Now
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="text-center">
                       <div className="inline-flex items-center gap-4 text-slate-400 dark:text-slate-500">
                         <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
-                        <span className="text-xs font-bold uppercase tracking-widest">Or Purchase New Package</span>
+                        <span className="text-xs font-bold uppercase tracking-widest">Or Purchase New Plan</span>
                         <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
                       </div>
                     </div>
@@ -669,7 +718,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                       <button onClick={() => { 
                         console.log("📦 Selecting new package:", pkg);
                         setSelectedPkg(pkg); 
-                        setSelectedSubscription(null); // Clear any selected subscription
+                        setSelectedSubscription(null);
                         console.log("🔄 Moving to step 2");
                         setStep(2); 
                         setShowPayPal(false); 

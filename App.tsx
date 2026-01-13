@@ -174,7 +174,29 @@ const App: React.FC = () => {
       const savedPosts = localStorage.getItem(POSTS_KEY);
       const savedAds = localStorage.getItem(ADS_KEY);
 
-      setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
+      // Load posts from backend so deletes/creates reflect globally
+      try {
+        const tokenHdr = localStorage.getItem('aura_auth_token') || '';
+        const resp = await fetch(`${API_BASE_URL}/posts?page=1&limit=50`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(tokenHdr ? { 'Authorization': `Bearer ${tokenHdr}` } : {})
+          },
+          credentials: 'include' as RequestCredentials
+        });
+        const result = await resp.json().catch(() => ({} as any));
+        if (resp.ok && result?.success && Array.isArray(result.data)) {
+          setPosts(result.data);
+          try { localStorage.setItem(POSTS_KEY, JSON.stringify(result.data)); } catch {}
+        } else {
+          console.warn('Backend posts fetch failed, falling back to local', { status: resp.status, body: result });
+          setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
+        }
+      } catch (e) {
+        console.warn('Error fetching posts from backend, falling back to local', e);
+        setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
+      }
+
       setAds(savedAds ? JSON.parse(savedAds) : INITIAL_ADS);
       setLoading(false);
     };

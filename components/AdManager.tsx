@@ -16,7 +16,7 @@ declare global {
 interface AdManagerProps {
   currentUser: User;
   ads: Ad[];
-  onAdCreated: (ad: Ad) => void;
+  onAdCreated: (ad: Ad) => Promise<boolean>;
   onAdCancelled: (adId: string) => void;
   onClose: () => void;
 }
@@ -495,9 +495,19 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
 
     console.log("📢 Creating final ad:", finalAd);
     console.log("🔄 Calling onAdCreated...");
-    onAdCreated(finalAd);
-    console.log("🚪 Closing modal...");
-    onClose();
+    try {
+      const ok = await onAdCreated(finalAd);
+      if (ok) {
+        console.log("✅ Ad created successfully, closing modal");
+        onClose();
+      } else {
+        console.warn("❌ Ad creation failed, keeping modal open");
+        alert("Failed to publish ad. Please try again.");
+      }
+    } catch (err) {
+      console.error("❌ Error during ad creation:", err);
+      alert("An error occurred while publishing the ad.");
+    }
   };
 
   const retrySync = () => {

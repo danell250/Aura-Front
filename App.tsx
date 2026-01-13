@@ -1625,7 +1625,30 @@ const App: React.FC = () => {
       {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => setView({ type: 'feed' })} onPurchaseGlow={(glow) => handleUpdateProfile({ activeGlow: glow })} onClearData={() => { }} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
 
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
-      {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={(ad) => setAds([ad, ...ads])} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}
+      {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={async (ad) => {
+        try {
+          const token = localStorage.getItem('aura_auth_token') || '';
+          const response = await fetch(`${API_BASE_URL}/ads`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(ad)
+          });
+          const result = await response.json();
+          if (result.success) {
+            setAds(prev => [result.data, ...prev]);
+            return true;
+          } else {
+             console.error('Failed to create ad on backend:', result.error);
+             return false;
+          }
+        } catch (error) {
+          console.error('Failed to save ad to backend:', error);
+          return false;
+        }
+      }} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}
       {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} onClose={() => setIsCreditStoreOpen(false)} onPurchase={async (bundle: CreditBundle) => {
         const prev = currentUser.auraCredits || 0;
         const newBal = prev + bundle.credits;

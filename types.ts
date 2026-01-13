@@ -116,6 +116,7 @@ export interface Ad {
   expiryDate?: number;
   subscriptionTier?: string;
   reactions?: Record<string, number>;
+  reactionUsers?: Record<string, string[]>;
   userReactions?: string[];
   hashtags?: string[];
 }

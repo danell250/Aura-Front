@@ -219,6 +219,27 @@ const App: React.FC = () => {
 
       setAds(savedAds ? JSON.parse(savedAds) : INITIAL_ADS);
 
+      // Load ads from backend
+      try {
+        const tokenHdr = localStorage.getItem('aura_auth_token') || '';
+        const adsResp = await fetch(`${API_BASE_URL}/ads?page=1&limit=10`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(tokenHdr ? { 'Authorization': `Bearer ${tokenHdr}` } : {})
+          },
+          credentials: 'include' as RequestCredentials
+        });
+        const adsResult = await adsResp.json().catch(() => ({} as any));
+        if (adsResp.ok && adsResult?.success && Array.isArray(adsResult.data)) {
+          setAds(adsResult.data);
+          try { localStorage.setItem(ADS_KEY, JSON.stringify(adsResult.data)); } catch {}
+        } else {
+          console.warn('Backend ads fetch failed, using local/initial ads', { status: adsResp.status, body: adsResult });
+        }
+      } catch (e) {
+        console.warn('Error fetching ads from backend, using local/initial ads', e);
+      }
+
       // Optional eager hydration of comments for first N posts
       try {
         const firstN = 5;
@@ -389,6 +410,37 @@ const App: React.FC = () => {
       }));
     }
   }, [posts.length, currentUser.id]);
+
+  // Restore session reactions for ads
+  useEffect(() => {
+    if (ads.length > 0 && currentUser.id) {
+      setAds(prev => prev.map(ad => {
+        const sessionKey = `ad_reaction_${ad.id}_${currentUser.id}`;
+        const sessionReactions = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
+        
+        if (sessionReactions.length > 0) {
+          // Merge session reactions with existing userReactions
+          const mergedUserReactions = Array.from(new Set([...(ad.userReactions || []), ...sessionReactions]));
+          
+          // Update reaction counts for session reactions
+          const updatedReactions = { ...ad.reactions };
+          sessionReactions.forEach((emoji: string) => {
+            if (!(ad.userReactions || []).includes(emoji)) {
+              updatedReactions[emoji] = (updatedReactions[emoji] || 0) + 1;
+            }
+          });
+          
+          return {
+            ...ad,
+            reactions: updatedReactions,
+            userReactions: mergedUserReactions
+          };
+        }
+        
+        return ad;
+      }));
+    }
+  }, [ads.length, currentUser.id]);
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -700,6 +752,117 @@ const App: React.FC = () => {
           return { ...p, comments: newComments };
         }
         return p;
+      }));
+    }
+  }, [currentUser.id]);
+
+  const handleAdReaction = useCallback(async (adId: string, emoji: string) => {
+    // Optimistic update
+    setAds(prev => prev.map(ad => {
+      if (ad.id === adId) {
+        const newReactions = { ...ad.reactions };
+        const newUserReactions = [...(ad.userReactions || [])];
+
+        if (newUserReactions.includes(emoji)) {
+          newReactions[emoji] = Math.max(0, (newReactions[emoji] || 0) - 1);
+          const index = newUserReactions.indexOf(emoji);
+          newUserReactions.splice(index, 1);
+          if (newReactions[emoji] === 0) {
+            delete newReactions[emoji];
+          }
+        } else {
+          newReactions[emoji] = (newReactions[emoji] || 0) + 1;
+          newUserReactions.push(emoji);
+        }
+
+        // Store ad reaction in session storage
+        const sessionKey = `ad_reaction_${adId}_${currentUser.id}`;
+        const sessionReactions = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
+        if (newUserReactions.includes(emoji)) {
+          if (!sessionReactions.includes(emoji)) {
+            sessionReactions.push(emoji);
+          }
+        } else {
+          const idx = sessionReactions.indexOf(emoji);
+          if (idx > -1) {
+            sessionReactions.splice(idx, 1);
+          }
+        }
+        sessionStorage.setItem(sessionKey, JSON.stringify(sessionReactions));
+
+        return { ...ad, reactions: newReactions, userReactions: newUserReactions };
+      }
+      return ad;
+    }));
+
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const res = await fetch(`${API_BASE_URL}/ads/${adId}/react`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        credentials: 'include',
+        body: JSON.stringify({ reaction: emoji, userId: currentUser.id })
+      });
+      
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to react to ad');
+      }
+
+      // Update with server response to ensure consistency
+      if (data.data) {
+        setAds(prev => prev.map(ad => {
+          if (ad.id === adId) {
+            return {
+              ...ad,
+              reactions: data.data.reactions || {},
+              userReactions: data.data.userReactions || []
+            };
+          }
+          return ad;
+        }));
+      }
+    } catch (e) {
+      console.error('Ad reaction failed, rolling back:', e);
+      // Rollback optimistic update
+      setAds(prev => prev.map(ad => {
+        if (ad.id === adId) {
+          const newReactions = { ...ad.reactions };
+          const newUserReactions = [...(ad.userReactions || [])];
+          
+          if (newUserReactions.includes(emoji)) {
+            newReactions[emoji] = Math.max(0, (newReactions[emoji] || 0) - 1);
+            const index = newUserReactions.indexOf(emoji);
+            newUserReactions.splice(index, 1);
+            if (newReactions[emoji] === 0) {
+              delete newReactions[emoji];
+            }
+          } else {
+            newReactions[emoji] = (newReactions[emoji] || 0) + 1;
+            newUserReactions.push(emoji);
+          }
+
+          // Rollback session storage too
+          const sessionKey = `ad_reaction_${adId}_${currentUser.id}`;
+          const sessionReactions = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
+          if (newUserReactions.includes(emoji)) {
+            if (!sessionReactions.includes(emoji)) {
+              sessionReactions.push(emoji);
+            }
+          } else {
+            const idx = sessionReactions.indexOf(emoji);
+            if (idx > -1) {
+              sessionReactions.splice(idx, 1);
+            }
+          }
+          sessionStorage.setItem(sessionKey, JSON.stringify(sessionReactions));
+
+          return { ...ad, reactions: newReactions, userReactions: newUserReactions };
+        }
+        return ad;
       }));
     }
   }, [currentUser.id]);
@@ -1143,27 +1306,40 @@ const App: React.FC = () => {
             />
           ))}
 
-          {filteredPosts.map(post => (
-            <PostCard
-            key={post.id}
-            post={post}
-            currentUser={currentUser}
-            onReact={(postId, emoji, targetType, commentId) => {
-            if (targetType === 'post') return handleReaction(postId, emoji);
-            if (targetType === 'comment' && commentId) return handleCommentReaction(postId, commentId, emoji);
-            }}
-            onComment={handleComment}
-            onBoost={handleBoost}
-            onShare={(post) => setSharingContent({ content: post.content, url: `post/${post.id}` })}
-            onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
-            onSearchTag={setSearchQuery}
-            onLike={() => {}}
-            onSendConnectionRequest={handleSendConnectionRequest}
-            allUsers={allUsers}
-            onDeletePost={handleDeletePost}
-            onDeleteComment={handleDeleteComment}
-            onLoadComments={(postId, comments) => setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments } : p))}
-            />
+          {filteredPosts.map((post, index) => (
+            <React.Fragment key={post.id}>
+              <PostCard
+                post={post}
+                currentUser={currentUser}
+                onReact={(postId, emoji, targetType, commentId) => {
+                if (targetType === 'post') return handleReaction(postId, emoji);
+                if (targetType === 'comment' && commentId) return handleCommentReaction(postId, commentId, emoji);
+                }}
+                onComment={handleComment}
+                onBoost={handleBoost}
+                onShare={(post) => setSharingContent({ content: post.content, url: `post/${post.id}` })}
+                onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
+                onSearchTag={setSearchQuery}
+                onLike={() => {}}
+                onSendConnectionRequest={handleSendConnectionRequest}
+                allUsers={allUsers}
+                onDeletePost={handleDeletePost}
+                onDeleteComment={handleDeleteComment}
+                onLoadComments={(postId, comments) => setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments } : p))}
+              />
+              
+              {/* Insert ads every 3 posts */}
+              {(index + 1) % 3 === 0 && ads.length > 0 && (
+                <AdCard
+                  key={`ad-${Math.floor(index / 3) % ads.length}`}
+                  ad={ads[Math.floor(index / 3) % ads.length]}
+                  onReact={handleAdReaction}
+                  onShare={(ad) => setSharingContent({ content: ad.headline, url: `ad/${ad.id}` })}
+                  onSearchTag={setSearchQuery}
+                  onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
+                />
+              )}
+            </React.Fragment>
           ))}
         </div>
       )}

@@ -272,13 +272,30 @@ const App: React.FC = () => {
     setIsDarkMode(!isDarkMode);
   };
 
-  const handlePost = (content: string, mediaUrl?: string, mediaType?: any, taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => {
-    const newPost: Post = {
-      id: `p-${Date.now()}`, author: currentUser, content, mediaUrl, mediaType, energy: energy || EnergyType.NEUTRAL,
-      taggedUserIds: taggedUserIds || [],
-      radiance: 0, timestamp: Date.now(), reactions: {}, comments: [], userReactions: [], isBoosted: false
-    };
-    setPosts([newPost, ...posts]);
+  const handlePost = async (content: string, mediaUrl?: string, mediaType?: any, taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => {
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const res = await fetch(`${API_BASE_URL}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        credentials: 'include' as RequestCredentials,
+        body: JSON.stringify({ content, mediaUrl, mediaType, energy, authorId: currentUser.id })
+      });
+      const data = await res.json().catch(() => ({} as any));
+      if (!res.ok || !data?.success || !data?.data) {
+        console.error('Create post failed', { status: res.status, body: data });
+        alert('Failed to create post.');
+        return;
+      }
+      const createdPost: Post = data.data;
+      setPosts([createdPost, ...posts]);
+    } catch (e) {
+      console.error('Error creating post:', e);
+      alert('Network error while creating post.');
+    }
   };
 
   const handleTimeCapsule = useCallback((data: any) => {
@@ -384,6 +401,7 @@ const App: React.FC = () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || (data && data.success === false)) {
+        console.error('Delete post failed', { status: res.status, body: data, postId });
         throw new Error((data && data.message) || 'Failed to delete');
       }
     } catch (e) {

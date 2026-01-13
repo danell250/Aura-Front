@@ -1492,6 +1492,7 @@ const App: React.FC = () => {
             allUsers={allUsers}
             onTimeCapsule={handleTimeCapsule}
             onGenerateAIContent={handleGenerateAIContent}
+            onCreateAd={() => setShowAdManager(true)}
           />
 
           <FeedFilters

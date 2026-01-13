@@ -115,6 +115,7 @@ export interface Ad {
   status: 'active' | 'cancelled';
   expiryDate?: number;
   subscriptionTier?: string;
+  subscriptionId?: string; // Link to AdSubscription
   reactions?: Record<string, number>;
   reactionUsers?: Record<string, string[]>;
   userReactions?: string[];
@@ -134,6 +135,22 @@ export interface AdPackage {
   idealFor: string;
   paymentType?: 'one-time' | 'subscription';
   subscriptionPlanId?: string;
+}
+
+export interface AdSubscription {
+  id: string;
+  userId: string;
+  packageId: string;
+  packageName: string;
+  status: 'active' | 'cancelled' | 'expired';
+  startDate: number;
+  endDate?: number;
+  nextBillingDate?: number;
+  paypalSubscriptionId?: string;
+  adsUsed: number;
+  adLimit: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface Notification {

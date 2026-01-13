@@ -5,6 +5,7 @@ import { AdPackage, Ad, User } from '../types';
 import AdCard from './AdCard';
 import SubscriptionManager from './SubscriptionManager';
 import { subscriptionService } from '../services/subscriptionService';
+import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
 
 declare global {
   interface Window {
@@ -24,6 +25,8 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const [tab, setTab] = useState<'create' | 'manage' | 'subscriptions'>('create');
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Select, 2: Pay, 3: Create
   const [selectedPkg, setSelectedPkg] = useState<AdPackage | null>(null);
+  const [selectedSubscription, setSelectedSubscription] = useState<AdSubscription | null>(null);
+  const [activeSubscriptions, setActiveSubscriptions] = useState<AdSubscription[]>([]);
   const [isPaying, setIsPaying] = useState(false);
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
@@ -47,6 +50,20 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   });
 
   const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
+
+  // Load active subscriptions on component mount
+  useEffect(() => {
+    loadActiveSubscriptions();
+  }, [currentUser.id]);
+
+  const loadActiveSubscriptions = async () => {
+    try {
+      const subscriptions = await adSubscriptionService.getActiveSubscriptions(currentUser.id);
+      setActiveSubscriptions(subscriptions);
+    } catch (error) {
+      console.error('Failed to load active subscriptions:', error);
+    }
+  };
 
   useEffect(() => {
     // Special user: skip payment step entirely when package is selected
@@ -263,22 +280,27 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                 console.log("[Aura] Capturing payment:", data.orderID);
                 await actions.order.capture();
                 
-                // If this was a subscription package, create subscription record
-                if (selectedPkg && selectedPkg.paymentType === 'subscription') {
+                // Create ad subscription record
+                if (selectedPkg) {
                   try {
-                    // Generate a mock subscription ID for demo purposes
-                    const mockSubscriptionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                    
-                    await subscriptionService.createSubscription({
+                    const subscriptionData = {
                       userId: currentUser.id,
-                      planId: selectedPkg.subscriptionPlanId || selectedPkg.id,
-                      planName: selectedPkg.name,
-                      paypalSubscriptionId: mockSubscriptionId,
-                      amount: selectedPkg.price
-                    });
-                    console.log("[Aura] Subscription record created successfully");
+                      packageId: selectedPkg.id,
+                      packageName: selectedPkg.name,
+                      paypalSubscriptionId: selectedPkg.paymentType === 'subscription' 
+                        ? `sub_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+                        : undefined,
+                      adLimit: selectedPkg.adLimit,
+                      durationDays: selectedPkg.paymentType === 'one-time' ? selectedPkg.durationDays : undefined
+                    };
+                    
+                    await adSubscriptionService.createSubscription(subscriptionData);
+                    console.log("[Aura] Ad subscription record created successfully");
+                    
+                    // Reload active subscriptions
+                    await loadActiveSubscriptions();
                   } catch (error) {
-                    console.error("[Aura] Failed to create subscription record:", error);
+                    console.error("[Aura] Failed to create ad subscription record:", error);
                     // Continue anyway - the payment was successful
                   }
                 }
@@ -383,7 +405,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
     }
   };
 
-  const handleBroadcast = () => {
+  const handleBroadcast = async () => {
     if (!form.headline || !form.description) {
       alert("Neural signal incomplete.");
       return;
@@ -394,16 +416,29 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
       return;
     }
 
-    // Check ad limit (skip for special user)
+    // For non-special users, check if they have an active subscription with available slots
     if (!isSpecialUser) {
-      const userActiveAds = ads.filter(a => {
-        if (a.ownerId !== currentUser.id || a.status !== 'active') return false;
-        // Also check if ad has expired
-        if (a.expiryDate && a.expiryDate < Date.now()) return false;
-        return true;
-      });
-      if (userActiveAds.length >= selectedPkg.adLimit) {
-        alert(`You have reached the limit of ${selectedPkg.adLimit} active ads for ${selectedPkg.name}. Please cancel an existing ad first.`);
+      if (!selectedSubscription) {
+        alert("Please select an active subscription to create ads.");
+        return;
+      }
+
+      // Check if subscription has available slots
+      if (selectedSubscription.adsUsed >= selectedSubscription.adLimit) {
+        alert(`You have reached the limit of ${selectedSubscription.adLimit} ads for this subscription. Please purchase a new package or wait for renewal.`);
+        return;
+      }
+
+      try {
+        // Use an ad slot from the subscription
+        await adSubscriptionService.useAdSlot(selectedSubscription.id);
+        console.log("Ad slot used successfully");
+        
+        // Reload active subscriptions to update the UI
+        await loadActiveSubscriptions();
+      } catch (error) {
+        console.error("Failed to use ad slot:", error);
+        alert("Failed to use ad slot. Please try again.");
         return;
       }
     }
@@ -427,7 +462,8 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
       placement: 'feed',
       status: 'active',
       subscriptionTier: selectedPkg.name,
-      expiryDate: expiryDate
+      expiryDate: expiryDate,
+      subscriptionId: selectedSubscription?.id // Link ad to subscription
     };
 
     onAdCreated(finalAd);
@@ -488,31 +524,97 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
             </div>
 
             {step === 1 && (
-              <div className="grid md:grid-cols-3 gap-8 pb-10">
-                {AD_PACKAGES.map(pkg => (
-                  <div key={pkg.id} className="bg-slate-50 dark:bg-slate-800 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-700 flex flex-col justify-between group hover:border-emerald-400 transition-all hover:shadow-2xl hover:-translate-y-2 relative overflow-hidden">
-                    <div className={`absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r ${pkg.gradient}`}></div>
-                    {pkg.paymentType === 'subscription' && (
-                      <div className="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">
-                        Subscription
-                      </div>
-                    )}
-                    <div>
-                      <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{pkg.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-2 mb-2 tracking-[0.2em]">{pkg.subtitle}</p>
-                      <p className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 mb-6 tracking-widest">Ideal for: {pkg.idealFor}</p>
-                      <p className="text-2xl font-black text-slate-900 dark:text-white mb-10">{pkg.price}</p>
-                      <ul className="space-y-4 mb-10">
-                        {pkg.features.map((f, i) => <li key={i} className="text-[10px] font-black text-slate-600 dark:text-slate-400 flex items-center gap-3 uppercase tracking-wide">
-                          <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> {f}
-                        </li>)}
-                      </ul>
+              <div className="pb-10">
+                {/* Show active subscriptions first if user has any */}
+                {!isSpecialUser && activeSubscriptions.length > 0 && (
+                  <div className="mb-12">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-6">Use Existing Subscription</h3>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                      {activeSubscriptions.map(subscription => (
+                        <div 
+                          key={subscription.id} 
+                          className={`bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border-2 transition-all cursor-pointer hover:shadow-lg ${
+                            selectedSubscription?.id === subscription.id 
+                              ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' 
+                              : 'border-slate-200 dark:border-slate-700 hover:border-emerald-300'
+                          }`}
+                          onClick={() => {
+                            setSelectedSubscription(subscription);
+                            // Find the matching package for this subscription
+                            const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === subscription.packageId);
+                            if (matchingPkg) {
+                              setSelectedPkg(matchingPkg);
+                              setPaymentVerified(true);
+                              setStep(3);
+                            }
+                          }}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <h4 className="text-lg font-black text-slate-900 dark:text-white">{subscription.packageName}</h4>
+                            <span className="text-xs font-bold px-2 py-1 bg-emerald-500 text-white rounded-full">
+                              {subscription.status}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              <span className="font-semibold">{subscription.adLimit - subscription.adsUsed}</span> ads remaining
+                            </p>
+                            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                              <div 
+                                className="bg-emerald-500 h-2 rounded-full transition-all" 
+                                style={{ width: `${((subscription.adLimit - subscription.adsUsed) / subscription.adLimit) * 100}%` }}
+                              ></div>
+                            </div>
+                            {subscription.endDate && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Expires: {new Date(subscription.endDate).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <button onClick={() => { setSelectedPkg(pkg); setStep(2); setShowPayPal(false); }} className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all">
-                      {pkg.paymentType === 'subscription' ? 'Start Subscription' : 'Select Tier'}
-                    </button>
+                    <div className="text-center">
+                      <div className="inline-flex items-center gap-4 text-slate-400 dark:text-slate-500">
+                        <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+                        <span className="text-xs font-bold uppercase tracking-widest">Or Purchase New Package</span>
+                        <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                )}
+
+                <div className="grid md:grid-cols-3 gap-8">
+                  {AD_PACKAGES.map(pkg => (
+                    <div key={pkg.id} className="bg-slate-50 dark:bg-slate-800 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-700 flex flex-col justify-between group hover:border-emerald-400 transition-all hover:shadow-2xl hover:-translate-y-2 relative overflow-hidden">
+                      <div className={`absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r ${pkg.gradient}`}></div>
+                      {pkg.paymentType === 'subscription' && (
+                        <div className="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">
+                          Subscription
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{pkg.name}</h4>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase mt-2 mb-2 tracking-[0.2em]">{pkg.subtitle}</p>
+                        <p className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 mb-6 tracking-widest">Ideal for: {pkg.idealFor}</p>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white mb-10">{pkg.price}</p>
+                        <ul className="space-y-4 mb-10">
+                          {pkg.features.map((f, i) => <li key={i} className="text-[10px] font-black text-slate-600 dark:text-slate-400 flex items-center gap-3 uppercase tracking-wide">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> {f}
+                          </li>)}
+                        </ul>
+                      </div>
+                      <button onClick={() => { 
+                        setSelectedPkg(pkg); 
+                        setSelectedSubscription(null); // Clear any selected subscription
+                        setStep(2); 
+                        setShowPayPal(false); 
+                      }} className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all">
+                        {pkg.paymentType === 'subscription' ? 'Start Subscription' : 'Select Tier'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

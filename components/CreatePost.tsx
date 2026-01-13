@@ -13,6 +13,7 @@ interface CreatePostProps {
   onPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video' | 'document', taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => void;
   onTimeCapsule: (data: TimeCapsuleData) => void;
   onGenerateAIContent: (prompt: string) => Promise<string>;
+  onCreateAd?: () => void; // New prop for opening ad manager
   currentUser: User;
   allUsers: User[];
 }
@@ -34,7 +35,7 @@ const ActionButton = ({ icon, label, onClick, color, isSpecial }: any) => (
   </button>
 );
 
-const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenerateAIContent, currentUser, allUsers }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenerateAIContent, onCreateAd, currentUser, allUsers }) => {
   const [content, setContent] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isProcessingMedia, setIsProcessingMedia] = useState(false);
@@ -269,6 +270,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenera
                 <ActionButton onClick={() => docInputRef.current?.click()} icon="📎" label="File" color="text-green-600" />
                 <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
                 <ActionButton onClick={handleTimeCapsuleClick} icon="⏰" label="Time Capsule" color="text-purple-600" isSpecial={true} />
+                {onCreateAd && (
+                  <ActionButton onClick={onCreateAd} icon="📢" label="Create Ad" color="text-orange-600" isSpecial={true} />
+                )}
                 <div className="relative" ref={emojiPickerRef}>
                   <ActionButton onClick={() => setShowEmojiPicker(!showEmojiPicker)} icon="😄" label="Emoji" color="text-yellow-600" />
                   {showEmojiPicker && (

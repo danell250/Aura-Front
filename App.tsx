@@ -22,6 +22,7 @@ import { UserService } from './services/userService';
 import { SearchResult } from './services/searchService';
 import { MessageService } from './services/messageService';
 import { CommentService } from './services/commentService';
+import AIContentGenerator from './components/AIContentGenerator';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -51,12 +52,14 @@ const App: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAdManagerOpen, setIsAdManagerOpen] = useState(false);
   const [isCreditStoreOpen, setIsCreditStoreOpen] = useState(false);
+  const [isAIContentGeneratorOpen, setIsAIContentGeneratorOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [messagePulse, setMessagePulse] = useState(false);
   const prevUnreadRef = React.useRef(0);
+  const [aiSetPostContent, setAiSetPostContent] = useState<(content: string) => void>(() => () => {});
 
   const [view, setView] = useState<{ type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string }>({ type: 'feed' });
 
@@ -264,6 +267,21 @@ const App: React.FC = () => {
 
     return () => {
       clearInterval(syncInterval);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleOpenAI = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      setIsAIContentGeneratorOpen(true);
+      if (detail.setPostContent) {
+        setAiSetPostContent(() => detail.setPostContent);
+        (window as any).setPostContent = detail.setPostContent;
+      }
+    };
+    window.addEventListener('openAIContentGenerator', handleOpenAI as EventListener);
+    return () => {
+      window.removeEventListener('openAIContentGenerator', handleOpenAI as EventListener);
     };
   }, []);
 
@@ -1059,12 +1077,26 @@ const App: React.FC = () => {
 
       if (result.success) {
         console.log('✅ Connection request sent successfully');
+        
+        // Update local state to show request was sent
+        const updatedUser = {
+          ...currentUser,
+          sentAcquaintanceRequests: [...(currentUser.sentAcquaintanceRequests || []), targetUserId]
+        };
+        setCurrentUser(updatedUser);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+        
+        // Update all users list
+        setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+        
         // The backend will create the notification for the target user
       } else {
         console.warn('⚠️ Failed to send connection request:', result.error);
+        alert('Failed to send connection request. Please try again.');
       }
     } catch (error) {
       console.error('❌ Error sending connection request:', error);
+      alert('Network error while sending connection request.');
     }
   }, [currentUser]);
 
@@ -1396,7 +1428,7 @@ const App: React.FC = () => {
           onShare={(post) => setSharingContent({ content: post.content, url: `post/${post.id}` })}
           onSendConnectionRequest={handleSendConnectionRequest}
           onRemoveAcquaintance={handleRemoveAcquaintance}
-          onAddAcquaintance={() => {}}
+          onAddAcquaintance={(user) => handleSendConnectionRequest(user.id)}
           onSearchTag={setSearchQuery}
           onLike={() => {}}
           onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
@@ -1441,6 +1473,14 @@ const App: React.FC = () => {
         }
       }} bundles={CREDIT_BUNDLES} />}
       {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} onClose={() => setSharingContent(null)} />}
+      <AIContentGenerator
+        isOpen={isAIContentGeneratorOpen}
+        onClose={() => setIsAIContentGeneratorOpen(false)}
+        onGenerate={handleGenerateAIContent}
+        onUseContent={(content: string) => {
+          if (aiSetPostContent) aiSetPostContent(content);
+        }}
+      />
     </Layout>
   );
 };

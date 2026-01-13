@@ -1,4 +1,5 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api/gemini` : '/api/gemini';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
+const BACKEND_URL = `${API_BASE_URL}/gemini`;
 
 export const geminiService = {
   async generatePostInspiration(topic: string) {
@@ -6,6 +7,7 @@ export const geminiService = {
       const response = await fetch(`${BACKEND_URL}/inspiration`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({ topic }),
       });
       if (!response.ok) throw new Error('Backend error');
@@ -22,6 +24,7 @@ export const geminiService = {
       const response = await fetch(`${BACKEND_URL}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({ postContent }),
       });
       if (!response.ok) throw new Error('Backend error');
@@ -70,6 +73,7 @@ export const geminiService = {
       const response = await fetch(`${BACKEND_URL}/content`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({ prompt }),
       });
       if (!response.ok) throw new Error('Backend error');

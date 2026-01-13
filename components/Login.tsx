@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { APP_NAME } from '../constants';
 import { User } from '../types';
 import Logo from './Logo';
+import TermsAndConditions from './TermsAndConditions';
+import PrivacyPolicy from './PrivacyPolicy';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
 
@@ -38,6 +40,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
   const [mode, setMode] = useState<LoginMode>('login_selection');
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   
   const [formData, setFormData] = useState({
     identifier: '',
@@ -162,6 +166,27 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
               <div className="mt-12 text-center pt-8 border-t border-slate-100 dark:border-slate-800">
                 <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-4">Don't have an account yet?</p>
                 <button onClick={() => {}} className="text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest hover:underline underline-offset-8 transition-all">Sign up</button>
+                
+                {/* Terms & Conditions and Privacy Policy */}
+                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+                  <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
+                    By logging in, you agree to Aura's{' '}
+                    <button 
+                      onClick={() => setShowTerms(true)}
+                      className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-4 transition-colors"
+                    >
+                      Terms & Conditions
+                    </button>
+                    {' '}and{' '}
+                    <button 
+                      onClick={() => setShowPrivacy(true)}
+                      className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-4 transition-colors"
+                    >
+                      Privacy Policy
+                    </button>
+                    .
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -216,6 +241,27 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
                 >
                   ← Back to Options
                 </button>
+                
+                {/* Terms & Conditions and Privacy Policy */}
+                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
+                  <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
+                    By logging in, you agree to Aura's{' '}
+                    <button 
+                      onClick={() => setShowTerms(true)}
+                      className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-4 transition-colors"
+                    >
+                      Terms & Conditions
+                    </button>
+                    {' '}and{' '}
+                    <button 
+                      onClick={() => setShowPrivacy(true)}
+                      className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-4 transition-colors"
+                    >
+                      Privacy Policy
+                    </button>
+                    .
+                  </p>
+                </div>
               </div>
             </form>
           )}
@@ -276,6 +322,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
         
         <p className="text-center mt-12 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.5em] animate-pulse">{APP_NAME} © 2024</p>
       </div>
+
+      {/* Terms & Conditions Modal */}
+      {showTerms && <TermsAndConditions onClose={() => setShowTerms(false)} />}
+      
+      {/* Privacy Policy Modal */}
+      {showPrivacy && <PrivacyPolicy onClose={() => setShowPrivacy(false)} />}
     </div>
   );
 };

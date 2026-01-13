@@ -1,6 +1,6 @@
 import { Notification } from '../types';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
 
 export class NotificationService {
   /**
@@ -10,14 +10,13 @@ export class NotificationService {
     try {
       const params = new URLSearchParams();
       if (unreadOnly) params.append('unreadOnly', 'true');
-      
-      const url = `${BACKEND_URL}/notifications/user/${userId}${params.toString() ? '?' + params.toString() : ''}`;
-      
+      const url = `${API_BASE_URL}/notifications/user/${userId}${params.toString() ? '?' + params.toString() : ''}`;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include' as RequestCredentials
       });
 
       if (response.ok) {
@@ -66,11 +65,12 @@ export class NotificationService {
    */
   static async markAllAsRead(userId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/notifications/user/${userId}/read-all`, {
+      const response = await fetch(`${API_BASE_URL}/notifications/user/${userId}/read-all`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include' as RequestCredentials
       });
 
       if (response.ok) {
@@ -121,7 +121,7 @@ export class NotificationService {
     connectionId?: string
   ): Promise<{ success: boolean; data?: Notification; error?: string }> {
     try {
-      const response = await fetch(`${BACKEND_URL}/notifications`, {
+      const response = await fetch(`${API_BASE_URL}/notifications`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +133,8 @@ export class NotificationService {
           message,
           postId,
           connectionId
-        })
+        }),
+        credentials: 'include' as RequestCredentials
       });
 
       if (response.ok) {

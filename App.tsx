@@ -187,8 +187,27 @@ const App: React.FC = () => {
         });
         const result = await resp.json().catch(() => ({} as any));
         if (resp.ok && result?.success && Array.isArray(result.data)) {
-          setPosts(result.data.map((p: Post) => ({ ...p, comments: p.comments || [] })));
-          try { localStorage.setItem(POSTS_KEY, JSON.stringify(result.data)); } catch {}
+          const serverPosts = result.data.map((p: Post) => ({ ...p, comments: p.comments || [] }));
+          setPosts(serverPosts);
+          try { localStorage.setItem(POSTS_KEY, JSON.stringify(serverPosts)); } catch {}
+          
+          // Clean up any orphaned session reactions for posts that no longer exist
+          const serverPostIds = new Set(serverPosts.map((p: Post) => p.id));
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key && key.startsWith('reaction_') && key.includes(currentUser.id)) {
+              const postId = key.split('_')[1];
+              if (postId && !serverPostIds.has(postId)) {
+                keysToRemove.push(key);
+              }
+            }
+            if (key && key.startsWith('comment_reaction_') && key.includes(currentUser.id)) {
+              keysToRemove.push(key); // Clean up comment reactions too for simplicity
+            }
+          }
+          keysToRemove.forEach(key => sessionStorage.removeItem(key));
+          
         } else {
           console.warn('Backend posts fetch failed, falling back to local', { status: resp.status, body: result });
           setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
@@ -309,6 +328,68 @@ const App: React.FC = () => {
   useEffect(() => { if (posts.length > 0) localStorage.setItem(POSTS_KEY, JSON.stringify(posts)); }, [posts]);
   useEffect(() => { if (ads.length > 0) localStorage.setItem(ADS_KEY, JSON.stringify(ads)); }, [ads]);
 
+  // Restore session reactions when posts are loaded
+  useEffect(() => {
+    if (posts.length > 0 && currentUser.id) {
+      setPosts(prev => prev.map(post => {
+        const sessionKey = `reaction_${post.id}_${currentUser.id}`;
+        const sessionReactions = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
+        
+        // Restore post reactions
+        let updatedPost = { ...post };
+        if (sessionReactions.length > 0) {
+          // Merge session reactions with existing userReactions
+          const mergedUserReactions = Array.from(new Set([...(post.userReactions || []), ...sessionReactions]));
+          
+          // Update reaction counts for session reactions
+          const updatedReactions = { ...post.reactions };
+          sessionReactions.forEach((emoji: string) => {
+            if (!(post.userReactions || []).includes(emoji)) {
+              updatedReactions[emoji] = (updatedReactions[emoji] || 0) + 1;
+            }
+          });
+          
+          updatedPost = {
+            ...post,
+            reactions: updatedReactions,
+            userReactions: mergedUserReactions
+          };
+        }
+        
+        // Restore comment reactions
+        if (post.comments && post.comments.length > 0) {
+          const updatedComments = post.comments.map(comment => {
+            const commentSessionKey = `comment_reaction_${comment.id}_${currentUser.id}`;
+            const commentSessionReactions = JSON.parse(sessionStorage.getItem(commentSessionKey) || '[]');
+            
+            if (commentSessionReactions.length > 0) {
+              const mergedCommentUserReactions = Array.from(new Set([...(comment.userReactions || []), ...commentSessionReactions]));
+              
+              const updatedCommentReactions = { ...comment.reactions };
+              commentSessionReactions.forEach((emoji: string) => {
+                if (!(comment.userReactions || []).includes(emoji)) {
+                  updatedCommentReactions[emoji] = (updatedCommentReactions[emoji] || 0) + 1;
+                }
+              });
+              
+              return {
+                ...comment,
+                reactions: updatedCommentReactions,
+                userReactions: mergedCommentUserReactions
+              };
+            }
+            
+            return comment;
+          });
+          
+          updatedPost = { ...updatedPost, comments: updatedComments };
+        }
+        
+        return updatedPost;
+      }));
+    }
+  }, [posts.length, currentUser.id]);
+
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
   };
@@ -339,28 +420,52 @@ const App: React.FC = () => {
     }
   };
 
-  const handleTimeCapsule = useCallback((data: any) => {
-    const newPost: Post = {
-      id: `tc-${Date.now()}`,
-      author: currentUser,
-      content: data.timeCapsuleTitle ? `${data.timeCapsuleTitle}: ${data.content}` : data.content,
-      mediaUrl: data.mediaUrl,
-      mediaType: data.mediaType,
-      energy: data.energy || EnergyType.NEUTRAL,
-      radiance: 0,
-      timestamp: Date.now(),
-      reactions: {},
-      comments: [],
-      userReactions: [],
-      isBoosted: false,
-      isTimeCapsule: true,
-      unlockDate: data.unlockDate,
-      isUnlocked: Date.now() >= (data.unlockDate || 0),
-      timeCapsuleType: data.timeCapsuleType,
-      invitedUsers: data.invitedUsers,
-      timeCapsuleTitle: data.timeCapsuleTitle
-    };
-    setPosts([newPost, ...posts]);
+  const handleTimeCapsule = useCallback(async (data: any) => {
+    const content = data.timeCapsuleTitle ? `${data.timeCapsuleTitle}: ${data.content}` : data.content;
+    
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const res = await fetch(`${API_BASE_URL}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        credentials: 'include' as RequestCredentials,
+        body: JSON.stringify({ 
+          content,
+          mediaUrl: data.mediaUrl,
+          mediaType: data.mediaType,
+          energy: data.energy || EnergyType.NEUTRAL,
+          authorId: currentUser.id,
+          // Time Capsule specific fields
+          isTimeCapsule: true,
+          unlockDate: data.unlockDate,
+          timeCapsuleType: data.timeCapsuleType,
+          invitedUsers: data.invitedUsers,
+          timeCapsuleTitle: data.timeCapsuleTitle
+        })
+      });
+      const responseData = await res.json().catch(() => ({} as any));
+      if (!res.ok || !responseData?.success || !responseData?.data) {
+        console.error('Create Time Capsule failed', { status: res.status, body: responseData });
+        alert('Failed to create Time Capsule.');
+        return;
+      }
+      const createdPost: Post = {
+        ...responseData.data,
+        isTimeCapsule: true,
+        unlockDate: data.unlockDate,
+        isUnlocked: Date.now() >= (data.unlockDate || 0),
+        timeCapsuleType: data.timeCapsuleType,
+        invitedUsers: data.invitedUsers,
+        timeCapsuleTitle: data.timeCapsuleTitle
+      };
+      setPosts([createdPost, ...posts]);
+    } catch (e) {
+      console.error('Error creating Time Capsule:', e);
+      alert('Network error while creating Time Capsule.');
+    }
   }, [currentUser, posts]);
 
   const handleGenerateAIContent = useCallback(async (prompt: string) => {
@@ -372,16 +477,34 @@ const App: React.FC = () => {
     setPosts(prev => prev.map(p => {
       if (p.id === postId) {
         const newReactions = { ...p.reactions };
-        const newUserReactions = [...p.userReactions];
+        const newUserReactions = [...(p.userReactions || [])];
 
         if (newUserReactions.includes(emoji)) {
           newReactions[emoji] = Math.max(0, (newReactions[emoji] || 0) - 1);
           const index = newUserReactions.indexOf(emoji);
           newUserReactions.splice(index, 1);
+          if (newReactions[emoji] === 0) {
+            delete newReactions[emoji];
+          }
         } else {
           newReactions[emoji] = (newReactions[emoji] || 0) + 1;
           newUserReactions.push(emoji);
         }
+
+        // Store reaction in session storage for persistence until page refresh
+        const sessionKey = `reaction_${postId}_${currentUser.id}`;
+        const sessionReactions = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
+        if (newUserReactions.includes(emoji)) {
+          if (!sessionReactions.includes(emoji)) {
+            sessionReactions.push(emoji);
+          }
+        } else {
+          const idx = sessionReactions.indexOf(emoji);
+          if (idx > -1) {
+            sessionReactions.splice(idx, 1);
+          }
+        }
+        sessionStorage.setItem(sessionKey, JSON.stringify(sessionReactions));
 
         return { ...p, reactions: newReactions, userReactions: newUserReactions };
       }
@@ -404,48 +527,97 @@ const App: React.FC = () => {
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Failed to react');
       }
+
+      // Update with server response to ensure consistency
+      if (data.data) {
+        setPosts(prev => prev.map(p => {
+          if (p.id === postId) {
+            return {
+              ...p,
+              reactions: data.data.reactions || {},
+              userReactions: data.data.userReactions || []
+            };
+          }
+          return p;
+        }));
+      }
     } catch (e) {
       console.error('Reaction failed, rolling back:', e);
       // Rollback by toggling again
       setPosts(prev => prev.map(p => {
         if (p.id === postId) {
           const newReactions = { ...p.reactions };
-          const newUserReactions = [...p.userReactions];
+          const newUserReactions = [...(p.userReactions || [])];
           
           if (newUserReactions.includes(emoji)) {
             newReactions[emoji] = Math.max(0, (newReactions[emoji] || 0) - 1);
             const index = newUserReactions.indexOf(emoji);
             newUserReactions.splice(index, 1);
+            if (newReactions[emoji] === 0) {
+              delete newReactions[emoji];
+            }
           } else {
             newReactions[emoji] = (newReactions[emoji] || 0) + 1;
             newUserReactions.push(emoji);
           }
 
+          // Rollback session storage too
+          const sessionKey = `reaction_${postId}_${currentUser.id}`;
+          const sessionReactions = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
+          if (newUserReactions.includes(emoji)) {
+            if (!sessionReactions.includes(emoji)) {
+              sessionReactions.push(emoji);
+            }
+          } else {
+            const idx = sessionReactions.indexOf(emoji);
+            if (idx > -1) {
+              sessionReactions.splice(idx, 1);
+            }
+          }
+          sessionStorage.setItem(sessionKey, JSON.stringify(sessionReactions));
+
           return { ...p, reactions: newReactions, userReactions: newUserReactions };
         }
         return p;
       }));
-      // Optional: alert user
-      // alert('Failed to update reaction.');
     }
   }, [currentUser.id]);
 
-  const handleCommentReaction = useCallback((postId: string, commentId: string, emoji: string) => {
+  const handleCommentReaction = useCallback(async (postId: string, commentId: string, emoji: string) => {
+    // Optimistic update
     setPosts(prev => prev.map(p => {
       if (p.id === postId) {
         const newComments = p.comments.map(c => {
           if (c.id === commentId) {
             const newReactions = { ...c.reactions };
-            const newUserReactions = [...c.userReactions];
+            const newUserReactions = [...(c.userReactions || [])];
 
             if (newUserReactions.includes(emoji)) {
               newReactions[emoji] = Math.max(0, (newReactions[emoji] || 0) - 1);
               const index = newUserReactions.indexOf(emoji);
               newUserReactions.splice(index, 1);
+              if (newReactions[emoji] === 0) {
+                delete newReactions[emoji];
+              }
             } else {
               newReactions[emoji] = (newReactions[emoji] || 0) + 1;
               newUserReactions.push(emoji);
             }
+
+            // Store comment reaction in session storage
+            const sessionKey = `comment_reaction_${commentId}_${currentUser.id}`;
+            const sessionReactions = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
+            if (newUserReactions.includes(emoji)) {
+              if (!sessionReactions.includes(emoji)) {
+                sessionReactions.push(emoji);
+              }
+            } else {
+              const idx = sessionReactions.indexOf(emoji);
+              if (idx > -1) {
+                sessionReactions.splice(idx, 1);
+              }
+            }
+            sessionStorage.setItem(sessionKey, JSON.stringify(sessionReactions));
 
             return { ...c, reactions: newReactions, userReactions: newUserReactions };
           }
@@ -455,7 +627,82 @@ const App: React.FC = () => {
       }
       return p;
     }));
-  }, []);
+
+    try {
+      // Call backend API for comment reactions
+      const { CommentService } = await import('./services/commentService');
+      const result = await CommentService.reactToComment(commentId, emoji, currentUser.id);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to react to comment');
+      }
+
+      // Update with server response if available
+      if (result.data) {
+        setPosts(prev => prev.map(p => {
+          if (p.id === postId) {
+            const newComments = p.comments.map(c => {
+              if (c.id === commentId) {
+                return {
+                  ...c,
+                  reactions: result.data.reactions || {},
+                  userReactions: result.data.userReactions || []
+                };
+              }
+              return c;
+            });
+            return { ...p, comments: newComments };
+          }
+          return p;
+        }));
+      }
+    } catch (e) {
+      console.error('Comment reaction failed, rolling back:', e);
+      // Rollback optimistic update
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          const newComments = p.comments.map(c => {
+            if (c.id === commentId) {
+              const newReactions = { ...c.reactions };
+              const newUserReactions = [...(c.userReactions || [])];
+
+              if (newUserReactions.includes(emoji)) {
+                newReactions[emoji] = Math.max(0, (newReactions[emoji] || 0) - 1);
+                const index = newUserReactions.indexOf(emoji);
+                newUserReactions.splice(index, 1);
+                if (newReactions[emoji] === 0) {
+                  delete newReactions[emoji];
+                }
+              } else {
+                newReactions[emoji] = (newReactions[emoji] || 0) + 1;
+                newUserReactions.push(emoji);
+              }
+
+              // Rollback session storage too
+              const sessionKey = `comment_reaction_${commentId}_${currentUser.id}`;
+              const sessionReactions = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
+              if (newUserReactions.includes(emoji)) {
+                if (!sessionReactions.includes(emoji)) {
+                  sessionReactions.push(emoji);
+                }
+              } else {
+                const idx = sessionReactions.indexOf(emoji);
+                if (idx > -1) {
+                  sessionReactions.splice(idx, 1);
+                }
+              }
+              sessionStorage.setItem(sessionKey, JSON.stringify(sessionReactions));
+
+              return { ...c, reactions: newReactions, userReactions: newUserReactions };
+            }
+            return c;
+          });
+          return { ...p, comments: newComments };
+        }
+        return p;
+      }));
+    }
+  }, [currentUser.id]);
 
   const handleComment = useCallback(async (postId: string, text: string, parentId?: string) => {
     const optimistic: Comment = { id: `c-${Date.now()}`, author: currentUser, text, timestamp: Date.now(), parentId, reactions: {}, userReactions: [] };
@@ -520,9 +767,11 @@ const App: React.FC = () => {
       alert('You can only delete your own posts.');
       return;
     }
+    
     const prevPosts = posts;
     // Optimistic removal
     setPosts(prev => prev.filter(p => p.id !== postId));
+    
     try {
       const token = localStorage.getItem('aura_auth_token') || '';
       const res = await fetch(`${API_BASE_URL}/posts/${postId}`, {
@@ -534,14 +783,29 @@ const App: React.FC = () => {
         credentials: 'include' as RequestCredentials
       });
       const data = await res.json().catch(() => ({}));
+      
+      // If post not found (404), it might be a local-only post (like old Time Capsules)
+      // In this case, we consider the deletion successful since it's already removed from local state
+      if (res.status === 404) {
+        console.log(`Post ${postId} not found on server, removing from local state only`);
+        // Also clean up any session storage for this post
+        sessionStorage.removeItem(`reaction_${postId}_${currentUser.id}`);
+        return; // Don't rollback, deletion is successful
+      }
+      
       if (!res.ok || (data && data.success === false)) {
         console.error('Delete post failed', { status: res.status, body: data, postId });
         throw new Error((data && data.message) || 'Failed to delete');
       }
+      
+      // Clean up session storage for successfully deleted posts
+      sessionStorage.removeItem(`reaction_${postId}_${currentUser.id}`);
     } catch (e) {
-      // Rollback on failure
-      setPosts(prevPosts);
-      alert('Failed to delete post. Please try again.');
+      // Only rollback if it's not a 404 error
+      if (e instanceof Error && !e.message.includes('404')) {
+        setPosts(prevPosts);
+        alert('Failed to delete post. Please try again.');
+      }
     }
   }, [posts, currentUser.id]);
 

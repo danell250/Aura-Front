@@ -302,6 +302,16 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
             {post.isBoosted && (
               <span className="px-2 py-1 bg-emerald-500 text-white text-[8px] font-bold uppercase rounded-full tracking-wider shadow-sm">Boosted</span>
             )}
+            {post.isTimeCapsule && (
+              <span className={`px-2 py-1 text-[8px] font-bold uppercase rounded-full tracking-wider shadow-sm flex items-center gap-1 ${
+                post.isUnlocked 
+                  ? 'bg-purple-500 text-white' 
+                  : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+              }`}>
+                <span className="text-[10px]">⏰</span>
+                {post.isUnlocked ? 'Unlocked' : 'Time Capsule'}
+              </span>
+            )}
             {/* Show "Just posted" indicator for current user's recent posts (last 5 minutes) */}
             {post.author.id === currentUser.id && (Date.now() - post.timestamp) < (5 * 60 * 1000) && (
               <span className="px-2 py-1 bg-blue-500 text-white text-[8px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Just posted</span>
@@ -320,6 +330,60 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
             )}
           </div>
         </div>
+
+        {/* Time Capsule unlock info */}
+        {post.isTimeCapsule && !post.isUnlocked && post.unlockDate && (
+          <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-2xl">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-2xl">⏰</span>
+              <div>
+                <h3 className="font-bold text-purple-700 dark:text-purple-300 text-sm">Time Capsule Locked</h3>
+                <p className="text-xs text-purple-600 dark:text-purple-400">
+                  Will unlock on {new Date(post.unlockDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+              </div>
+            </div>
+            {post.timeCapsuleTitle && (
+              <p className="text-sm font-medium text-purple-700 dark:text-purple-300 mb-2">
+                "{post.timeCapsuleTitle}"
+              </p>
+            )}
+            <p className="text-xs text-purple-600 dark:text-purple-400">
+              This message is waiting to be revealed to {post.timeCapsuleType === 'group' ? 'the group' : 'you'} in the future.
+            </p>
+          </div>
+        )}
+
+        {/* Unlocked Time Capsule header */}
+        {post.isTimeCapsule && post.isUnlocked && post.unlockDate && (
+          <div className="mb-4 p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border border-purple-200 dark:border-purple-800 rounded-xl">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">✨</span>
+              <div>
+                <p className="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider">
+                  Time Capsule Unlocked
+                </p>
+                {post.timeCapsuleTitle && (
+                  <p className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                    "{post.timeCapsuleTitle}"
+                  </p>
+                )}
+                <p className="text-xs text-purple-500 dark:text-purple-400">
+                  Message from {new Date(post.timestamp).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed mb-6 whitespace-pre-wrap font-medium tracking-tight">{renderContent(post.content)}</div>
 

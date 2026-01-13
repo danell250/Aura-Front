@@ -1516,6 +1516,16 @@ const App: React.FC = () => {
             onGenerateAIContent={handleGenerateAIContent}
             onCreateAd={() => setIsAdManagerOpen(true)}
           />
+          
+          {/* Debug info - remove this later */}
+          <div className="bg-yellow-100 dark:bg-yellow-900/20 p-4 rounded-lg text-sm">
+            <strong>Debug Info:</strong> {ads.length} ads loaded, {filteredPosts.length} posts
+            {ads.length > 0 && (
+              <div className="mt-2">
+                <strong>Ads:</strong> {ads.map(ad => ad.headline).join(', ')}
+              </div>
+            )}
+          </div>
 
           <FeedFilters
             activeMediaType={activeMediaType}
@@ -1542,7 +1552,13 @@ const App: React.FC = () => {
             />
           ))}
 
-          {filteredPosts.map((post, index) => (
+          {filteredPosts.map((post, index) => {
+            // Debug logging
+            if (index === 0) {
+              console.log("🔍 Rendering feed with", filteredPosts.length, "posts and", ads.length, "ads");
+            }
+            
+            return (
             <React.Fragment key={post.id}>
               <PostCard
                 post={post}
@@ -1565,18 +1581,24 @@ const App: React.FC = () => {
               />
               
               {/* Insert ads every 3 posts */}
-              {(index + 1) % 3 === 0 && ads.length > 0 && (
-                <AdCard
-                  key={`ad-${Math.floor(index / 3) % ads.length}`}
-                  ad={ads[Math.floor(index / 3) % ads.length]}
-                  onReact={handleAdReaction}
-                  onShare={(ad) => setSharingContent({ content: ad.headline, url: `${SHARE_BASE_URL}/share/ad/${ad.id}` })}
-                  onSearchTag={setSearchQuery}
-                  onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
-                />
-              )}
+              {(index + 1) % 3 === 0 && ads.length > 0 && (() => {
+                const adIndex = Math.floor(index / 3) % ads.length;
+                const adToShow = ads[adIndex];
+                console.log(`🎯 Inserting ad at position ${index + 1}, ad index: ${adIndex}, ad:`, adToShow);
+                return (
+                  <AdCard
+                    key={`ad-${adIndex}`}
+                    ad={adToShow}
+                    onReact={handleAdReaction}
+                    onShare={(ad) => setSharingContent({ content: ad.headline, url: `${SHARE_BASE_URL}/share/ad/${ad.id}` })}
+                    onSearchTag={setSearchQuery}
+                    onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
+                  />
+                );
+              })()}
             </React.Fragment>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1626,8 +1648,21 @@ const App: React.FC = () => {
 
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
       {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={async (ad) => {
+        console.log("🎯 onAdCreated called with ad:", ad);
+        
+        // Add to local state immediately for better UX
+        setAds(prev => {
+          console.log("📝 Adding ad to local state. Previous ads:", prev.length);
+          const newAds = [ad, ...prev];
+          console.log("📝 New ads array length:", newAds.length);
+          return newAds;
+        });
+        
+        // Try to save to backend
         try {
           const token = localStorage.getItem('aura_auth_token') || '';
+          console.log("🔐 Using auth token:", token ? "Present" : "Missing");
+          
           const response = await fetch(`${API_BASE_URL}/ads`, {
             method: 'POST',
             headers: {
@@ -1636,16 +1671,24 @@ const App: React.FC = () => {
             },
             body: JSON.stringify(ad)
           });
+          
+          console.log("📡 Backend response status:", response.status);
           const result = await response.json();
+          console.log("📡 Backend response:", result);
+          
           if (result.success) {
-            setAds(prev => [result.data, ...prev]);
+            console.log("✅ Ad saved to backend successfully");
+            // Update local state with backend response (in case backend modified the ad)
+            setAds(prev => prev.map(a => a.id === ad.id ? result.data : a));
             return true;
           } else {
-             console.error('Failed to create ad on backend:', result.error);
+             console.error('❌ Failed to create ad on backend:', result.error);
+             // Keep the ad in local state even if backend fails
              return false;
           }
         } catch (error) {
-          console.error('Failed to save ad to backend:', error);
+          console.error('❌ Failed to save ad to backend:', error);
+          // Keep the ad in local state even if backend fails
           return false;
         }
       }} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}

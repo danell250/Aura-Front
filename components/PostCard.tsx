@@ -180,7 +180,8 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   };
 
   const renderComment = (comment: Comment, isNested = false) => {
-    const replies = post.comments.filter(c => c.parentId === comment.id);
+    const comments = post.comments || [];
+    const replies = comments.filter(c => c.parentId === comment.id);
     const isReplying = replyingTo === comment.id;
     const isEmojiPickerActive = activeCommentEmojiPicker === comment.id;
     
@@ -356,9 +357,9 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
               </button>
               <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-2 transition-all group/comments ${showComments ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-indigo-600'}`}>
                 <span className={`text-xl transition-transform ${showComments ? 'scale-110' : 'group-hover/comments:scale-110'}`}>💬</span>
-                <span className="text-xs font-bold uppercase tracking-wider">{post.comments.length}</span>
-              </button>
-           </div>
+            <span className="text-xs font-bold uppercase tracking-wider">{comments.length}</span>
+          </button>
+       </div>
            
            <div className="flex items-center gap-2">
              <button onClick={handleBoostClick} className="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-2 rounded-xl hover:bg-emerald-600 hover:text-white transition-all">Boost</button>

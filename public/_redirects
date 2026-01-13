@@ -1,0 +1,6 @@
+/post/*    /index.html   200
+/profile/*  /index.html   200
+/chat/*     /index.html   200
+/acquaintances/* /index.html   200
+/data-aura  /index.html   200
+/*    /index.html   200

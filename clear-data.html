@@ -1,0 +1,20 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Aura Data</title>
+</head>
+<body>
+    <h1>Clearing Aura Data...</h1>
+    <script>
+        localStorage.removeItem('aura_posts_data');
+        localStorage.removeItem('aura_ads_data');
+        localStorage.removeItem('aura_all_users');
+        localStorage.removeItem('aura_user_session');
+        localStorage.removeItem('aura_theme');
+        console.log('All Aura data cleared');
+        alert('Data cleared! Refresh the app to see dummy data.');
+        window.location.href = '/';
+    </script>
+</body>
+</html>

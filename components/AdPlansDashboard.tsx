@@ -34,20 +34,35 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
     }
   };
 
-  // Get package details for a subscription
   const getPackageDetails = (packageId: string) => {
     return AD_PACKAGES.find(pkg => pkg.id === packageId);
   };
 
-  // Calculate metrics
+  const userAds = ads.filter(ad => ad.ownerId === user.id && ad.status === 'active');
+  const hasSubscriptions = adSubscriptions.length > 0;
+  const hasAds = userAds.length > 0;
+
   const totalActiveSubscriptions = adSubscriptions.filter(s => s.status === 'active').length;
-  const totalAdsAvailable = adSubscriptions.filter(s => s.status === 'active').reduce((sum, s) => sum + (s.adLimit - s.adsUsed), 0);
-  const totalAdsCreated = adSubscriptions.reduce((sum, s) => sum + s.adsUsed, 0);
-  const totalPotentialReach = adSubscriptions.filter(s => s.status === 'active').reduce((sum, s) => sum + (s.adLimit * 100), 0);
+  const totalAdsAvailable = adSubscriptions
+    .filter(s => s.status === 'active')
+    .reduce((sum, s) => sum + (s.adLimit - s.adsUsed), 0);
+  const totalAdsCreatedFromSubscriptions = adSubscriptions.reduce((sum, s) => sum + s.adsUsed, 0);
+  const totalPotentialReach = adSubscriptions
+    .filter(s => s.status === 'active')
+    .reduce((sum, s) => sum + (s.adLimit * 100), 0);
+
+  const totalActiveAds = userAds.length;
+
+  const nextExpiringAd = userAds
+    .filter(ad => ad.expiryDate)
+    .sort((a, b) => (a.expiryDate || 0) - (b.expiryDate || 0))[0];
+
+  const daysToNextAdExpiry = nextExpiringAd
+    ? Math.max(0, Math.ceil(((nextExpiringAd.expiryDate as number) - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
 
   return (
     <div className="space-y-6">
-      {/* Dashboard Header */}
       <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-8 text-white">
         <div className="flex items-center justify-between">
           <div className="flex-1">
@@ -71,14 +86,12 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
         </div>
       </div>
 
-      {/* Loading State */}
       {loading ? (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-12 text-center">
           <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-500 dark:text-slate-400">Loading your campaign data...</p>
         </div>
-      ) : adSubscriptions.length === 0 ? (
-        /* No Subscriptions */
+      ) : !hasSubscriptions && !hasAds ? (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-12 text-center">
           <div className="text-6xl mb-6 opacity-30">📣</div>
           <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">No Active Campaigns</h3>
@@ -92,10 +105,117 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
             Launch Your First Campaign
           </button>
         </div>
-      ) : (
-        /* Dashboard Content */
+      ) : !hasSubscriptions && hasAds ? (
         <div className="space-y-6">
-          {/* Summary Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">📡</span>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {totalActiveAds}
+                  </p>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Active Signals
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">🧲</span>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {Math.max(totalActiveAds * 100, 500).toLocaleString()}
+                  </p>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Estimated Reach
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">⏱️</span>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {daysToNextAdExpiry !== null ? daysToNextAdExpiry : '∞'}
+                  </p>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Days To Next Expiry
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 rounded-2xl border border-slate-200 dark:border-slate-600 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                  <span className="text-xl">🚀</span>
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white">Signal Performance</h4>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Overview of your active sponsored posts
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onOpenAdManager}
+                className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl uppercase tracking-widest transition-all"
+              >
+                Manage Signals
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {userAds.slice(0, 4).map(ad => (
+                <div
+                  key={ad.id}
+                  className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-widest text-emerald-500">
+                        Active Signal
+                      </p>
+                      <h5 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2">
+                        {ad.headline}
+                      </h5>
+                    </div>
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300 font-bold uppercase tracking-widest">
+                      {ad.subscriptionTier || 'Custom'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                    {ad.description}
+                  </p>
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                    <span>
+                      Placement: <span className="font-semibold uppercase">{ad.placement}</span>
+                    </span>
+                    <span>
+                      Status:{' '}
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        {ad.status}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
               <div className="flex items-center gap-4">

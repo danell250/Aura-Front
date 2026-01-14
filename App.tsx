@@ -23,6 +23,7 @@ import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from 
 import { UserService } from './services/userService';
 import { geminiService } from './services/gemini';
 import { AdService } from './services/adService';
+import { PostService } from './services/postService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -276,6 +277,34 @@ const App: React.FC = () => {
       syncBirthdays(allUsers);
     }
   }, [isAuthenticated, allUsers, syncBirthdays]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    (async () => {
+      try {
+        const result = await UserService.getAllUsers();
+        if (result.success && result.users) {
+          setAllUsers(result.users);
+        }
+      } catch (error) {
+        console.error('Failed to load users from backend:', error);
+      }
+    })();
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    (async () => {
+      try {
+        const result = await PostService.getAllPosts(1, 100);
+        if (result.success && result.posts) {
+          setPosts(result.posts);
+        }
+      } catch (error) {
+        console.error('Failed to load posts from backend:', error);
+      }
+    })();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const updateTimeCapsules = () => {

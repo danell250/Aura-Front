@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SearchService, SearchResult, SearchFilters } from '../services/searchService';
 import { Post, User, Ad } from '../types';
+import { Avatar } from './MediaDisplay';
 
 interface SearchDropdownProps {
   posts: Post[];
@@ -207,7 +208,18 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
                     selectedIndex === index ? 'bg-slate-50 dark:bg-slate-800' : ''
                   }`}
                 >
-                  <div className="text-lg">{getResultIcon(result.type)}</div>
+                  {result.type === 'user' ? (
+                    <Avatar
+                      src={(result.data as User).avatar}
+                      type={(result.data as User).avatarType}
+                      name={(result.data as User).name}
+                      size="sm"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg">
+                      {getResultIcon(result.type)}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-medium text-slate-900 dark:text-white truncate text-sm">

@@ -38,6 +38,33 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   const [videoError, setVideoError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const videoStreamRef = useRef<MediaStream | null>(null);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [isMicOn, setIsMicOn] = useState(true);
+  const [isCameraOn, setIsCameraOn] = useState(true);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const messagesInitRef = useRef(false);
+  const lastMessageIdRef = useRef<string | null>(null);
+
+  const playMessageSound = () => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioContextRef.current;
+      if (!ctx) return;
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = 'triangle';
+      oscillator.frequency.value = 660;
+      gain.gain.value = 0.08;
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      oscillator.start(now);
+      oscillator.stop(now + 0.12);
+    } catch {
+    }
+  };
 
   const auraAdminUser = useMemo(
     () => allUsers.find(u => (u.email || '').toLowerCase() === AURA_ADMIN_EMAIL),
@@ -47,10 +74,14 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   const handleStartVideoCall = () => {
     if (!activeContact) return;
     setIsVideoCallOpen(true);
+    setIsCallActive(false);
+    setIsMicOn(true);
+    setIsCameraOn(true);
+    setVideoError(null);
   };
 
 
-  // Load conversations and messages from backend
+  // Load conversations and keep them updated
   useEffect(() => {
     const loadConversations = async () => {
       try {
@@ -69,19 +100,41 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
     };
 
     loadConversations();
+
+    const interval = setInterval(loadConversations, 5000);
+    return () => clearInterval(interval);
   }, [currentUser.id]);
 
-  // Load messages when active contact changes
+  // Load messages when active contact changes and keep them updated
   useEffect(() => {
+    let interval: number | undefined;
+
     const loadMessages = async () => {
       if (!activeContact) return;
-      
-      setIsLoading(true);
+
       try {
         const response = await MessageService.getMessages(currentUser.id, activeContact.id);
         if (response.success) {
-          setMessages(response.data);
-          // Mark messages as read
+          setMessages(prev => {
+            const previousLast = prev.length > 0 ? prev[prev.length - 1].id : null;
+            const nextMessages = response.data;
+            const nextLast = nextMessages.length > 0 ? nextMessages[nextMessages.length - 1].id : null;
+            const hasPrevious = messagesInitRef.current;
+            messagesInitRef.current = true;
+            if (
+              hasPrevious &&
+              nextLast &&
+              nextLast !== previousLast &&
+              nextMessages.length > prev.length
+            ) {
+              const lastMessage = nextMessages[nextMessages.length - 1];
+              if (lastMessage.senderId !== currentUser.id) {
+                playMessageSound();
+              }
+            }
+            lastMessageIdRef.current = nextLast;
+            return nextMessages;
+          });
           await MessageService.markAsRead(activeContact.id, currentUser.id);
         }
       } catch (error) {
@@ -91,7 +144,17 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
       }
     };
 
-    loadMessages();
+    if (activeContact) {
+      setIsLoading(true);
+      loadMessages();
+      interval = window.setInterval(loadMessages, 5000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [activeContact, currentUser.id]);
 
 
@@ -101,7 +164,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   }, [messages, activeContact]);
 
   useEffect(() => {
-    if (!isVideoCallOpen) {
+    if (!isCallActive) {
       if (videoStreamRef.current) {
         videoStreamRef.current.getTracks().forEach(track => track.stop());
         videoStreamRef.current = null;
@@ -141,7 +204,41 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
         videoStreamRef.current = null;
       }
     };
-  }, [isVideoCallOpen]);
+  }, [isCallActive]);
+
+  useEffect(() => {
+    if (!videoStreamRef.current) return;
+    const audioTracks = videoStreamRef.current.getAudioTracks();
+    audioTracks.forEach(track => {
+      track.enabled = isMicOn;
+    });
+  }, [isMicOn]);
+
+  useEffect(() => {
+    if (!videoStreamRef.current) return;
+    const videoTracks = videoStreamRef.current.getVideoTracks();
+    videoTracks.forEach(track => {
+      track.enabled = isCameraOn;
+    });
+  }, [isCameraOn]);
+
+  const handleToggleMic = () => {
+    setIsMicOn(prev => !prev);
+  };
+
+  const handleToggleCamera = () => {
+    setIsCameraOn(prev => !prev);
+  };
+
+  const handleAcceptCall = () => {
+    setIsCallActive(true);
+  };
+
+  const handleEndCall = () => {
+    setIsCallActive(false);
+    setIsVideoCallOpen(false);
+    setVideoError(null);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -780,7 +877,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                 </h4>
               </div>
               <button
-                onClick={() => setIsVideoCallOpen(false)}
+                onClick={handleEndCall}
                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 text-slate-300 hover:bg-rose-600 hover:text-white border border-slate-700 hover:border-rose-500 transition-all active:scale-95"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" stroke="currentColor" fill="none">
@@ -804,13 +901,58 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                 </div>
               )}
             </div>
-            <div className="mt-6 flex justify-center">
-              <button
-                onClick={() => setIsVideoCallOpen(false)}
-                className="px-10 py-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black uppercase tracking-[0.3em] shadow-lg shadow-rose-500/40 flex items-center gap-2 active:scale-95 transition-all"
-              >
-                <span>End Call</span>
-              </button>
+            <div className="mt-6 flex flex-col items-center gap-4">
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={handleToggleMic}
+                  disabled={!isCallActive}
+                  className={`w-12 h-12 rounded-full border text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center transition-all ${
+                    isCallActive
+                      ? isMicOn
+                        ? 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500'
+                        : 'bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700'
+                      : 'bg-slate-900 text-slate-600 border-slate-800 cursor-not-allowed'
+                  }`}
+                >
+                  {isMicOn ? 'Mic On' : 'Mic Off'}
+                </button>
+                <button
+                  onClick={handleToggleCamera}
+                  disabled={!isCallActive}
+                  className={`w-12 h-12 rounded-full border text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center transition-all ${
+                    isCallActive
+                      ? isCameraOn
+                        ? 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500'
+                        : 'bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700'
+                      : 'bg-slate-900 text-slate-600 border-slate-800 cursor-not-allowed'
+                  }`}
+                >
+                  {isCameraOn ? 'Cam On' : 'Cam Off'}
+                </button>
+              </div>
+              {isCallActive ? (
+                <button
+                  onClick={handleEndCall}
+                  className="px-10 py-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black uppercase tracking-[0.3em] shadow-lg shadow-rose-500/40 flex items-center gap-2 active:scale-95 transition-all"
+                >
+                  <span>End Call</span>
+                </button>
+              ) : (
+                <div className="flex gap-4">
+                  <button
+                    onClick={handleAcceptCall}
+                    className="px-8 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black uppercase tracking-[0.3em] shadow-lg shadow-emerald-500/40 flex items-center gap-2 active:scale-95 transition-all"
+                  >
+                    <span>Accept</span>
+                  </button>
+                  <button
+                    onClick={handleEndCall}
+                    className="px-8 py-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black uppercase tracking-[0.3em] shadow-lg shadow-rose-500/40 flex items-center gap-2 active:scale-95 transition-all"
+                  >
+                    <span>Decline</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

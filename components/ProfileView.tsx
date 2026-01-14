@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Post, Ad } from '../types';
+import { User, Post, Ad, Comment } from '../types';
 import PostCard from './PostCard';
 import { MediaDisplay, Avatar } from './MediaDisplay';
 import OnlineStatus from './OnlineStatus';
@@ -12,13 +12,14 @@ import { AD_PACKAGES } from '../constants';
 interface ProfileViewProps {
    user: User;
    posts: Post[];
-   ads: Ad[];
-   adRefreshTick?: number;
-   currentUser: User;
-   allUsers: User[];
-   onBack: () => void;
-   onReact: (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => void;
-   onComment: (postId: string, text: string, parentId?: string) => void;
+  ads: Ad[];
+  adRefreshTick?: number;
+  currentUser: User;
+  allUsers: User[];
+  onBack: () => void;
+  onReact: (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => void;
+  onComment: (postId: string, text: string, parentId?: string) => void;
+   onLoadComments: (postId: string, comments: Comment[]) => void;
    onShare: (post: Post) => void;
    onAddAcquaintance: (user: User) => void;
    onRemoveAcquaintance: (userId: string) => void;
@@ -40,7 +41,7 @@ interface ProfileViewProps {
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({
-   user, posts, ads, adRefreshTick, currentUser, allUsers, onBack, onReact, onComment, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager, onCancelAd, onUpdateAd
+   user, posts, ads, adRefreshTick, currentUser, allUsers, onBack, onReact, onComment, onLoadComments, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager, onCancelAd, onUpdateAd
 }) => {
   const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'adplans'>('posts');
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
@@ -344,7 +345,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                         onSearchTag={onSearchTag} 
                         onBoost={onBoostPost} 
                         onDeletePost={onDeletePost} 
-                        onDeleteComment={onDeleteComment} 
+                        onDeleteComment={onDeleteComment}
+                        onLoadComments={onLoadComments}
                       />
                     ))
                   )}

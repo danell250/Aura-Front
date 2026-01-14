@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SearchService, SearchResult, SearchFilters } from '../services/searchService';
 import { PrivacyService } from '../services/privacyService';
 import { Post, User, Ad } from '../types';
+import { Avatar } from './MediaDisplay';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -284,9 +285,19 @@ const SearchModal: React.FC<SearchModalProps> = ({
                   className="w-full text-left p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm group"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-lg group-hover:scale-105 transition-transform duration-200">
-                      {getResultIcon(result.type)}
-                    </div>
+                    {result.type === 'user' ? (
+                      <Avatar
+                        src={(result.data as User).avatar}
+                        type={(result.data as User).avatarType}
+                        name={(result.data as User).name}
+                        size="custom"
+                        className="w-10 h-10 rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-lg group-hover:scale-105 transition-transform duration-200">
+                        {getResultIcon(result.type)}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-bold text-slate-900 dark:text-white truncate">{result.title}</h4>

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Layout from './components/Layout';
 import PostCard from './components/PostCard';
 import CreatePost from './components/CreatePost';
@@ -168,18 +168,32 @@ const App: React.FC = () => {
     try {
       const result = await NotificationService.getNotifications(currentUser.id);
       if (result.success && result.data) {
-        setNotifications(result.data);
+        setNotifications(prev => {
+          const previousIds = prev.map(n => n.id);
+          const previousSet = new Set(previousIds);
+          const currentSet = new Set(result.data.map((n: Notification) => n.id));
+          const hasPrevious = prev.length > 0 || notificationInitRef.current;
+          notificationInitRef.current = true;
+          const hasNew = result.data.some((n: Notification) => !previousSet.has(n.id));
+          const hasRemoved = previousIds.some(id => !currentSet.has(id));
+          if (hasPrevious && hasNew && !hasRemoved) {
+            playAlertSound();
+          }
+          prevNotificationIdsRef.current = currentSet;
+          return result.data;
+        });
       }
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, playAlertSound]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchNotifications();
-    }
-  }, [isAuthenticated, fetchNotifications]);
+    if (!isAuthenticated || !currentUser?.id) return;
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, currentUser?.id, fetchNotifications]);
 
   const fetchUnreadMessages = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -190,20 +204,57 @@ const App: React.FC = () => {
           (sum: number, conv: any) => sum + (typeof conv.unreadCount === 'number' ? conv.unreadCount : 0),
           0
         );
-        setUnreadMessageCount(totalUnread);
+        setUnreadMessageCount(prev => {
+          const previous = messageInitRef.current ? prev : totalUnread;
+          const next = totalUnread;
+          const hasPrevious = messageInitRef.current;
+          messageInitRef.current = true;
+          if (hasPrevious && next > previous) {
+            playAlertSound();
+          }
+          prevUnreadCountRef.current = next;
+          return next;
+        });
         setMessagePulse(totalUnread > 0);
       }
     } catch (error) {
       console.error('Failed to fetch message conversations:', error);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, playAlertSound]);
+
+  const notificationInitRef = useRef(false);
+  const prevNotificationIdsRef = useRef<Set<string> | null>(null);
+  const messageInitRef = useRef(false);
+  const prevUnreadCountRef = useRef(0);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const playAlertSound = useCallback(() => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioContextRef.current;
+      if (!ctx) return;
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 880;
+      gain.gain.value = 0.08;
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      oscillator.start(now);
+      oscillator.stop(now + 0.12);
+    } catch {
+    }
+  }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !currentUser?.id) return;
     fetchUnreadMessages();
-    const interval = setInterval(fetchUnreadMessages, 30000);
+    const interval = setInterval(fetchUnreadMessages, 5000);
     return () => clearInterval(interval);
-  }, [isAuthenticated, fetchUnreadMessages]);
+  }, [isAuthenticated, currentUser?.id, fetchUnreadMessages]);
 
   const syncBirthdays = useCallback(async (users: User[]) => {
     const today = new Date();
@@ -511,9 +562,12 @@ const App: React.FC = () => {
   const handleDeleteComment = useCallback((postId: string, commentId: string) => {
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p;
+      const filteredComments = p.comments.filter(c => c.id !== commentId);
+      const currentCount = p.commentCount ?? p.comments.length;
       return {
         ...p,
-        comments: p.comments.filter(c => c.id !== commentId)
+        comments: filteredComments,
+        commentCount: Math.max(0, currentCount - 1)
       };
     }));
   }, []);
@@ -662,10 +716,6 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
-  const handleGenerateAIContent = useCallback((prompt: string): Promise<string> => {
-    return geminiService.generateContent(prompt);
-  }, []);
-
   const handleSendConnectionRequest = useCallback((targetUserId: string) => {
     // Handle sending connection request
     setAllUsers(prev => prev.map(u => 
@@ -741,7 +791,11 @@ const App: React.FC = () => {
       reactions: {},
       userReactions: []
     };
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, optimisticComment] } : p));
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p;
+      const currentCount = p.commentCount ?? p.comments.length;
+      return { ...p, comments: [...p.comments, optimisticComment], commentCount: currentCount + 1 };
+    }));
 
     try {
       const result = await CommentService.createComment(postId, text, currentUser.id, parentId);
@@ -750,13 +804,40 @@ const App: React.FC = () => {
         setPosts(prev => prev.map(p => {
           if (p.id !== postId) return p;
           const filtered = p.comments.filter(c => c.id !== optimisticComment.id);
-          return { ...p, comments: [...filtered, created] };
+          const updatedComments = [...filtered, created];
+          const currentCount = p.commentCount ?? updatedComments.length;
+          return { ...p, comments: updatedComments, commentCount: currentCount };
         }));
       }
     } catch (error) {
       console.error('Failed to create comment in backend:', error);
     }
   }, [currentUser]);
+
+  const handleLoadComments = useCallback((postId: string, comments: Comment[]) => {
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p;
+      return {
+        ...p,
+        comments,
+        commentCount: comments.length
+      };
+    }));
+  }, []);
+
+  const handleSyncPost = useCallback((updatedPost: Post) => {
+    setPosts(prev => prev.map(p => {
+      if (p.id !== updatedPost.id) return p;
+      const sessionLiked = (p as any).sessionLiked;
+      const radiance = p.radiance;
+      return {
+        ...p,
+        ...updatedPost,
+        radiance,
+        sessionLiked
+      } as Post;
+    }));
+  }, []);
 
   const handleReact = useCallback(async (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => {
     if (targetType === 'post') {
@@ -1056,11 +1137,14 @@ const App: React.FC = () => {
     const activeAds = ads.filter(a => a.status === 'active');
     console.log("📢 Active ads to display:", activeAds.length, activeAds);
     
-    // Sort posts: Boosted first, then timestamp
+    // Sort posts: Newest first by time, then boosted status
     const sortedPosts = [...filteredPosts].sort((a, b) => {
+        if (b.timestamp !== a.timestamp) {
+          return b.timestamp - a.timestamp;
+        }
         if (a.isBoosted && !b.isBoosted) return -1;
         if (!a.isBoosted && b.isBoosted) return 1;
-        return b.timestamp - a.timestamp;
+        return 0;
     });
 
     const combined: (Post | Ad | BirthdayAnnouncement)[] = [];
@@ -1164,10 +1248,11 @@ const App: React.FC = () => {
       onNavigateNotification={handleNavigateNotification}
       unreadMessageCount={unreadMessageCount}
       messagePulse={messagePulse}
+      onSearchTag={setSearchQuery}
     >
       {view.type === 'feed' && (
         <div className="space-y-6">
-          <CreatePost allUsers={allUsers} currentUser={currentUser} onPost={handlePost} onTimeCapsule={handleTimeCapsule} onGenerateAIContent={handleGenerateAIContent} />
+          <CreatePost allUsers={allUsers} currentUser={currentUser} onPost={handlePost} onTimeCapsule={handleTimeCapsule} />
           
           <FeedFilters 
             activeMediaType={activeMediaType}
@@ -1192,8 +1277,8 @@ const App: React.FC = () => {
                 /* Fix: Wrap handleReact to satisfy BirthdayPost's onReact signature requiring only 2 arguments while passing targetType: 'post' internally. */
                 if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} />;
                 return 'content' in item 
-                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => setSharingContent({content: p.content, url: `p/${p.id}`})} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} />
-                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`})} />
+                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => setSharingContent({content: p.content, url: `p/${p.id}`})} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onLoadComments={handleLoadComments} onSyncPost={handleSyncPost} />
+                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`})} onSearchTag={setSearchQuery} />
               })
             )}
           </div>
@@ -1210,6 +1295,7 @@ const App: React.FC = () => {
           onBack={() => navigateToView({ type: 'feed' })}
           onLike={handleLike}
           onComment={handleComment}
+          onLoadComments={handleLoadComments}
           onSendConnectionRequest={handleSendConnectionRequest}
           onReact={handleReact}
           onViewProfile={(id) => navigateToView({ type: 'profile', targetId: id })}

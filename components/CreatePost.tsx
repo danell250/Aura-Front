@@ -7,13 +7,11 @@ import Logo from './Logo';
 import TimeCapsuleModal, { TimeCapsuleData } from './TimeCapsuleModal';
 import TimeCapsuleTutorial from './TimeCapsuleTutorial';
 import { Avatar } from './MediaDisplay';
-import AIContentGenerator from './AIContentGenerator';
 
 interface CreatePostProps {
   onPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video' | 'document', taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => void;
   onTimeCapsule: (data: TimeCapsuleData) => void;
-  onGenerateAIContent: (prompt: string) => Promise<string>;
-  onCreateAd?: () => void; // New prop for opening ad manager
+  onCreateAd?: () => void;
   currentUser: User;
   allUsers: User[];
 }
@@ -35,10 +33,8 @@ const ActionButton = ({ icon, label, onClick, color, isSpecial }: any) => (
   </button>
 );
 
-const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenerateAIContent, onCreateAd, currentUser, allUsers }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreateAd, currentUser, allUsers }) => {
   const [content, setContent] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showAIContentGenerator, setShowAIContentGenerator] = useState(false);
   const [isProcessingMedia, setIsProcessingMedia] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingType, setProcessingType] = useState<'image' | 'video' | 'document' | null>(null);
@@ -313,19 +309,20 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenera
                 <div className="relative" ref={emojiPickerRef}>
                   <ActionButton onClick={() => setShowEmojiPicker(!showEmojiPicker)} icon="😄" label="Emoji" color="text-yellow-600" />
                   {showEmojiPicker && (
-                    <div className="absolute top-full left-0 mt-2 z-[100] shadow-xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                      <EmojiPicker onEmojiClick={onEmojiClick} theme={document.documentElement.classList.contains('dark') ? Theme.DARK : Theme.LIGHT} width={320} height={400} />
+                    <div className="fixed inset-0 z-[99]" onClick={() => setShowEmojiPicker(false)} />
+                  )}
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-full left-0 mb-2 z-[100] shadow-xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                      <EmojiPicker
+                        onEmojiClick={onEmojiClick}
+                        theme={document.documentElement.classList.contains('dark') ? Theme.DARK : Theme.LIGHT}
+                        width={320}
+                        height={400}
+                      />
                     </div>
                   )}
                 </div>
               </div>
-              <ActionButton
-                onClick={() => setShowAIContentGenerator(true)}
-                icon="🤖"
-                label="AI Write"
-                color="text-purple-600"
-                isSpecial
-              />
             </div>
 
             <button 
@@ -347,20 +344,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenera
       <input type="file" ref={videoInputRef} className="hidden" accept="video/mp4" onChange={(e) => handleFileChange(e, 'video')} />
       <input type="file" ref={docInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => handleFileChange(e, 'document')} />
 
-      <AIContentGenerator
-        isOpen={showAIContentGenerator}
-        onClose={() => setShowAIContentGenerator(false)}
-        onGenerate={onGenerateAIContent}
-        onUseContent={(generated) => setContent(generated)}
-      />
-
       <TimeCapsuleTutorial
         isOpen={showTimeCapsuleTutorial}
         onClose={() => setShowTimeCapsuleTutorial(false)}
         onComplete={handleTutorialComplete}
       />
 
-      {/* Time Capsule Modal */}
       <TimeCapsuleModal
         isOpen={showTimeCapsuleModal}
         onClose={() => setShowTimeCapsuleModal(false)}

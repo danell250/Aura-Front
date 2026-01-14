@@ -29,6 +29,7 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   onDeleteChat,
   initialUserId
 }) => {
+  const AURA_ADMIN_EMAIL = 'aurasocialradiate@gmail.com';
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [messageText, setMessageText] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -39,18 +40,36 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Filter users for messaging - only show users with actual message history
-  const messagingUsers = allUsers.filter(user => {
-    if (user.id === currentUser.id) return false;
-    
-    // Check if there are any messages between current user and this user
-    const hasMessages = messages.some(msg => 
-      (msg.senderId === user.id && msg.receiverId === currentUser.id) || 
-      (msg.senderId === currentUser.id && msg.receiverId === user.id)
-    );
-    
-    return hasMessages;
-  });
+  const auraAdminUser = allUsers.find(
+    u => (u.email || '').toLowerCase() === AURA_ADMIN_EMAIL
+  );
+
+  const getDisplayName = (user: User) =>
+    user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Admin' : user.name;
+
+  // Filter users for messaging - show users with message history plus Aura Admin for support
+  const messagingUsers = (() => {
+    const base = allUsers.filter(user => {
+      if (user.id === currentUser.id) return false;
+      
+      const hasMessages = messages.some(msg => 
+        (msg.senderId === user.id && msg.receiverId === currentUser.id) || 
+        (msg.senderId === currentUser.id && msg.receiverId === user.id)
+      );
+      
+      return hasMessages;
+    });
+
+    if (
+      auraAdminUser &&
+      auraAdminUser.id !== currentUser.id &&
+      !base.some(u => u.id === auraAdminUser.id)
+    ) {
+      return [auraAdminUser, ...base];
+    }
+
+    return base;
+  })();
 
   // Filter connections for search (acquaintances + all users if searching)
   const searchableUsers = allUsers.filter(user => {
@@ -243,7 +262,7 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-black text-slate-900 dark:text-white truncate">{user.name}</h3>
+                            <h3 className="font-black text-slate-900 dark:text-white truncate">{getDisplayName(user)}</h3>
                             <p className="text-sm text-slate-600 dark:text-slate-400 truncate">{user.handle}</p>
                             {currentUser.acquaintances?.includes(user.id) && (
                               <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Connected</p>
@@ -308,7 +327,7 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-start">
-                                <h3 className="font-black text-slate-900 dark:text-white truncate">{user.name}</h3>
+                                <h3 className="font-black text-slate-900 dark:text-white truncate">{getDisplayName(user)}</h3>
                                 {lastMessage && (
                                   <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                                     {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -345,12 +364,12 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                   <Avatar 
                     src={selectedUser.avatar} 
                     type={selectedUser.avatarType} 
-                    name={selectedUser.name} 
+                    name={getDisplayName(selectedUser)} 
                     size="custom"
                     className="w-10 h-10 rounded-xl"
                   />
                   <div>
-                    <h3 className="font-black text-slate-900 dark:text-white">{selectedUser.name}</h3>
+                    <h3 className="font-black text-slate-900 dark:text-white">{getDisplayName(selectedUser)}</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">Online now</p>
                   </div>
                 </div>
@@ -524,15 +543,21 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                     Send
                   </button>
                   {showEmojiPicker && (
-                    <div className="absolute bottom-16 right-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-3 w-64 max-h-60 overflow-y-auto z-50">
-                      <div className="grid grid-cols-8 gap-2 text-xl">
-                        {['😀','😁','😂','🤣','😊','😍','😘','😜','🤔','😎','😇','🤗','👍','🙏','👏','🔥','🎉','💯','✅','✨','❤️','💪','🤝','🥳','😅','😭','😤','🥰','😏','🙌','🤩','😴','🤪','😬','😱','🤓','😔','🤷','👌','👀','👋','👑','🌟','🚀','🌈','🍀','🍕','☕','🧠'].map(e => (
-                          <button key={e} onClick={() => insertEmoji(e)} className="hover:scale-125 transition-transform" title={e}>
-                            {e}
-                          </button>
-                        ))}
+                    <>
+                      <div
+                        className="fixed inset-0 z-[45]"
+                        onClick={() => setShowEmojiPicker(false)}
+                      />
+                      <div className="absolute bottom-16 right-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-3 w-64 max-h-60 overflow-y-auto z-50">
+                        <div className="grid grid-cols-8 gap-2 text-xl">
+                          {['😀','😁','😂','🤣','😊','😍','😘','😜','🤔','😎','😇','🤗','👍','🙏','👏','🔥','🎉','💯','✅','✨','❤️','💪','🤝','🥳','😅','😭','😤','🥰','😏','🙌','🤩','😴','🤪','😬','😱','🤓','😔','🤷','👌','👀','👋','👑','🌟','🚀','🌈','🍀','🍕','☕','🧠'].map(e => (
+                            <button key={e} onClick={() => insertEmoji(e)} className="hover:scale-125 transition-transform" title={e}>
+                              {e}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
               </div>

@@ -84,6 +84,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
         locationTracking: false,
         activityTracking: true,
         personalizedAds: false,
+        emailNotifications: true,
         pushNotifications: true
       });
     }

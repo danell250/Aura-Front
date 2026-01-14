@@ -88,6 +88,10 @@ export class SearchService {
       const matchedFields: string[] = [];
       let relevance = 0;
 
+      const hashtagSearchTerms = searchTerms
+        .map(term => term.startsWith('#') ? term.slice(1) : term)
+        .filter(term => term.length > 0);
+
       // Search in content
       const contentMatches = this.calculateRelevance(searchTerms, (post.content || '').toLowerCase());
       if (contentMatches > 0) {
@@ -112,7 +116,7 @@ export class SearchService {
       // Search in hashtags
       if (post.hashtags) {
         const hashtagMatches = post.hashtags.some(tag =>
-          searchTerms.some(term => tag.toLowerCase().includes(term))
+          hashtagSearchTerms.some(term => tag.toLowerCase().includes(term))
         );
         if (hashtagMatches) {
           matchedFields.push('hashtags');
@@ -278,6 +282,10 @@ export class SearchService {
       const matchedFields: string[] = [];
       let relevance = 0;
 
+      const hashtagSearchTerms = searchTerms
+        .map(term => term.startsWith('#') ? term.slice(1) : term)
+        .filter(term => term.length > 0);
+
       // Search in headline
       const headlineMatches = this.calculateRelevance(searchTerms, (ad.headline || '').toLowerCase());
       if (headlineMatches > 0) {
@@ -302,7 +310,7 @@ export class SearchService {
       // Search in hashtags
       if (ad.hashtags) {
         const hashtagMatches = ad.hashtags.some(tag =>
-          searchTerms.some(term => tag.toLowerCase().includes(term))
+          hashtagSearchTerms.some(term => tag.toLowerCase().includes(term))
         );
         if (hashtagMatches) {
           matchedFields.push('hashtags');
@@ -335,6 +343,10 @@ export class SearchService {
   private static searchHashtags(searchTerms: string[], posts: Post[], ads: Ad[]): SearchResult[] {
     const hashtagCounts = new Map<string, number>();
 
+    const hashtagSearchTerms = searchTerms
+      .map(term => term.startsWith('#') ? term.slice(1) : term)
+      .filter(term => term.length > 0);
+
     // Count hashtags from posts
     posts.forEach(post => {
       if (post.hashtags) {
@@ -356,7 +368,10 @@ export class SearchService {
     // Filter hashtags that match search terms
     const matchingHashtags: SearchResult[] = [];
     hashtagCounts.forEach((count, tag) => {
-      const relevance = this.calculateRelevance(searchTerms, tag.toLowerCase());
+      const relevance = this.calculateRelevance(
+        hashtagSearchTerms.length ? hashtagSearchTerms : searchTerms,
+        tag.toLowerCase()
+      );
       if (relevance > 0) {
         matchingHashtags.push({
           type: 'hashtag' as const,
@@ -522,13 +537,16 @@ export class SearchService {
 
     const suggestions = new Set<string>();
     const lowerQuery = query.toLowerCase();
+    const baseQuery = lowerQuery.startsWith('#') ? lowerQuery.slice(1) : lowerQuery;
+
+    if (!baseQuery) return [];
 
     // User name suggestions
     users.forEach(user => {
-      if (user.name && user.name.toLowerCase().includes(lowerQuery)) {
+      if (user.name && user.name.toLowerCase().includes(baseQuery)) {
         suggestions.add(user.name);
       }
-      if (user.handle && user.handle.toLowerCase().includes(lowerQuery)) {
+      if (user.handle && user.handle.toLowerCase().includes(baseQuery)) {
         suggestions.add(user.handle);
       }
     });
@@ -547,7 +565,7 @@ export class SearchService {
     });
 
     allHashtags.forEach(tag => {
-      if (tag.toLowerCase().includes(lowerQuery)) {
+      if (tag.toLowerCase().includes(baseQuery)) {
         suggestions.add(`#${tag}`);
       }
     });
@@ -557,7 +575,7 @@ export class SearchService {
     posts.forEach(post => {
       const words = post.content.toLowerCase().split(/\s+/);
       words.forEach(word => {
-        if (word.length > 3 && word.includes(lowerQuery)) {
+        if (word.length > 3 && word.includes(baseQuery)) {
           commonWords.add(word);
         }
       });

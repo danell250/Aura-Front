@@ -22,11 +22,12 @@ interface PostCardProps {
   allUsers: User[];
   onSendConnectionRequest?: (senderId: string, receiverId: string) => void;
   onLoadComments?: (postId: string, comments: Comment[]) => void;
+  onSyncPost?: (post: Post) => void;
   key?: React.Key;
 }
 
 const PostCard: React.FC<PostCardProps> = React.memo(({ 
-  post, onReact, onComment, currentUser, onViewProfile, onSearchTag, onLike, onShare, onBoost, onDeletePost, onDeleteComment, onOpenCreditStore, allUsers, onLoadComments
+  post, onReact, onComment, currentUser, onViewProfile, onSearchTag, onLike, onShare, onBoost, onDeletePost, onDeleteComment, onOpenCreditStore, allUsers, onLoadComments, onSyncPost
 }) => {
   const [commentText, setCommentText] = useState('');
   const [replyText, setReplyText] = useState('');
@@ -221,6 +222,26 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
     intervalId = window.setInterval(poll, 7000);
     return () => { if (intervalId) window.clearInterval(intervalId); };
   }, [showComments, post.id, onLoadComments, post.comments]);
+
+  useEffect(() => {
+    if (!onSyncPost) return;
+    let intervalId: number | undefined;
+    const pollPost = async () => {
+      try {
+        const { PostService } = await import('../services/postService');
+        const resp = await PostService.getPostById(post.id);
+        if (resp.success && resp.post) {
+          onSyncPost(resp.post);
+        }
+      } catch {
+      }
+    };
+    pollPost();
+    intervalId = window.setInterval(pollPost, 7000);
+    return () => {
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [post.id, onSyncPost]);
 
   const handleAISuggestion = async () => {
     if (isSuggesting) return;

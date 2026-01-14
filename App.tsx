@@ -801,6 +801,13 @@ const App: React.FC = () => {
                 },
                 body: JSON.stringify({ status: 'cancelled' })
               });
+              
+              if (response.status === 404) {
+                // Ad doesn't exist on server, consider it successfully cancelled/removed
+                console.log(`[AdManager] Ad ${id} not found on server, keeping local cancellation.`);
+                return;
+              }
+
               const result = await response.json();
               if (result.success && result.data) {
                 setAds(prev => prev.map(a => a.id === id ? { ...a, ...result.data } : a));

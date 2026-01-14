@@ -768,27 +768,37 @@ const App: React.FC = () => {
     }
   }, [currentUser.id]);
 
-  const handleAddAcquaintance = useCallback((targetUser: User) => {
+  const handleAddAcquaintance = useCallback(async (targetUser: User) => {
     if (currentUser.id === targetUser.id) return;
-    
-    // Check if a request was already sent to avoid duplicates
-    if (notifications.some(n => n.type === 'connection_request' && n.fromUser.id === currentUser.id)) {
-      return;
-    }
 
-    const newNotification: Notification = {
-      id: `notif-conn-${Date.now()}`,
-      type: 'connection_request',
-      fromUser: currentUser,
-      message: 'wants to connect with you',
-      timestamp: Date.now(),
-      isRead: false
+    if (currentUser.acquaintances?.includes(targetUser.id)) return;
+    if (currentUser.sentAcquaintanceRequests?.includes(targetUser.id)) return;
+
+    const previousUser = currentUser;
+    const updatedUser: User = {
+      ...currentUser,
+      sentAcquaintanceRequests: [...(currentUser.sentAcquaintanceRequests || []), targetUser.id]
     };
 
-    // In a real app, this would be sent to the target user. 
-    // Since this is a demo/mock, we'll simulate receiving it if it's not the currentUser sending to themselves.
-    setNotifications(prev => [newNotification, ...prev]);
-  }, [currentUser, notifications]);
+    setCurrentUser(updatedUser);
+    setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? updatedUser : u)));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+
+    try {
+      const result = await UserService.sendConnectionRequest(currentUser.id, targetUser.id);
+      if (!result.success) {
+        setCurrentUser(previousUser);
+        setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? previousUser : u)));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(previousUser));
+        console.error('Failed to send connection request:', result.error);
+      }
+    } catch (error) {
+      setCurrentUser(previousUser);
+      setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? previousUser : u)));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(previousUser));
+      console.error('Error sending connection request:', error);
+    }
+  }, [currentUser]);
 
   const handleAcceptConnection = useCallback((notification: Notification) => {
     const requesterId = notification.fromUser.id;

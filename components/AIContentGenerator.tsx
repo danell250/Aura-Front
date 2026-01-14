@@ -40,11 +40,6 @@ const AIContentGenerator: React.FC<AIContentGeneratorProps> = ({
 
   const handleUseContent = () => {
     if (generatedContent) {
-      // First try to use the callback stored from CreatePost
-      if ((window as any).setPostContent) {
-        (window as any).setPostContent(generatedContent);
-      }
-      // Then call the original callback
       onUseContent(generatedContent);
       onClose();
     }

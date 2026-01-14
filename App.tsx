@@ -202,64 +202,35 @@ const App: React.FC = () => {
     let wasAuthenticated = false;
 
     if (token) {
-      // Handle OAuth callback with token
+      // Handle OAuth callback with token by fetching real user from backend
       console.log('[App] Processing OAuth token from URL');
-      try {
-        // Decode and validate token (basic check - in production you'd verify with backend)
-        const tokenData = JSON.parse(atob(token.split('.')[1])); // Decode JWT payload
-        console.log('[App] Token data:', tokenData);
+      localStorage.setItem('aura_auth_token', token);
+      (async () => {
+        try {
+          const result = await UserService.getMe(token);
+          if (result.success && result.user) {
+            const user = result.user;
+            setCurrentUser(user);
+            setIsAuthenticated(true);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
 
-        // Find or create user from token data
-        let user = usersToProcess.find((u: User) => u.id === tokenData.id);
+            const filteredUsers = usersToProcess.filter((u: User) => u.id !== user.id);
+            const updatedUsers = [...filteredUsers, user];
+            setAllUsers(updatedUsers);
+            localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
 
-        if (!user && tokenData) {
-          // Create user from token data (for OAuth users)
-          user = {
-            id: tokenData.id,
-            firstName: tokenData.firstName || 'User',
-            lastName: tokenData.lastName || '',
-            name: tokenData.name || `${tokenData.firstName || 'User'} ${tokenData.lastName || ''}`.trim(),
-            email: tokenData.email || '',
-            handle: tokenData.handle || `@${tokenData.firstName?.toLowerCase() || 'user'}${Math.floor(Math.random() * 10000)}`,
-            avatar: tokenData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tokenData.id}`,
-            avatarType: 'image',
-            bio: 'New to Aura',
-            industry: 'Other',
-            companyName: '',
-            phone: '',
-            dob: '',
-            acquaintances: [],
-            blockedUsers: [],
-            trustScore: 10,
-            auraCredits: 100,
-            activeGlow: 'none'
-          };
-
-          // Add to users list
-          const updatedUsers = [...usersToProcess, user];
-          setAllUsers(updatedUsers);
-          localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+            wasAuthenticated = true;
+            console.log('[App] User authenticated via OAuth token (fetched from backend):', user.id);
+          } else {
+            console.error('[App] Failed to fetch user with OAuth token:', result.error);
+          }
+        } catch (error) {
+          console.error('[App] Error processing OAuth token:', error);
+        } finally {
+          const newUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, document.title, newUrl);
         }
-
-        if (user) {
-          setCurrentUser(user);
-          setIsAuthenticated(true);
-          localStorage.setItem('aura_auth_token', token);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-          wasAuthenticated = true;
-          console.log('[App] User authenticated via OAuth token:', user.id);
-        }
-
-        // Clean up URL by removing token parameter and redirecting
-        const newUrl = window.location.pathname + window.location.hash;
-        window.history.replaceState({}, document.title, newUrl);
-
-      } catch (error) {
-        console.error('[App] Error processing OAuth token:', error);
-        // Remove invalid token from URL
-        const newUrl = window.location.pathname + window.location.hash;
-        window.history.replaceState({}, document.title, newUrl);
-      }
+      })();
     } else {
       // Check for saved session
       const savedSession = localStorage.getItem(STORAGE_KEY);
@@ -545,20 +516,8 @@ const App: React.FC = () => {
     console.log('Time capsule created:', data);
   }, []);
 
-  const handleGenerateAIContent = useCallback(async (prompt: string): Promise<string> => {
-    try {
-      // Call AI service for content generation
-      const response = await fetch('/api/generate-content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-      const result = await response.json();
-      return result.content || 'Generated content';
-    } catch (error) {
-      console.error('AI content generation failed:', error);
-      return 'Failed to generate content';
-    }
+  const handleGenerateAIContent = useCallback((prompt: string): Promise<string> => {
+    return geminiService.generateContent(prompt);
   }, []);
 
   const handleSendConnectionRequest = useCallback((targetUserId: string) => {

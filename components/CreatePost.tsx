@@ -1,13 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User, EnergyType } from '../types';
-import { geminiService } from '../services/gemini';
 import { uploadService } from '../services/upload';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import Logo from './Logo';
 import TimeCapsuleModal, { TimeCapsuleData } from './TimeCapsuleModal';
 import TimeCapsuleTutorial from './TimeCapsuleTutorial';
 import { Avatar } from './MediaDisplay';
+import AIContentGenerator from './AIContentGenerator';
 
 interface CreatePostProps {
   onPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video' | 'document', taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => void;
@@ -38,6 +38,7 @@ const ActionButton = ({ icon, label, onClick, color, isSpecial }: any) => (
 const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenerateAIContent, onCreateAd, currentUser, allUsers }) => {
   const [content, setContent] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showAIContentGenerator, setShowAIContentGenerator] = useState(false);
   const [isProcessingMedia, setIsProcessingMedia] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingType, setProcessingType] = useState<'image' | 'video' | 'document' | null>(null);
@@ -282,11 +283,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenera
                   )}
                 </div>
               </div>
-                <ActionButton onClick={() => {
-                  // Open the AI Content Generator modal via a custom event
-                  const event = new CustomEvent('openAIContentGenerator', { detail: { setPostContent: setContent } });
-                  window.dispatchEvent(event);
-                }} icon="🤖" label="AI Write" color="text-purple-600" isSpecial />
+              <ActionButton
+                onClick={() => setShowAIContentGenerator(true)}
+                icon="🤖"
+                label="AI Write"
+                color="text-purple-600"
+                isSpecial
+              />
             </div>
 
             <button 
@@ -308,7 +311,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenera
       <input type="file" ref={videoInputRef} className="hidden" accept="video/mp4" onChange={(e) => handleFileChange(e, 'video')} />
       <input type="file" ref={docInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => handleFileChange(e, 'document')} />
 
-      {/* Time Capsule Tutorial */}
+      <AIContentGenerator
+        isOpen={showAIContentGenerator}
+        onClose={() => setShowAIContentGenerator(false)}
+        onGenerate={onGenerateAIContent}
+        onUseContent={(generated) => setContent(generated)}
+      />
+
       <TimeCapsuleTutorial
         isOpen={showTimeCapsuleTutorial}
         onClose={() => setShowTimeCapsuleTutorial(false)}

@@ -18,6 +18,7 @@ import FeedFilters from './components/FeedFilters';
 import Logo from './components/Logo';
 import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
+import { UserService } from './services/userService';
 import { geminiService } from './services/gemini';
 import { AdService } from './services/adService';
 
@@ -55,6 +56,37 @@ const App: React.FC = () => {
   const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
   
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string}>({ type: 'feed' });
+
+  const fetchCurrentUser = useCallback(async () => {
+    if (!currentUser?.id) return;
+    try {
+      // If we have a token, use getMe, otherwise use getUserById
+      const token = localStorage.getItem('aura_auth_token');
+      let result;
+      if (token) {
+        result = await UserService.getMe(token);
+      } else {
+        result = await UserService.getUserById(currentUser.id);
+      }
+      
+      if (result.success && result.user) {
+        console.log('🔄 Fetched fresh user data:', result.user);
+        setCurrentUser(result.user);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(result.user));
+        if (result.user.auraCredits !== undefined) {
+            localStorage.setItem('aura_credits', result.user.auraCredits.toString());
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch current user:', error);
+    }
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchCurrentUser();
+    }
+  }, [isAuthenticated, fetchCurrentUser]);
 
   const syncBirthdays = useCallback(async (users: User[]) => {
     const today = new Date();
@@ -338,8 +370,8 @@ const App: React.FC = () => {
     }));
   }, []);
 
-  const handleBoostPost = useCallback((postId: string) => {
-    const boostCost = 50;
+  const handleBoostPost = useCallback(async (postId: string, credits: number = 50) => {
+    const boostCost = credits;
     const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
     
     if (!isSpecialUser && currentUser.auraCredits < boostCost) {
@@ -347,14 +379,39 @@ const App: React.FC = () => {
       return;
     }
     
+    // Optimistic update
     if (!isSpecialUser) {
-      handleUpdateProfile({ auraCredits: currentUser.auraCredits - boostCost });
+      const newCredits = currentUser.auraCredits - boostCost;
+      setCurrentUser(prev => ({ ...prev, auraCredits: newCredits }));
+      localStorage.setItem('aura_credits', newCredits.toString());
     }
     
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, radiance: p.radiance + 100, isBoosted: true } : p));
-  }, [currentUser.auraCredits, currentUser.email]);
+    try {
+      const token = localStorage.getItem('aura_auth_token');
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/boost`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId: currentUser.id, credits: boostCost })
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, radiance: p.radiance + (boostCost * 2), isBoosted: true } : p));
+        fetchCurrentUser();
+      } else {
+        console.error('Boost failed:', result.error);
+        fetchCurrentUser(); // Revert/Sync
+      }
+    } catch (e) {
+      console.error('Boost error:', e);
+      fetchCurrentUser(); // Revert/Sync
+    }
+  }, [currentUser, fetchCurrentUser]);
 
-  const handleBoostUser = useCallback((userId: string) => {
+  const handleBoostUser = useCallback(async (userId: string) => {
     const boostCost = 200;
     const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
 
@@ -364,11 +421,39 @@ const App: React.FC = () => {
     }
     
     if (!isSpecialUser) {
-      handleUpdateProfile({ auraCredits: currentUser.auraCredits - boostCost });
+      // Optimistic update
+      const newCredits = currentUser.auraCredits - boostCost;
+      setCurrentUser(prev => ({ ...prev, auraCredits: newCredits }));
+      localStorage.setItem('aura_credits', newCredits.toString());
+      
+      try {
+        const token = localStorage.getItem('aura_auth_token');
+        const response = await fetch(`${API_BASE_URL}/users/${currentUser.id}/spend-credits`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ credits: boostCost, reason: `Boosted user ${userId}` })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          fetchCurrentUser();
+        } else {
+          console.error("Failed to spend credits:", result.error);
+          fetchCurrentUser();
+          return;
+        }
+      } catch (e) {
+        console.error("Error spending credits:", e);
+        fetchCurrentUser();
+        return;
+      }
     }
     
     setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, trustScore: Math.min(100, u.trustScore + 10), auraCredits: u.auraCredits + 50 } : u));
-  }, [currentUser.auraCredits, currentUser.email]);
+  }, [currentUser, fetchCurrentUser]);
 
   const handleTimeCapsule = useCallback((data: any) => {
     // Handle time capsule creation
@@ -437,8 +522,8 @@ const App: React.FC = () => {
   }, []);
 
   const handlePurchaseCredits = (bundle: CreditBundle) => {
-    const updatedCredits = currentUser.auraCredits + bundle.credits;
-    handleUpdateProfile({ auraCredits: updatedCredits });
+    // Refresh user data from backend as purchase should have been handled there
+    fetchCurrentUser();
   };
 
   const handleComment = useCallback((postId: string, text: string, parentId?: string) => {
@@ -634,7 +719,7 @@ const App: React.FC = () => {
   return (
     <Layout 
       activeView={view.type} searchQuery={searchQuery} onSearchChange={setSearchQuery} 
-      onLogout={() => { setIsAuthenticated(false); localStorage.removeItem(STORAGE_KEY); }}
+      onLogout={() => { setIsAuthenticated(false); localStorage.removeItem(STORAGE_KEY); localStorage.removeItem('aura_credits'); }}
       currentUser={currentUser} isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode}
       onStartCampaign={() => setIsAdManagerOpen(true)} onViewSettings={() => setIsSettingsOpen(true)} 
       onOpenCreditStore={() => setIsCreditStoreOpen(true)}

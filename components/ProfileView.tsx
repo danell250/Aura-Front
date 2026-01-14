@@ -40,7 +40,7 @@ interface ProfileViewProps {
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({
-   user, posts, ads, adRefreshTick, currentUser, allUsers, onBack, onReact, onComment, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager
+   user, posts, ads, adRefreshTick, currentUser, allUsers, onBack, onReact, onComment, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager, onCancelAd, onUpdateAd
 }) => {
   const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'adplans'>('posts');
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);

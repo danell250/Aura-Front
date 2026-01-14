@@ -658,7 +658,6 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
             <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Neural Ad Terminal</h2>
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
               <button onClick={() => { setTab('create'); setEditingAd(null); }} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'create' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}>New Stream</button>
-              <button onClick={() => setTab('manage')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'manage' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Active Signals</button>
               <button onClick={() => setTab('subscriptions')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'subscriptions' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Subscriptions</button>
             </div>
           </div>
@@ -1107,25 +1106,6 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                       <AdCard ad={previewAd} />
                    </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ) : tab === 'manage' ? (
-          <div className="animate-in fade-in duration-500 pb-12">
-            {ads.filter(a => a.ownerId === currentUser.id).length === 0 ? (
-              <div className="py-48 text-center bg-slate-50 dark:bg-slate-950/20 rounded-[4rem] border-4 border-dashed border-slate-100 dark:border-slate-800">
-                <div className="text-8xl mb-12 opacity-10">📣</div>
-                <p className="text-[11px] font-black uppercase tracking-[0.5em] text-slate-300 dark:text-slate-700">No active network broadcasts</p>
-                <button onClick={() => setTab('create')} className="mt-14 px-14 py-6 aura-bg-gradient text-white font-black uppercase text-[11px] tracking-widest rounded-[2rem] shadow-2xl hover:brightness-110 active:scale-95 transition-all">Start Your First Broadcast</button>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-12">
-                {ads.filter(a => a.ownerId === currentUser.id).map(ad => (
-                  <div key={ad.id} className="relative group">
-                    <AdCard ad={ad} />
-                    <div className="absolute top-12 right-12 flex flex-col gap-5 opacity-0 group-hover:opacity-100 transition-all translate-x-10 group-hover:translate-x-0"></div>
-                  </div>
-                ))}
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@ import { User, Ad } from '../types';
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
 import { adAnalyticsService, AdPerformanceMetrics } from '../services/adAnalyticsService';
 import { AD_PACKAGES } from '../constants';
+import { uploadService } from '../services/upload';
 
 interface AdPlansDashboardProps {
   user: User;
@@ -22,6 +23,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
   const [editForm, setEditForm] = useState<{headline: string; description: string; mediaUrl: string; mediaType?: 'image' | 'video'; ctaText: string; ctaLink: string}>({headline: '', description: '', mediaUrl: '', mediaType: 'image', ctaText: 'Explore', ctaLink: ''});
   const [savingEdit, setSavingEdit] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   useEffect(() => {
     loadAdSubscriptions();
@@ -326,6 +328,36 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                     <input value={editForm.headline} onChange={e => setEditForm({...editForm, headline: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm" placeholder="Headline" />
                     <textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm" placeholder="Description" rows={3} />
                     <input value={editForm.mediaUrl} onChange={e => setEditForm({...editForm, mediaUrl: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm" placeholder="Media URL" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <select value={editForm.mediaType || 'image'} onChange={e => setEditForm({...editForm, mediaType: (e.target.value as 'image' | 'video')})} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm">
+                        <option value="image">Image / GIF</option>
+                        <option value="video">Video / Animation</option>
+                      </select>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*,video/*,.gif,.mp4,.webm,.mov"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setUploadingMedia(true);
+                            try {
+                              const result = await uploadService.uploadFile(file);
+                              const mt = result.mimetype;
+                              const asType: 'image' | 'video' = mt.startsWith('video') ? 'video' : 'image';
+                              setEditForm({ ...editForm, mediaUrl: result.url, mediaType: asType });
+                            } catch (err) {
+                              console.error('Upload failed', err);
+                              alert('Upload failed');
+                            } finally {
+                              setUploadingMedia(false);
+                            }
+                          }}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                        />
+                        {uploadingMedia && <div className="absolute inset-0 bg-white/60 dark:bg-slate-800/60 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 text-xs">Uploading…</div>}
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <input value={editForm.ctaText} onChange={e => setEditForm({...editForm, ctaText: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm" placeholder="CTA Text" />
                       <input value={editForm.ctaLink} onChange={e => setEditForm({...editForm, ctaLink: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm" placeholder="CTA Link" />

@@ -307,7 +307,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
                       onClick={() => onReact(post.id, emoji, 'comment', comment.id)}
                       className={`bg-white dark:bg-slate-700 border rounded-full px-2 py-0.5 flex items-center gap-1 shadow-sm scale-90 transition-all hover:scale-100 ${comment.userReactions?.includes(emoji) ? 'border-emerald-400 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'border-slate-100 dark:border-slate-600'}`}
                     >
-                      <span className="text-[10px]">{emoji}</span>
+                      <span className="text-[10px] leading-none align-middle">{emoji}</span>
                       <span className="text-[8px] font-black text-slate-400">{count as number}</span>
                     </button>
                   ))}
@@ -494,7 +494,11 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
           </div>
         )}
 
-        <div className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed mb-6 whitespace-pre-wrap font-medium tracking-tight">{renderContent(post.content)}</div>
+        <div className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed mb-6 whitespace-pre-wrap font-medium tracking-tight">
+          <span className="align-middle inline-block leading-[1.4]">
+            {renderContent(post.content)}
+          </span>
+        </div>
 
         {displayMediaUrl && (
           <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner min-h-[100px] flex items-center justify-center">
@@ -505,7 +509,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
         <div className="flex items-center gap-2 mb-6 flex-wrap">
            {Object.entries(post.reactions).map(([emoji, count]) => (
              <button key={emoji} onClick={() => onReact(post.id, emoji, 'post')} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${post.userReactions?.includes(emoji) ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-700 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-transparent hover:border-slate-200'}`}>
-               <span className="text-sm">{emoji}</span>
+               <span className="text-sm leading-none align-middle">{emoji}</span>
                <span className={`text-xs font-bold ${post.userReactions?.includes(emoji) ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>{count as number}</span>
              </button>
            ))}

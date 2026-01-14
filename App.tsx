@@ -132,7 +132,6 @@ const App: React.FC = () => {
   const fetchCurrentUser = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
-      // If we have a token, use getMe, otherwise use getUserById
       const token = localStorage.getItem('aura_auth_token');
       let result;
       if (token) {
@@ -145,9 +144,6 @@ const App: React.FC = () => {
         console.log('🔄 Fetched fresh user data:', result.user);
         setCurrentUser(result.user);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(result.user));
-        if (result.user.auraCredits !== undefined) {
-            localStorage.setItem('aura_credits', result.user.auraCredits.toString());
-        }
       }
     } catch (error) {
       console.error('Failed to fetch current user:', error);
@@ -282,6 +278,24 @@ const App: React.FC = () => {
   }, [isAuthenticated, allUsers, syncBirthdays]);
 
   useEffect(() => {
+    const updateTimeCapsules = () => {
+      const now = Date.now();
+      setPosts(prev =>
+        prev.map(post => {
+          if (!post.isTimeCapsule || !post.unlockDate) return post;
+          const nextUnlocked = now >= post.unlockDate;
+          if (post.isUnlocked === nextUnlocked) return post;
+          return { ...post, isUnlocked: nextUnlocked };
+        })
+      );
+    };
+
+    updateTimeCapsules();
+    const interval = setInterval(updateTimeCapsules, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     if (!isAuthenticated) return;
     if (window.location.pathname === '/login') {
       navigateToView({ type: 'feed' });
@@ -345,50 +359,65 @@ const App: React.FC = () => {
   const handleUpdateProfile = (updates: Partial<User>) => {
     const updatedUser = { ...currentUser, ...updates };
     if (updates.firstName && updates.lastName) updatedUser.name = `${updates.firstName} ${updates.lastName}`;
-    
-    // Persist credits to localStorage
-    if (updates.auraCredits !== undefined) {
-      localStorage.setItem('aura_credits', updates.auraCredits.toString());
-      console.log('💰 Credits updated and persisted:', updates.auraCredits);
-    }
-    
     setCurrentUser(updatedUser);
     
-    // Also update in allUsers array
     setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
-    
-    // TODO: Sync with backend
-    const syncCreditsWithBackend = async (credits: number) => {
-      try {
-        const token = localStorage.getItem('aura_auth_token');
-        if (!token) return;
-        
-        const response = await fetch('/api/users/credits', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ credits })
-        });
-        
-        if (response.ok) {
-          console.log('💰 Credits synced with backend:', credits);
-        }
-      } catch (error) {
-        console.error('Failed to sync credits with backend:', error);
-      }
-    };
-    
-    syncCreditsWithBackend(updates.auraCredits);
   };
 
-  const handlePost = (content: string, mediaUrl?: string, mediaType?: any, taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => {
-    const newPost: Post = {
-      id: `p-${Date.now()}`, author: currentUser, content, mediaUrl, mediaType, energy: energy || EnergyType.NEUTRAL,
-      radiance: 0, timestamp: Date.now(), reactions: {}, comments: [], userReactions: [], isBoosted: false
+  const handlePost = async (
+    content: string,
+    mediaUrl?: string,
+    mediaType?: any,
+    taggedUserIds?: string[],
+    documentName?: string,
+    energy?: EnergyType
+  ) => {
+    const optimisticPost: Post = {
+      id: `p-${Date.now()}`,
+      author: currentUser,
+      content,
+      mediaUrl,
+      mediaType,
+      energy: energy || EnergyType.NEUTRAL,
+      radiance: 0,
+      timestamp: Date.now(),
+      reactions: {},
+      comments: [],
+      userReactions: [],
+      isBoosted: false
     };
-    setPosts([newPost, ...posts]);
+
+    setPosts(prev => [optimisticPost, ...prev]);
+
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const response = await fetch(`${API_BASE_URL}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          content,
+          mediaUrl,
+          mediaType,
+          energy,
+          authorId: currentUser.id,
+          taggedUserIds
+        })
+      });
+
+      const result = await response.json().catch(() => null);
+      if (response.ok && result && result.success && result.data) {
+        const createdPost: Post = result.data;
+        setPosts(prev => {
+          const withoutOptimistic = prev.filter(p => p.id !== optimisticPost.id);
+          return [createdPost, ...withoutOptimistic];
+        });
+      }
+    } catch (error) {
+      console.error('Failed to create post in backend:', error);
+    }
   };
 
   const handleDeletePost = useCallback((postId: string) => {
@@ -422,11 +451,9 @@ const App: React.FC = () => {
       return;
     }
     
-    // Optimistic update
     if (!isSpecialUser) {
       const newCredits = currentUser.auraCredits - boostCost;
       setCurrentUser(prev => ({ ...prev, auraCredits: newCredits }));
-      localStorage.setItem('aura_credits', newCredits.toString());
     }
     
     try {
@@ -464,10 +491,8 @@ const App: React.FC = () => {
     }
     
     if (!isSpecialUser) {
-      // Optimistic update
       const newCredits = currentUser.auraCredits - boostCost;
       setCurrentUser(prev => ({ ...prev, auraCredits: newCredits }));
-      localStorage.setItem('aura_credits', newCredits.toString());
       
       try {
         const token = localStorage.getItem('aura_auth_token');
@@ -498,10 +523,68 @@ const App: React.FC = () => {
     setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, trustScore: Math.min(100, u.trustScore + 10), auraCredits: u.auraCredits + 50 } : u));
   }, [currentUser, fetchCurrentUser]);
 
-  const handleTimeCapsule = useCallback((data: any) => {
-    // Handle time capsule creation
-    console.log('Time capsule created:', data);
-  }, []);
+  const handleTimeCapsule = useCallback(async (data: any) => {
+    const now = Date.now();
+    const unlockDate = data.unlockDate;
+    const isUnlocked = typeof unlockDate === 'number' ? now >= unlockDate : true;
+
+    const optimisticPost: Post = {
+      id: `tc-${Date.now()}`,
+      author: currentUser,
+      content: data.content,
+      mediaUrl: data.mediaUrl,
+      mediaType: data.mediaType,
+      energy: data.energy || EnergyType.NEUTRAL,
+      radiance: 0,
+      timestamp: now,
+      reactions: {},
+      comments: [],
+      userReactions: [],
+      isBoosted: false,
+      isTimeCapsule: true,
+      unlockDate,
+      isUnlocked,
+      timeCapsuleType: data.timeCapsuleType,
+      invitedUsers: data.invitedUsers,
+      timeCapsuleTitle: data.timeCapsuleTitle
+    };
+
+    setPosts(prev => [optimisticPost, ...prev]);
+
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const response = await fetch(`${API_BASE_URL}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          content: data.content,
+          mediaUrl: data.mediaUrl,
+          mediaType: data.mediaType,
+          energy: data.energy,
+          authorId: currentUser.id,
+          isTimeCapsule: true,
+          unlockDate,
+          timeCapsuleType: data.timeCapsuleType,
+          invitedUsers: data.invitedUsers,
+          timeCapsuleTitle: data.timeCapsuleTitle
+        })
+      });
+
+      const result = await response.json().catch(() => null);
+      if (response.ok && result && result.success && result.data) {
+        const createdPost: Post = result.data;
+        setPosts(prev => {
+          const withoutOptimistic = prev.filter(p => p.id !== optimisticPost.id);
+          return [createdPost, ...withoutOptimistic];
+        });
+      }
+    } catch (error) {
+      console.error('Failed to create time capsule in backend:', error);
+    }
+  }, [currentUser]);
 
   const handleGenerateAIContent = useCallback((prompt: string): Promise<string> => {
     return geminiService.generateContent(prompt);

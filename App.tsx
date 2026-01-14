@@ -718,7 +718,29 @@ const App: React.FC = () => {
       )}
       {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => setView({ type: 'feed' })} onPurchaseGlow={(glow) => handleUpdateProfile({ activeGlow: glow })} onClearData={() => {}} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
-      {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={handleAdCreated} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => { setIsAdManagerOpen(false); setAdSubsRefreshTick(prev => prev + 1); }} />}
+      {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={handleAdCreated} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onAdUpdated={async (adId, updates) => {
+        try {
+          const token = localStorage.getItem('aura_auth_token') || '';
+          const response = await fetch(`${API_BASE_URL}/ads/${adId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updates)
+          });
+          const result = await response.json();
+          if (result.success && result.data) {
+            setAds(prev => prev.map(a => a.id === adId ? { ...a, ...result.data } : a));
+            setAdSubsRefreshTick(prev => prev + 1);
+            return true;
+          }
+          return false;
+        } catch (e) {
+          console.error('Failed to update ad:', e);
+          return false;
+        }
+      }} onClose={() => { setIsAdManagerOpen(false); setAdSubsRefreshTick(prev => prev + 1); }} />}
       {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} bundles={CREDIT_BUNDLES} onPurchase={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
       {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} onClose={() => setSharingContent(null)} />}
     </Layout>

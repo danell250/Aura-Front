@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Ad } from '../types';
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
+import { adAnalyticsService, AdPerformanceMetrics } from '../services/adAnalyticsService';
 import { AD_PACKAGES } from '../constants';
 
 interface AdPlansDashboardProps {
@@ -14,9 +15,12 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
   const [adSubscriptions, setAdSubscriptions] = useState<AdSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [internalRefreshTrigger, setInternalRefreshTrigger] = useState(0);
+  const [adPerformance, setAdPerformance] = useState<AdPerformanceMetrics[]>([]);
+  const [loadingPerf, setLoadingPerf] = useState(true);
 
   useEffect(() => {
     loadAdSubscriptions();
+    loadAdPerformance();
   }, [user.id, internalRefreshTrigger, externalRefreshTrigger]);
 
   const loadAdSubscriptions = async () => {
@@ -38,6 +42,19 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
     return AD_PACKAGES.find(pkg => pkg.id === packageId);
   };
 
+  const loadAdPerformance = async () => {
+    setLoadingPerf(true);
+    try {
+      const perf = await adAnalyticsService.getUserAdPerformance(user.id);
+      setAdPerformance(perf || []);
+    } catch (e) {
+      console.error('[AdPlansDashboard] Failed to load ad performance:', e);
+      setAdPerformance([]);
+    } finally {
+      setLoadingPerf(false);
+    }
+  };
+
   const userAds = ads.filter(ad => ad.ownerId === user.id && ad.status === 'active');
   const hasSubscriptions = adSubscriptions.length > 0;
   const hasAds = userAds.length > 0;
@@ -52,6 +69,12 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
     .reduce((sum, s) => sum + (s.adLimit * 100), 0);
 
   const totalActiveAds = userAds.length;
+  const totalImpressions = adPerformance.reduce((sum, m) => sum + (m.impressions || 0), 0);
+  const totalClicks = adPerformance.reduce((sum, m) => sum + (m.clicks || 0), 0);
+  const averageCTR = adPerformance.length > 0
+    ? Math.round((adPerformance.reduce((sum, m) => sum + (m.ctr || 0), 0) / adPerformance.length) * 100) / 100
+    : 0;
+  const totalEngagement = adPerformance.reduce((sum, m) => sum + (m.engagement || 0), 0);
 
   const nextExpiringAd = userAds
     .filter(ad => ad.expiryDate)
@@ -130,10 +153,10 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {Math.max(totalActiveAds * 100, 500).toLocaleString()}
+                    {Math.max(totalImpressions || totalActiveAds * 100, 500).toLocaleString()}
                   </p>
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                    Estimated Reach
+                    Impressions
                   </p>
                 </div>
               </div>
@@ -141,17 +164,50 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">⏱️</span>
+                  <span className="text-2xl">🖱️</span>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {daysToNextAdExpiry !== null ? daysToNextAdExpiry : '∞'}
+                    {totalClicks}
                   </p>
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                    Days To Next Expiry
+                    Clicks
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">CTR</span>
+                <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded-full">Rate</span>
+              </div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                {averageCTR}%
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Average across signals</div>
+            </div>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Engagement</span>
+                <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full">Total</span>
+              </div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                {totalEngagement}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Likes, comments, shares</div>
+            </div>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Next Expiry</span>
+                <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full">Soon</span>
+              </div>
+              <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                {daysToNextAdExpiry !== null ? daysToNextAdExpiry : '∞'}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Days remaining</div>
             </div>
           </div>
 
@@ -177,7 +233,9 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {userAds.slice(0, 4).map(ad => (
+              {userAds.slice(0, 4).map(ad => {
+                const perf = adPerformance.find(p => p.adId === ad.id);
+                return (
                 <div
                   key={ad.id}
                   className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-3"
@@ -198,6 +256,20 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                   <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
                     {ad.description}
                   </p>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">{perf?.impressions ?? 0}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Views</div>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">{perf?.clicks ?? 0}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Clicks</div>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">{perf?.ctr ?? 0}%</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">CTR</div>
+                    </div>
+                  </div>
                   <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
                     <span>
                       Placement: <span className="font-semibold uppercase">{ad.placement}</span>
@@ -210,7 +282,8 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                     </span>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
         </div>

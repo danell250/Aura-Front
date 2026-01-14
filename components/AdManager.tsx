@@ -18,10 +18,11 @@ interface AdManagerProps {
   ads: Ad[];
   onAdCreated: (ad: Ad) => Promise<boolean>;
   onAdCancelled: (adId: string) => void;
+  onAdUpdated?: (adId: string, updates: Partial<Ad>) => Promise<boolean>;
   onClose: () => void;
 }
 
-const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, onAdCancelled, onClose }) => {
+const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, onAdCancelled, onAdUpdated, onClose }) => {
   const [tab, setTab] = useState<'create' | 'manage' | 'subscriptions'>('create');
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Select, 2: Pay, 3: Create
   const [selectedPkg, setSelectedPkg] = useState<AdPackage | null>(null);
@@ -34,6 +35,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const [mountKey, setMountKey] = useState(0);
   const [buttonsRendered, setButtonsRendered] = useState(false);
   const [showPayPal, setShowPayPal] = useState(false);
+  const [editingAd, setEditingAd] = useState<Ad | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const paypalRef = useRef<HTMLDivElement>(null);
@@ -562,13 +564,43 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
     // Calculate expiry date based on package duration (or never expire for special user)
     const expiryDate = isSpecialUser ? undefined : Date.now() + (selectedPkg.durationDays * 24 * 60 * 60 * 1000);
 
+    if (editingAd && onAdUpdated) {
+      try {
+        const ok = await onAdUpdated(editingAd.id, {
+          headline: form.headline,
+          description: form.description,
+          mediaUrl: form.mediaUrl,
+          mediaType: form.mediaType,
+          ctaText: form.ctaText,
+          ctaLink: form.ctaLink
+        });
+        if (ok) {
+          console.log("✅ Ad updated successfully");
+          setEditingAd(null);
+          setStep(1);
+          setSelectedPkg(null);
+          setSelectedSubscription(null);
+          setPaymentVerified(false);
+          return;
+        } else {
+          console.warn("❌ Ad update failed");
+          alert("Failed to update ad. Please try again.");
+          return;
+        }
+      } catch (err) {
+        console.error("❌ Error during ad update:", err);
+        alert("An error occurred while updating the ad.");
+        return;
+      }
+    }
+
     const finalAd: Ad = {
       id: `ad-${Date.now()}`,
       ownerId: currentUser.id,
       ownerName: currentUser.name,
       ownerAvatar: currentUser.avatar,
       ownerAvatarType: currentUser.avatarType,
-      ownerEmail: currentUser.email, // Add email for special user detection
+      ownerEmail: currentUser.email,
       headline: form.headline,
       description: form.description,
       mediaUrl: form.mediaUrl || 'https://picsum.photos/id/32/800/450',
@@ -580,7 +612,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
       status: 'active',
       subscriptionTier: selectedPkg.name,
       expiryDate: expiryDate,
-      subscriptionId: selectedSubscription?.id // Link ad to subscription
+      subscriptionId: selectedSubscription?.id
     };
 
     console.log("📢 Creating final ad:", finalAd);
@@ -606,7 +638,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
 
   const previewAd: Ad = {
     ...form,
-    id: 'preview',
+    id: editingAd?.id || 'preview',
     ownerId: currentUser.id,
     ownerName: currentUser.name,
     ownerAvatar: currentUser.avatar,
@@ -614,7 +646,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
     isSponsored: true,
     placement: 'feed',
     status: 'active',
-    subscriptionTier: selectedPkg?.name
+    subscriptionTier: selectedPkg?.name || editingAd?.subscriptionTier
   };
 
   return (
@@ -625,7 +657,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
           <div className="flex items-center gap-6">
             <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Neural Ad Terminal</h2>
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
-              <button onClick={() => setTab('create')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'create' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}>New Stream</button>
+              <button onClick={() => { setTab('create'); setEditingAd(null); }} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'create' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}>New Stream</button>
               <button onClick={() => setTab('manage')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'manage' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Active Signals</button>
               <button onClick={() => setTab('subscriptions')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'subscriptions' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Subscriptions</button>
             </div>
@@ -656,7 +688,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
             {step === 1 && (
               <div className="pb-10">
                 {/* Show active subscriptions first if user has any */}
-                {activeSubscriptions.length > 0 && (
+                {activeSubscriptions.length > 0 && !editingAd && (
                   <div className="mb-12">
                     <div className="flex items-center gap-4 mb-8">
                       <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Your Active Plans</h3>
@@ -1092,6 +1124,27 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                   <div key={ad.id} className="relative group">
                     <AdCard ad={ad} />
                     <div className="absolute top-12 right-12 flex flex-col gap-5 opacity-0 group-hover:opacity-100 transition-all translate-x-10 group-hover:translate-x-0">
+                      <button
+                        onClick={() => {
+                          setEditingAd(ad);
+                          setTab('create');
+                          setStep(3);
+                          setSelectedPkg(null);
+                          setSelectedSubscription(null);
+                          setPaymentVerified(true);
+                          setForm({
+                            headline: ad.headline,
+                            description: ad.description,
+                            mediaUrl: ad.mediaUrl,
+                            mediaType: ad.mediaType || 'image',
+                            ctaText: ad.ctaText,
+                            ctaLink: ad.ctaLink
+                          });
+                        }}
+                        className="p-6 bg-amber-500 text-white rounded-[2.5rem] shadow-2xl hover:bg-amber-600 active:scale-90 font-black uppercase text-[11px] tracking-widest border-4 border-white dark:border-slate-900"
+                      >
+                        Edit Signal
+                      </button>
                       <button onClick={() => onAdCancelled(ad.id)} className="p-6 bg-rose-500 text-white rounded-[2.5rem] shadow-2xl hover:bg-rose-600 active:scale-90 font-black uppercase text-[11px] tracking-widest border-4 border-white dark:border-slate-900">Kill Signal</button>
                     </div>
                   </div>

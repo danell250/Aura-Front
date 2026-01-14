@@ -63,10 +63,14 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const loadAdSubscriptions = async () => {
     setLoadingSubscriptions(true);
     try {
+      console.log('[ProfileView] Loading ad subscriptions for user:', currentUser.id);
       const subscriptions = await adSubscriptionService.getUserSubscriptions(currentUser.id);
+      console.log('[ProfileView] Loaded subscriptions:', subscriptions.length);
       setAdSubscriptions(subscriptions);
     } catch (error) {
-      console.error('Failed to load ad subscriptions:', error);
+      console.error('[ProfileView] Failed to load ad subscriptions:', error);
+      // Set empty array to prevent UI from getting stuck
+      setAdSubscriptions([]);
     } finally {
       setLoadingSubscriptions(false);
     }

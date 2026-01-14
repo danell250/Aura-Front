@@ -772,7 +772,35 @@ const App: React.FC = () => {
     if (currentUser.id === targetUser.id) return;
 
     if (currentUser.acquaintances?.includes(targetUser.id)) return;
-    if (currentUser.sentAcquaintanceRequests?.includes(targetUser.id)) return;
+
+    if (currentUser.sentAcquaintanceRequests?.includes(targetUser.id)) {
+      const previousUser = currentUser;
+      const updatedUser: User = {
+        ...currentUser,
+        sentAcquaintanceRequests: (currentUser.sentAcquaintanceRequests || []).filter(id => id !== targetUser.id)
+      };
+
+      setCurrentUser(updatedUser);
+      setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? updatedUser : u)));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+
+      try {
+        const result = await UserService.cancelConnectionRequest(currentUser.id, targetUser.id);
+        if (!result.success) {
+          setCurrentUser(previousUser);
+          setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? previousUser : u)));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(previousUser));
+          console.error('Failed to cancel connection request:', result.error);
+        }
+      } catch (error) {
+        setCurrentUser(previousUser);
+        setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? previousUser : u)));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(previousUser));
+        console.error('Error cancelling connection request:', error);
+      }
+
+      return;
+    }
 
     const previousUser = currentUser;
     const updatedUser: User = {

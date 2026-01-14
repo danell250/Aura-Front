@@ -167,6 +167,28 @@ export class UserService {
     }
   }
 
+  static async cancelConnectionRequest(fromUserId: string, toUserId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${fromUserId}/cancel-connection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ targetUserId: toUserId })
+      });
+
+      if (response.ok) {
+        return { success: true };
+      } else {
+        const errorData = await response.json();
+        return { success: false, error: errorData.message || 'Failed to cancel connection request' };
+      }
+    } catch (error) {
+      console.error('Error cancelling connection request:', error);
+      return { success: false, error: 'Network error' };
+    }
+  }
+
   // Accept connection request
   static async acceptConnectionRequest(fromUserId: string, toUserId: string): Promise<{ success: boolean; error?: string }> {
     try {

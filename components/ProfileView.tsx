@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { User, Post } from '../types';
+import { User, Post, Ad } from '../types';
 import PostCard from './PostCard';
 import { MediaDisplay, Avatar } from './MediaDisplay';
 import OnlineStatus from './OnlineStatus';
 import PrivacySettings from './PrivacySettings';
+import AdPlansDashboard from './AdPlansDashboard';
 import { PrivacyService } from '../services/privacyService';
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
 import { AD_PACKAGES } from '../constants';
@@ -11,6 +12,7 @@ import { AD_PACKAGES } from '../constants';
 interface ProfileViewProps {
    user: User;
    posts: Post[];
+   ads: Ad[];
    currentUser: User;
    allUsers: User[];
    onBack: () => void;
@@ -35,7 +37,7 @@ interface ProfileViewProps {
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({
-   user, posts, currentUser, allUsers, onBack, onReact, onComment, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager
+   user, posts, ads, currentUser, allUsers, onBack, onReact, onComment, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager
 }) => {
   const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'adplans'>('posts');
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);

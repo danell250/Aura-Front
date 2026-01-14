@@ -538,10 +538,18 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
         try {
           console.log("🎯 Using ad slot from subscription:", selectedSubscription.id);
           // Use an ad slot from the subscription
-          await adSubscriptionService.useAdSlot(selectedSubscription.id);
-          console.log("✅ Ad slot used successfully");
+          const updatedSubscription = await adSubscriptionService.useAdSlot(selectedSubscription.id);
+          console.log("✅ Ad slot used successfully, updated subscription:", updatedSubscription);
           
-          // Reload active subscriptions to update the UI
+          // Update the selected subscription with the new values immediately
+          setSelectedSubscription(updatedSubscription);
+          
+          // Update the active subscriptions list with the updated subscription
+          setActiveSubscriptions(prev =>
+            prev.map(sub => sub.id === updatedSubscription.id ? updatedSubscription : sub)
+          );
+          
+          // Also reload from server to ensure consistency
           await loadActiveSubscriptions();
         } catch (error) {
           console.error("❌ Failed to use ad slot:", error);

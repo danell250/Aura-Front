@@ -147,15 +147,24 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
     }
   };
 
-  const handleArchive = () => {
+  const handleArchive = async () => {
     if (!activeContact) return;
-    if (archivedIds.includes(activeContact.id)) {
-      setArchivedIds(prev => prev.filter(id => id !== activeContact.id));
-    } else {
-      setArchivedIds(prev => [...prev, activeContact.id]);
-    }
+    const isArchived = archivedIds.includes(activeContact.id);
+    setArchivedIds(prev =>
+      isArchived ? prev.filter(id => id !== activeContact.id) : [...prev, activeContact.id]
+    );
     setShowHeaderMenu(false);
     setActiveContact(null);
+
+    try {
+      await MessageService.setArchiveState(currentUser.id, activeContact.id, !isArchived);
+      const updatedConversations = await MessageService.getConversations(currentUser.id);
+      if (updatedConversations.success) {
+        setConversations(updatedConversations.data);
+      }
+    } catch (error) {
+      console.error('Failed to update archive state:', error);
+    }
   };
 
   const handleDeleteChat = () => {
@@ -201,17 +210,26 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
     }
     
     if (sidebarTab === 'all') {
-      // Only show users when actively searching - completely empty by default
       return contactSearch.trim() ? allUsers.filter(u => u.id !== currentUser.id) : [];
     }
-    
-    // Recent conversations - only users who have actual conversation history
-    const recentUserIds = conversations.map(conv => conv._id);
+
+    const archivedSet = new Set(archivedIds);
+
+    const recentUserIds = conversations
+      .filter(conv => !archivedSet.has(conv._id))
+      .map(conv => conv._id as string);
+
+    const archivedUserIds = conversations
+      .filter(conv => archivedSet.has(conv._id))
+      .map(conv => conv._id as string);
+
+    const sourceIds = sidebarTab === 'recent' ? recentUserIds : archivedUserIds;
+
     return allUsers.filter(u => 
       u.id !== currentUser.id && 
-      recentUserIds.includes(u.id)
+      sourceIds.includes(u.id)
     );
-  }, [sidebarTab, searchResults, allUsers, currentUser.id, conversations, contactSearch]);
+  }, [sidebarTab, searchResults, allUsers, currentUser.id, conversations, contactSearch, archivedIds]);
 
   const getLastMessage = (userId: string) => {
     // Find conversation data from backend
@@ -462,7 +480,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                     {isSending ? (
                       <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
                     ) : (
-                      'Sync'
+                      'Send'
                     )}
                   </button>
 

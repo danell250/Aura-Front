@@ -115,4 +115,21 @@ export class MessageService {
       throw error;
     }
   }
+
+  static async setArchiveState(userId: string, otherUserId: string, archived: boolean) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/messages/archive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, otherUserId, archived }),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error updating archive state:', error);
+      throw error;
+    }
+  }
 }

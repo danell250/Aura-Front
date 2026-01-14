@@ -36,6 +36,8 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   const [showSearch, setShowSearch] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Filter users for messaging - only show users with actual message history
   const messagingUsers = allUsers.filter(user => {
@@ -110,12 +112,36 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
 
     onSendMessage(selectedUser.id, messageText);
     setMessageText('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
 
   const handleSelectUser = (user: User) => {
     setSelectedUser(user);
     // Mark messages as read when user opens the chat
     onMarkAsRead(user.id);
+  };
+
+  const insertEmoji = (emoji: string) => {
+    const el = textareaRef.current;
+    if (!el) {
+      setMessageText(prev => prev + emoji);
+      return;
+    }
+    const start = el.selectionStart || 0;
+    const end = el.selectionEnd || 0;
+    const current = messageText;
+    const nextValue = current.slice(0, start) + emoji + current.slice(end);
+    setMessageText(nextValue);
+    requestAnimationFrame(() => {
+      el.focus();
+      const caret = start + emoji.length;
+      el.setSelectionRange(caret, caret);
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 240) + 'px';
+    });
+    setShowEmojiPicker(false);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -426,8 +452,9 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
 
               {/* Message input */}
               <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-                <div className="flex gap-2 items-end">
+                <div className="flex gap-2 items-end relative">
                   <textarea
+                    ref={textareaRef}
                     value={messageText}
                     onChange={(e) => {
                       const el = e.currentTarget;
@@ -441,12 +468,31 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                     rows={3}
                   />
                   <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(v => !v)}
+                    className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700"
+                    title="Insert emoji"
+                  >
+                    😊
+                  </button>
+                  <button
                     onClick={handleSendMessage}
                     disabled={!messageText.trim()}
                     className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-black uppercase tracking-widest transition-all disabled:opacity-50"
                   >
                     Send
                   </button>
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-16 right-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-3 w-64 max-h-60 overflow-y-auto z-50">
+                      <div className="grid grid-cols-8 gap-2 text-xl">
+                        {['😀','😁','😂','🤣','😊','😍','😘','😜','🤔','😎','😇','🤗','👍','🙏','👏','🔥','🎉','💯','✅','✨','❤️','💪','🤝','🥳','😅','😭','😤','🥰','😏','🙌','🤩','😴','🤪','😬','😱','🤓','😔','🤷','👌','👀','👋','👑','🌟','🚀','🌈','🍀','🍕','☕','🧠'].map(e => (
+                          <button key={e} onClick={() => insertEmoji(e)} className="hover:scale-125 transition-transform" title={e}>
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </>

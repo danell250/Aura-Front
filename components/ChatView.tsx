@@ -658,11 +658,30 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
               const lastMsg = getLastMessage(user.id);
               const isAcquaintance = acquaintances.some(acq => acq.id === user.id);
               
+              const handleSelect = () => {
+                if (activeContact?.id === user.id) return;
+                setActiveContact(user);
+              };
+
+              const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelect();
+                }
+              };
+
               return (
-                <button 
-                  key={user.id} 
-                  onClick={() => setActiveContact(user)} 
-                  className={`w-full flex items-center gap-4 p-4 rounded-[1.75rem] transition-all active:scale-[0.97] duration-300 group relative ${activeContact?.id === user.id ? 'aura-bg-gradient text-white shadow-xl shadow-emerald-500/20' : 'hover:bg-white dark:hover:bg-slate-800/60 text-slate-600'}`}
+                <div
+                  key={user.id}
+                  onClick={handleSelect}
+                  onKeyDown={handleKeyDown}
+                  role="button"
+                  tabIndex={0}
+                  className={`w-full flex items-center gap-4 p-4 rounded-[1.75rem] transition-all active:scale-[0.97] duration-300 group relative cursor-pointer ${
+                    activeContact?.id === user.id
+                      ? 'aura-bg-gradient text-white shadow-xl shadow-emerald-500/20'
+                      : 'hover:bg-white dark:hover:bg-slate-800/60 text-slate-600'
+                  }`}
                 >
                   <div className="relative flex-shrink-0">
                     {user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? (
@@ -685,22 +704,37 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                         e.stopPropagation();
                         onViewProfile?.(user.id);
                       }}
-                      className={`font-black truncate text-sm leading-none uppercase tracking-tight hover:text-emerald-400 transition-colors text-left ${activeContact?.id === user.id ? 'text-white hover:text-emerald-200' : 'text-slate-900 dark:text-slate-100'}`}
+                      className={`font-black truncate text-sm leading-none uppercase tracking-tight hover:text-emerald-400 transition-colors text-left ${
+                        activeContact?.id === user.id ? 'text-white hover:text-emerald-200' : 'text-slate-900 dark:text-slate-100'
+                      }`}
                     >
                       {user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Support' : user.name}
                     </button>
-                    <p className={`text-[9px] truncate tracking-wide mt-2 font-bold ${activeContact?.id === user.id ? 'text-white/70' : 'text-slate-400'}`}>
-                      {lastMsg ? lastMsg.text : 
-                       isAcquaintance ? 'Connected • Ready to message' : 
-                       'Click to start conversation'}
+                    <p
+                      className={`text-[9px] truncate tracking-wide mt-2 font-bold ${
+                        activeContact?.id === user.id ? 'text-white/70' : 'text-slate-400'
+                      }`}
+                    >
+                      {lastMsg
+                        ? lastMsg.text
+                        : isAcquaintance
+                        ? 'Connected • Ready to message'
+                        : 'Click to start conversation'}
                     </p>
                   </div>
                   {lastMsg && (
-                    <span className={`text-[8px] font-black uppercase ${activeContact?.id === user.id ? 'text-white/50' : 'text-slate-300'}`}>
-                      {new Date(lastMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <span
+                      className={`text-[8px] font-black uppercase ${
+                        activeContact?.id === user.id ? 'text-white/50' : 'text-slate-300'
+                      }`}
+                    >
+                      {new Date(lastMsg.timestamp).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
                     </span>
                   )}
-                </button>
+                </div>
               );
             })
           )}

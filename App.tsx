@@ -24,6 +24,9 @@ import { UserService } from './services/userService';
 import { geminiService } from './services/gemini';
 import { AdService } from './services/adService';
 import { PostService } from './services/postService';
+import { NotificationService } from './services/notificationService';
+import { CommentService } from './services/commentService';
+import { SearchResult } from './services/searchService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -156,6 +159,24 @@ const App: React.FC = () => {
       fetchCurrentUser();
     }
   }, [isAuthenticated, fetchCurrentUser]);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!currentUser?.id) return;
+    try {
+      const result = await NotificationService.getNotifications(currentUser.id);
+      if (result.success && result.data) {
+        setNotifications(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchNotifications();
+    }
+  }, [isAuthenticated, fetchNotifications]);
 
   const syncBirthdays = useCallback(async (users: User[]) => {
     const today = new Date();
@@ -676,46 +697,76 @@ const App: React.FC = () => {
     })();
   };
 
-  const handleComment = useCallback((postId: string, text: string, parentId?: string) => {
-    const newComment: Comment = { id: `c-${Date.now()}`, author: currentUser, text, timestamp: Date.now(), parentId, reactions: {}, userReactions: [] };
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p));
+  const handleComment = useCallback(async (postId: string, text: string, parentId?: string) => {
+    const optimisticComment: Comment = {
+      id: `c-${Date.now()}`,
+      author: currentUser,
+      text,
+      timestamp: Date.now(),
+      parentId,
+      reactions: {},
+      userReactions: []
+    };
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, optimisticComment] } : p));
+
+    try {
+      const result = await CommentService.createComment(postId, text, currentUser.id, parentId);
+      if (result.success && result.data) {
+        const created = result.data;
+        setPosts(prev => prev.map(p => {
+          if (p.id !== postId) return p;
+          const filtered = p.comments.filter(c => c.id !== optimisticComment.id);
+          return { ...p, comments: [...filtered, created] };
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to create comment in backend:', error);
+    }
   }, [currentUser]);
 
-  const handleReact = useCallback((postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => {
-    setPosts(prev => prev.map(p => {
-      if (p.id !== postId) return p;
-      if (targetType === 'post') {
-        const reactions = { ...p.reactions };
-        const userReactions = [...(p.userReactions || [])];
-        if (userReactions.includes(reaction)) {
-          reactions[reaction] = Math.max(0, (reactions[reaction] || 1) - 1);
-          if (reactions[reaction] === 0) delete reactions[reaction];
-          userReactions.splice(userReactions.indexOf(reaction), 1);
-        } else {
-          reactions[reaction] = (reactions[reaction] || 0) + 1;
-          userReactions.push(reaction);
-        }
-        return { ...p, reactions, userReactions };
-      } else if (targetType === 'comment' && commentId) {
-        const comments = p.comments.map(c => {
-          if (c.id !== commentId) return c;
-          const reactions = { ...(c.reactions || {}) };
-          const userReactions = [...(c.userReactions || [])];
-          if (userReactions.includes(reaction)) {
-            reactions[reaction] = Math.max(0, (reactions[reaction] || 1) - 1);
-            if (reactions[reaction] === 0) delete reactions[reaction];
-            userReactions.splice(userReactions.indexOf(reaction), 1);
-          } else {
-            reactions[reaction] = (reactions[reaction] || 0) + 1;
-            userReactions.push(reaction);
-          }
-          return { ...c, reactions, userReactions };
+  const handleReact = useCallback(async (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => {
+    if (targetType === 'post') {
+      try {
+        const token = localStorage.getItem('aura_auth_token') || '';
+        const response = await fetch(`${API_BASE_URL}/posts/${postId}/react`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ reaction, userId: currentUser.id })
         });
-        return { ...p, comments };
+        const result = await response.json().catch(() => null);
+        if (response.ok && result && result.success && result.data) {
+          const updatedPost: Post = result.data;
+          setPosts(prev => prev.map(p => p.id === postId ? updatedPost : p));
+        } else {
+          console.error('Failed to react to post:', result?.error);
+        }
+      } catch (error) {
+        console.error('Error reacting to post:', error);
       }
-      return p;
-    }));
-  }, []);
+      return;
+    }
+
+    if (targetType === 'comment' && commentId) {
+      try {
+        const result = await CommentService.reactToComment(commentId, reaction, currentUser.id);
+        if (result.success && result.data) {
+          const updatedComment = result.data;
+          setPosts(prev => prev.map(p => {
+            if (p.id !== postId) return p;
+            const comments = p.comments.map(c => c.id === updatedComment.id ? updatedComment : c);
+            return { ...p, comments };
+          }));
+        } else {
+          console.error('Failed to react to comment:', result.error);
+        }
+      } catch (error) {
+        console.error('Error reacting to comment:', error);
+      }
+    }
+  }, [currentUser.id]);
 
   const handleAddAcquaintance = useCallback((targetUser: User) => {
     if (currentUser.id === targetUser.id) return;
@@ -786,6 +837,106 @@ const App: React.FC = () => {
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
   }, [currentUser]);
+
+  const handleSearchResult = useCallback((result: SearchResult) => {
+    if (result.type === 'user') {
+      const data = result.data as User;
+      const userId = data.id || result.id;
+      navigateToView({ type: 'profile', targetId: userId });
+      return;
+    }
+
+    if (result.type === 'post') {
+      const data = result.data as Post;
+      const authorId = data.author?.id;
+      if (authorId) {
+        navigateToView({ type: 'profile', targetId: authorId });
+      } else {
+        navigateToView({ type: 'feed' });
+      }
+      return;
+    }
+
+    if (result.type === 'ad') {
+      setIsAdManagerOpen(true);
+      return;
+    }
+
+    if (result.type === 'hashtag') {
+      const data = result.data as { tag: string; count: number };
+      const tag = data.tag.startsWith('#') ? data.tag : `#${data.tag}`;
+      setSearchQuery(tag);
+      navigateToView({ type: 'feed' });
+    }
+  }, [navigateToView]);
+
+  const handleReadNotification = useCallback(async (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    try {
+      const result = await NotificationService.markAsRead(id);
+      if (!result.success) {
+        console.error('Failed to mark notification as read:', result.error);
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  }, []);
+
+  const handleMarkAllNotificationsRead = useCallback(async () => {
+    if (!currentUser?.id) return;
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    try {
+      const result = await NotificationService.markAllAsRead(currentUser.id);
+      if (!result.success) {
+        console.error('Failed to mark all notifications as read:', result.error);
+      }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  }, [currentUser?.id]);
+
+  const handleNavigateNotification = useCallback((notification: Notification) => {
+    if (
+      notification.type === 'profile_view' ||
+      notification.type === 'connection_request' ||
+      notification.type === 'acquaintance_request' ||
+      notification.type === 'acquaintance_accepted'
+    ) {
+      const targetId = notification.fromUser?.id;
+      if (targetId) {
+        navigateToView({ type: 'profile', targetId });
+      }
+      return;
+    }
+
+    if (
+      (notification.type === 'like' ||
+        notification.type === 'reaction' ||
+        notification.type === 'comment' ||
+        notification.type === 'share' ||
+        notification.type === 'boost_received' ||
+        notification.type === 'time_capsule_unlocked') &&
+      notification.postId
+    ) {
+      const post = posts.find(p => p.id === notification.postId);
+      if (post) {
+        navigateToView({ type: 'profile', targetId: post.author.id });
+      } else {
+        navigateToView({ type: 'feed' });
+      }
+      return;
+    }
+
+    if (notification.type === 'message') {
+      const targetId = notification.fromUser?.id;
+      if (targetId) {
+        navigateToView({ type: 'chat', targetId });
+      }
+      return;
+    }
+
+    navigateToView({ type: 'feed' });
+  }, [navigateToView, posts]);
 
   const processedFeedItems = useMemo(() => {
     console.log("🔍 Processing feed items:", { 
@@ -911,6 +1062,10 @@ const App: React.FC = () => {
       onViewFriends={() => navigateToView({ type: 'acquaintances' })}
       onViewPrivacy={() => navigateToView({ type: 'data_aura' })} 
       onViewProfile={(userId) => navigateToView({ type: 'profile', targetId: userId })}
+      onSearchResult={handleSearchResult}
+      onReadNotification={handleReadNotification}
+      onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
+      onNavigateNotification={handleNavigateNotification}
     >
       {view.type === 'feed' && (
         <div className="space-y-6">

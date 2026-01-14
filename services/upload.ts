@@ -3,14 +3,13 @@ export const uploadService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    // Use local backend for development via proxy
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
-    
-    // Check if we're in development and backend is available
-    // const isDevelopment = import.meta.env.DEV;
-    
-    console.log('Attempting upload to backend:', BACKEND_URL);
-    const response = await fetch(`${BACKEND_URL}/api/upload`, {
+    const apiBase = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
+    const backendBase =
+      import.meta.env.VITE_BACKEND_URL ||
+      apiBase.replace(/\/api\/?$/, '');
+
+    console.log('Attempting upload to backend:', backendBase);
+    const response = await fetch(`${backendBase}/api/upload`, {
       method: 'POST',
       body: formData,
     });

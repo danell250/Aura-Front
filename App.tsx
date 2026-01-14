@@ -800,18 +800,26 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
-  const handleAcceptConnection = useCallback((notification: Notification) => {
+  const handleAcceptConnection = useCallback(async (notification: Notification) => {
     const requesterId = notification.fromUser.id;
-    
-    // Update current user's acquaintances
+
+    try {
+      const result = await UserService.acceptConnectionRequest(requesterId, currentUser.id);
+      if (!result.success) {
+        console.error('Failed to accept connection request:', result.error);
+        return;
+      }
+    } catch (error) {
+      console.error('Error accepting connection request:', error);
+      return;
+    }
+
     const updatedCurrentUser = {
       ...currentUser,
       acquaintances: Array.from(new Set([...(currentUser.acquaintances || []), requesterId]))
     };
-    
+
     setCurrentUser(updatedCurrentUser);
-    
-    // Update allUsers to reflect connection on both sides
     setAllUsers(prev => prev.map(u => {
       if (u.id === currentUser.id) return updatedCurrentUser;
       if (u.id === requesterId) {
@@ -822,12 +830,26 @@ const App: React.FC = () => {
       }
       return u;
     }));
-
-    // Mark notification as read
     setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
-    
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCurrentUser));
-  }, [currentUser, allUsers]);
+  }, [currentUser]);
+
+  const handleRejectConnection = useCallback(async (notification: Notification) => {
+    const requesterId = notification.fromUser.id;
+
+    try {
+      const result = await UserService.rejectConnectionRequest(requesterId, currentUser.id);
+      if (!result.success) {
+        console.error('Failed to reject connection request:', result.error);
+        return;
+      }
+    } catch (error) {
+      console.error('Error rejecting connection request:', error);
+      return;
+    }
+
+    setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
+  }, [currentUser.id]);
 
   const handleRemoveAcquaintance = useCallback((userId: string) => {
     const updatedAcquaintances = (currentUser.acquaintances || []).filter(id => id !== userId);
@@ -1075,6 +1097,8 @@ const App: React.FC = () => {
       onSearchResult={handleSearchResult}
       onReadNotification={handleReadNotification}
       onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
+      onAcceptAcquaintance={handleAcceptConnection}
+      onRejectAcquaintance={handleRejectConnection}
       onNavigateNotification={handleNavigateNotification}
     >
       {view.type === 'feed' && (

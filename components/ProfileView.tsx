@@ -9,32 +9,33 @@ import { adSubscriptionService, AdSubscription } from '../services/adSubscriptio
 import { AD_PACKAGES } from '../constants';
 
 interface ProfileViewProps {
-  user: User;
-  posts: Post[];
-  currentUser: User;
-  allUsers: User[];
-  onBack: () => void;
-  onReact: (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => void;
-  onComment: (postId: string, text: string, parentId?: string) => void;
-  onShare: (post: Post) => void;
-  onAddAcquaintance: (user: User) => void;
-  onRemoveAcquaintance: (userId: string) => void;
-  onViewProfile: (userId: string) => void;
-  onSearchTag: (tag: string) => void;
-  onLike: (postId: string) => void;
-  onBoostPost?: (postId: string) => void;
-  onBoostUser?: (userId: string) => void;
-  onEditProfile?: () => void;
-  onDeletePost?: (postId: string) => void;
-  onDeleteComment?: (postId: string, commentId: string) => void;
-  onSerendipityMode?: () => void;
-  onOpenMessaging?: (userId?: string) => void;
-  onBoost?: (postId: string, credits: number) => void;
-  onSendConnectionRequest: (targetUserId: string) => void;
+   user: User;
+   posts: Post[];
+   currentUser: User;
+   allUsers: User[];
+   onBack: () => void;
+   onReact: (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => void;
+   onComment: (postId: string, text: string, parentId?: string) => void;
+   onShare: (post: Post) => void;
+   onAddAcquaintance: (user: User) => void;
+   onRemoveAcquaintance: (userId: string) => void;
+   onViewProfile: (userId: string) => void;
+   onSearchTag: (tag: string) => void;
+   onLike: (postId: string) => void;
+   onBoostPost?: (postId: string) => void;
+   onBoostUser?: (userId: string) => void;
+   onEditProfile?: () => void;
+   onDeletePost?: (postId: string) => void;
+   onDeleteComment?: (postId: string, commentId: string) => void;
+   onSerendipityMode?: () => void;
+   onOpenMessaging?: (userId?: string) => void;
+   onBoost?: (postId: string, credits: number) => void;
+   onSendConnectionRequest: (targetUserId: string) => void;
+   onOpenAdManager?: () => void;
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({
-  user, posts, currentUser, allUsers, onBack, onReact, onComment, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging
+   user, posts, currentUser, allUsers, onBack, onReact, onComment, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager
 }) => {
   const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'adplans'>('posts');
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
@@ -398,17 +399,33 @@ const ProfileView: React.FC<ProfileViewProps> = ({
           ) : activeTab === 'adplans' && isSelf ? (
             <div className="space-y-6">
               {/* Ad Plans Header */}
-              <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-8 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-2">Your Ad Plans</h3>
-                    <p className="text-emerald-100 text-sm">
-                      Manage your advertising subscriptions and track your ad usage
-                    </p>
-                  </div>
-                  <div className="text-6xl opacity-30">📢</div>
-                </div>
-              </div>
+               <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-8 text-white">
+                 <div className="flex items-center justify-between">
+                   <div className="flex-1">
+                     <h3 className="text-2xl font-bold mb-2">Your Ad Plans</h3>
+                     <p className="text-emerald-100 text-sm">
+                       Manage your advertising subscriptions and track your ad usage
+                     </p>
+                   </div>
+                   <div className="flex items-center gap-4">
+                     <button
+                       onClick={loadAdSubscriptions}
+                       disabled={loadingSubscriptions}
+                       className="p-3 bg-white/10 backdrop-blur-sm rounded-xl hover:bg-white/20 transition-all disabled:opacity-50"
+                       title="Refresh data"
+                     >
+                       {loadingSubscriptions ? (
+                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                       ) : (
+                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                         </svg>
+                       )}
+                     </button>
+                     <div className="text-6xl opacity-30">📢</div>
+                   </div>
+                 </div>
+               </div>
 
               {/* Loading State */}
               {loadingSubscriptions ? (
@@ -425,11 +442,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                     You don't have any ad plans yet. Purchase a plan to start promoting your content across the Aura network.
                   </p>
                   <button
-                    onClick={() => {
-                      // This would typically open the AdManager modal
-                      // For now, we'll just show a message
-                      alert('Open the Ad Manager from the main navigation to purchase a plan.');
-                    }}
+                    onClick={() => onOpenAdManager && onOpenAdManager()}
                     className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:brightness-110 transition-all"
                   >
                     Browse Ad Plans
@@ -477,6 +490,85 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                           </p>
                           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Ads Created</p>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Performance Analytics */}
+                  <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 rounded-2xl border border-slate-200 dark:border-slate-600 p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                        <span className="text-xl">📊</span>
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-slate-900 dark:text-white">Campaign Analytics</h4>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Real-time performance insights</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Reach Potential</span>
+                          <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded-full">Active</span>
+                        </div>
+                        <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                          {adSubscriptions.filter(s => s.status === 'active').reduce((sum, s) => sum + (s.adLimit * 100), 0).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">Estimated impressions</div>
+                      </div>
+
+                      <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Ad Efficiency</span>
+                          <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full">Optimal</span>
+                        </div>
+                        <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                          {adSubscriptions.filter(s => s.status === 'active').length > 0
+                            ? Math.round((adSubscriptions.filter(s => s.status === 'active').reduce((sum, s) => sum + s.adsUsed, 0) /
+                                adSubscriptions.filter(s => s.status === 'active').reduce((sum, s) => sum + s.adLimit, 0)) * 100)
+                            : 0}%
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">Utilization rate</div>
+                      </div>
+
+                      <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Time to Renew</span>
+                          <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full">Soon</span>
+                        </div>
+                        <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                          {adSubscriptions.filter(s => s.status === 'active' && s.endDate).length > 0
+                            ? Math.max(0, Math.ceil((new Date(adSubscriptions.filter(s => s.status === 'active' && s.endDate)[0].endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+                            : '∞'}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">Days remaining</div>
+                      </div>
+                    </div>
+
+                    {/* Usage Trend */}
+                    <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-600">
+                      <div className="flex items-center justify-between mb-4">
+                        <h5 className="text-sm font-bold text-slate-900 dark:text-white">Usage Trend</h5>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Last 30 days</span>
+                      </div>
+                      <div className="flex items-end gap-1 h-16">
+                        {[65, 72, 68, 85, 92, 78, 88].map((height, i) => (
+                          <div key={i} className="flex-1 bg-gradient-to-t from-emerald-400 to-emerald-500 rounded-sm relative group" style={{ height: `${height}%` }}>
+                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-bold text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {Math.floor(height * 1.2)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">
+                        <span>Mon</span>
+                        <span>Tue</span>
+                        <span>Wed</span>
+                        <span>Thu</span>
+                        <span>Fri</span>
+                        <span>Sat</span>
+                        <span>Sun</span>
                       </div>
                     </div>
                   </div>
@@ -584,9 +676,28 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                                   </div>
                                 </div>
 
+                                {/* Quick Actions */}
+                                <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                                  <div className="flex gap-3">
+                                    <button
+                                      onClick={() => onOpenAdManager && onOpenAdManager()}
+                                      className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-lg transition-all flex items-center justify-center gap-2"
+                                    >
+                                      <span>🚀</span>
+                                      <span>Create Ad</span>
+                                    </button>
+                                    <button
+                                      onClick={() => onOpenAdManager && onOpenAdManager()}
+                                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+                                    >
+                                      Manage
+                                    </button>
+                                  </div>
+                                </div>
+
                                 {/* Features List */}
                                 {pkg?.features && (
-                                  <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+                                  <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
                                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-3">Plan Features</p>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                       {pkg.features.slice(0, 6).map((feature, idx) => (

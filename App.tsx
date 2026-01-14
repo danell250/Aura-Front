@@ -678,26 +678,27 @@ const App: React.FC = () => {
         </div>
       )}
       {view.type === 'profile' && (
-        <ProfileView 
-          user={allUsers.find(u => u.id === (view.targetId || currentUser.id)) || currentUser} 
-          posts={posts.filter(p => p.author.id === (view.targetId || currentUser.id))} 
-          currentUser={currentUser} 
-          allUsers={allUsers} 
-          onBack={() => setView({ type: 'feed' })} 
-          onLike={handleLike} 
-          onComment={handleComment} 
-          onSendConnectionRequest={handleSendConnectionRequest} 
-          onReact={handleReact} 
-          onViewProfile={(id) => setView({ type: 'profile', targetId: id })} 
-          onShare={() => {}} 
-          onAddAcquaintance={handleAddAcquaintance} 
-          onRemoveAcquaintance={handleRemoveAcquaintance} 
-          onSearchTag={setSearchQuery} 
-          onBoostPost={handleBoostPost} 
-          onBoostUser={handleBoostUser} 
-          onEditProfile={() => setIsSettingsOpen(true)} 
-          onDeletePost={handleDeletePost} 
-          onDeleteComment={handleDeleteComment} 
+        <ProfileView
+          user={allUsers.find(u => u.id === (view.targetId || currentUser.id)) || currentUser}
+          posts={posts.filter(p => p.author.id === (view.targetId || currentUser.id))}
+          currentUser={currentUser}
+          allUsers={allUsers}
+          onBack={() => setView({ type: 'feed' })}
+          onLike={handleLike}
+          onComment={handleComment}
+          onSendConnectionRequest={handleSendConnectionRequest}
+          onReact={handleReact}
+          onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
+          onShare={() => {}}
+          onAddAcquaintance={handleAddAcquaintance}
+          onRemoveAcquaintance={handleRemoveAcquaintance}
+          onSearchTag={setSearchQuery}
+          onBoostPost={handleBoostPost}
+          onBoostUser={handleBoostUser}
+          onEditProfile={() => setIsSettingsOpen(true)}
+          onDeletePost={handleDeletePost}
+          onDeleteComment={handleDeleteComment}
+          onOpenAdManager={() => setIsAdManagerOpen(true)}
         />
       )}
       {view.type === 'chat' && <ChatView currentUser={currentUser} allUsers={allUsers} acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} onBack={() => setView({ type: 'feed' })} initialContactId={view.targetId} />}

@@ -15,6 +15,7 @@ interface ChatViewProps {
 }
 
 const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUsers, onBack, initialContactId, onViewProfile }) => {
+  const AURA_ADMIN_EMAIL = 'aurasocialradiate@gmail.com';
   const [activeContact, setActiveContact] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -33,6 +34,21 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoStreamRef = useRef<MediaStream | null>(null);
+
+  const auraAdminUser = useMemo(
+    () => allUsers.find(u => (u.email || '').toLowerCase() === AURA_ADMIN_EMAIL),
+    [allUsers, AURA_ADMIN_EMAIL]
+  );
+
+  const handleStartVideoCall = () => {
+    if (!activeContact) return;
+    setIsVideoCallOpen(true);
+  };
+
 
   // Load conversations and messages from backend
   useEffect(() => {
@@ -83,6 +99,49 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, activeContact]);
+
+  useEffect(() => {
+    if (!isVideoCallOpen) {
+      if (videoStreamRef.current) {
+        videoStreamRef.current.getTracks().forEach(track => track.stop());
+        videoStreamRef.current = null;
+      }
+      return;
+    }
+
+    let cancelled = false;
+
+    const startStream = async () => {
+      try {
+        setVideoError(null);
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        if (cancelled) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        videoStreamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          try {
+            await videoRef.current.play();
+          } catch {
+          }
+        }
+      } catch {
+        setVideoError('Unable to access camera or microphone. Check permissions.');
+      }
+    };
+
+    startStream();
+
+    return () => {
+      cancelled = true;
+      if (videoStreamRef.current) {
+        videoStreamRef.current.getTracks().forEach(track => track.stop());
+        videoStreamRef.current = null;
+      }
+    };
+  }, [isVideoCallOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -235,16 +294,35 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
     }
   };
 
-  const handleDeleteChat = () => {
+  const handleDeleteChat = async () => {
     if (!activeContact) return;
-    if (window.confirm(`Are you sure you want to purge all conversation data with ${activeContact.name}?`)) {
-      setMessages(prev => prev.filter(m => 
-        !( (m.senderId === currentUser.id && m.receiverId === activeContact.id) ||
-           (m.senderId === activeContact.id && m.receiverId === currentUser.id) )
-      ));
+    if (!window.confirm(`Are you sure you want to purge all conversation data with ${activeContact.name}?`)) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await MessageService.deleteConversation(currentUser.id, activeContact.id);
+
+      setMessages([]);
       setDeletedIds(prev => [...prev, activeContact.id]);
-      setShowHeaderMenu(false);
       setActiveContact(null);
+      setShowHeaderMenu(false);
+
+      const updatedConversations = await MessageService.getConversations(currentUser.id);
+      if (updatedConversations.success) {
+        const data = updatedConversations.data || [];
+        setConversations(data);
+        const archivedFromBackend = data
+          .filter((conv: any) => conv.isArchived)
+          .map((conv: any) => conv._id as string);
+        setArchivedIds(archivedFromBackend);
+      }
+    } catch (error) {
+      console.error('Failed to purge conversation:', error);
+      alert('Failed to purge conversation. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -273,31 +351,41 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   };
 
   const filteredContacts = useMemo(() => {
+    const addAuraAdmin = (list: User[]) => {
+      if (!auraAdminUser) return list;
+      if (auraAdminUser.id === currentUser.id) return list;
+      if (list.some(u => u.id === auraAdminUser.id)) return list;
+      return [auraAdminUser, ...list];
+    };
+
     if (sidebarTab === 'search') {
-      return searchResults;
+      return addAuraAdmin(searchResults);
     }
     
     if (sidebarTab === 'all') {
-      return contactSearch.trim() ? allUsers.filter(u => u.id !== currentUser.id) : [];
+      const base = contactSearch.trim() ? allUsers.filter(u => u.id !== currentUser.id) : [];
+      return addAuraAdmin(base);
     }
 
     const archivedSet = new Set(archivedIds);
+    const deletedSet = new Set(deletedIds);
 
     const recentUserIds = conversations
-      .filter(conv => !archivedSet.has(conv._id))
+      .filter(conv => !archivedSet.has(conv._id) && !deletedSet.has(conv._id))
       .map(conv => conv._id as string);
 
     const archivedUserIds = conversations
-      .filter(conv => archivedSet.has(conv._id))
+      .filter(conv => archivedSet.has(conv._id) && !deletedSet.has(conv._id))
       .map(conv => conv._id as string);
 
     const sourceIds = sidebarTab === 'recent' ? recentUserIds : archivedUserIds;
 
-    return allUsers.filter(u => 
+    const base = allUsers.filter(u => 
       u.id !== currentUser.id && 
       sourceIds.includes(u.id)
     );
-  }, [sidebarTab, searchResults, allUsers, currentUser.id, conversations, contactSearch, archivedIds]);
+    return addAuraAdmin(base);
+  }, [sidebarTab, searchResults, allUsers, currentUser.id, conversations, contactSearch, archivedIds, auraAdminUser]);
 
   const getLastMessage = (userId: string) => {
     // Find conversation data from backend
@@ -400,7 +488,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                       }}
                       className={`font-black truncate text-sm leading-none uppercase tracking-tight hover:text-emerald-400 transition-colors text-left ${activeContact?.id === user.id ? 'text-white hover:text-emerald-200' : 'text-slate-900 dark:text-slate-100'}`}
                     >
-                      {user.name}
+                      {user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Admin' : user.name}
                     </button>
                     <p className={`text-[9px] truncate tracking-wide mt-2 font-bold ${activeContact?.id === user.id ? 'text-white/70' : 'text-slate-400'}`}>
                       {lastMsg ? lastMsg.text : 
@@ -432,7 +520,9 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                     <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 bg-emerald-500 border-4 border-white dark:border-slate-800 rounded-full shadow-lg shadow-emerald-500/20"></div>
                 </div>
                 <div>
-                  <h3 className="font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white text-lg leading-none">{activeContact.name}</h3>
+                  <h3 className="font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white text-lg leading-none">
+                    {activeContact.email && activeContact.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Admin' : activeContact.name}
+                  </h3>
                   <div className="flex items-center gap-3 mt-3">
                     <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-[0.2em]">Live Synchronization</span>
@@ -440,7 +530,10 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                 </div>
               </div>
               <div className="flex gap-4 relative">
-                 <button className="w-12 h-12 flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-slate-900 dark:hover:bg-emerald-600 hover:text-white transition-all active:scale-90 border border-slate-100 dark:border-slate-700 shadow-sm">
+                 <button
+                   onClick={handleStartVideoCall}
+                   className="w-12 h-12 flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-slate-900 dark:hover:bg-emerald-600 hover:text-white transition-all active:scale-90 border border-slate-100 dark:border-slate-700 shadow-sm"
+                 >
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                  </button>
                  <div ref={headerMenuRef}>
@@ -490,11 +583,54 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                   const prevMsg = messages[idx - 1];
                   const isFirstInSequence = !prevMsg || prevMsg.senderId !== msg.senderId;
                   const timestamp = typeof msg.timestamp === 'number' ? msg.timestamp : new Date(msg.timestamp).getTime();
+                  const kind = msg.messageType || 'text';
                   
                   return (
                     <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-4 duration-500`}>
                       <div className={`max-w-[80%] sm:max-w-[70%] p-6 sm:p-8 rounded-[2.5rem] text-[15px] font-bold shadow-2xl leading-relaxed transition-all hover:scale-[1.01] ${isMe ? 'aura-bg-gradient text-white shadow-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-100 dark:border-slate-800 shadow-slate-200/20 dark:shadow-black/20'} ${isMe ? 'rounded-br-none' : 'rounded-bl-none'} ${!isFirstInSequence && (isMe ? 'rounded-tr-xl' : 'rounded-tl-xl')}`}>
-                        <div className="break-words">{msg.text}</div>
+                        <div className="space-y-3">
+                          {kind === 'image' && msg.mediaUrl && (
+                            <a
+                              href={msg.mediaUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block overflow-hidden rounded-3xl border border-white/10"
+                            >
+                              <img
+                                src={msg.mediaUrl}
+                                alt={msg.text || 'Image'}
+                                className="max-h-72 w-full object-cover"
+                              />
+                            </a>
+                          )}
+                          {kind === 'file' && msg.mediaUrl && (
+                            <a
+                              href={msg.mediaUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={`inline-flex items-center gap-3 px-4 py-2 rounded-2xl text-sm font-bold ${
+                                isMe
+                                  ? 'bg-white/10 text-white'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-50'
+                              }`}
+                            >
+                              <span className="text-lg">📎</span>
+                              <span className="truncate max-w-[220px]">
+                                {msg.text || 'Download file'}
+                              </span>
+                            </a>
+                          )}
+                          {(kind === 'text' || !msg.mediaUrl) && msg.text && (
+                            <div className="break-words">
+                              {msg.text}
+                            </div>
+                          )}
+                          {kind === 'image' && msg.mediaUrl && msg.text && (
+                            <div className="break-words text-[13px] opacity-90">
+                              {msg.text}
+                            </div>
+                          )}
+                        </div>
                         <div className={`text-[8px] mt-4 font-black uppercase tracking-[0.2em] flex items-center gap-2 ${isMe ? 'text-white/50 justify-end' : 'text-slate-300 dark:text-slate-600'}`}>
                           {new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric' }).format(timestamp)}
                           {msg.isEdited && <span className="opacity-60">(edited)</span>}
@@ -632,6 +768,53 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
           </div>
         )}
       </div>
+
+      {isVideoCallOpen && activeContact && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="relative w-full max-w-3xl mx-4 bg-slate-950 border border-slate-800 rounded-[2rem] p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Video Call</p>
+                <h4 className="mt-2 text-sm font-black uppercase tracking-[0.25em] text-slate-100">
+                  {activeContact.email && activeContact.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Admin' : activeContact.name}
+                </h4>
+              </div>
+              <button
+                onClick={() => setIsVideoCallOpen(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 text-slate-300 hover:bg-rose-600 hover:text-white border border-slate-700 hover:border-rose-500 transition-all active:scale-95"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" stroke="currentColor" fill="none">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="relative w-full rounded-2xl overflow-hidden bg-black aspect-video flex items-center justify-center">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              {videoError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70 px-6">
+                  <p className="text-xs font-black uppercase tracking-[0.25em] text-rose-300 text-center">
+                    {videoError}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => setIsVideoCallOpen(false)}
+                className="px-10 py-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black uppercase tracking-[0.3em] shadow-lg shadow-rose-500/40 flex items-center gap-2 active:scale-95 transition-all"
+              >
+                <span>End Call</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

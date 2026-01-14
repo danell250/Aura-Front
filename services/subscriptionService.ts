@@ -31,20 +31,7 @@ export const subscriptionService = {
       return await response.json();
     } catch (error) {
       console.error('Error fetching user subscriptions:', error);
-      // Return mock data for development
-      return [
-        {
-          id: 'sub_123456789',
-          userId,
-          planId: 'P-5TR6407366314243FNFRU2BY',
-          planName: 'Aura Radiance',
-          status: 'active',
-          paypalSubscriptionId: 'I-BW452GLLEP1G',
-          nextBillingDate: '2025-02-11',
-          amount: '$199.00',
-          createdDate: '2025-01-11'
-        }
-      ];
+      return [];
     }
   },
 

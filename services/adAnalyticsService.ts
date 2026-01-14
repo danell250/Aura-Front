@@ -85,14 +85,44 @@ export const adAnalyticsService = {
 
       if (!response.ok) {
         console.warn('[AdAnalytics] Failed to fetch campaign performance:', response.status);
-        return this.getMockCampaignPerformance();
+        return {
+          totalImpressions: 0,
+          totalClicks: 0,
+          totalReach: 0,
+          totalEngagement: 0,
+          totalSpend: 0,
+          averageCTR: 0,
+          activeAds: 0,
+          performanceScore: 0,
+          trendData: []
+        };
       }
 
       const result = await response.json();
-      return result.data || this.getMockCampaignPerformance();
+      return result.data || {
+        totalImpressions: 0,
+        totalClicks: 0,
+        totalReach: 0,
+        totalEngagement: 0,
+        totalSpend: 0,
+        averageCTR: 0,
+        activeAds: 0,
+        performanceScore: 0,
+        trendData: []
+      };
     } catch (error) {
       console.error('[AdAnalytics] Error fetching campaign performance:', error);
-      return this.getMockCampaignPerformance();
+      return {
+        totalImpressions: 0,
+        totalClicks: 0,
+        totalReach: 0,
+        totalEngagement: 0,
+        totalSpend: 0,
+        averageCTR: 0,
+        activeAds: 0,
+        performanceScore: 0,
+        trendData: []
+      };
     }
   },
 
@@ -178,26 +208,5 @@ export const adAnalyticsService = {
     }
   },
 
-  // Mock data for development
-  getMockCampaignPerformance(): CampaignPerformance {
-    return {
-      totalImpressions: 12847,
-      totalClicks: 892,
-      totalReach: 8934,
-      totalEngagement: 1247,
-      totalSpend: 199,
-      averageCTR: 6.94,
-      activeAds: 3,
-      performanceScore: 87,
-      trendData: [
-        { date: '2025-01-08', impressions: 1523, clicks: 98, engagement: 145 },
-        { date: '2025-01-09', impressions: 1789, clicks: 124, engagement: 178 },
-        { date: '2025-01-10', impressions: 1654, clicks: 115, engagement: 162 },
-        { date: '2025-01-11', impressions: 1923, clicks: 142, engagement: 201 },
-        { date: '2025-01-12', impressions: 2134, clicks: 156, engagement: 234 },
-        { date: '2025-01-13', impressions: 1987, clicks: 138, engagement: 189 },
-        { date: '2025-01-14', impressions: 1837, clicks: 119, engagement: 138 }
-      ]
-    };
-  }
+ 
 };

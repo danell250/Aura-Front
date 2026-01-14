@@ -262,14 +262,6 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ user, onClose, onSett
               </h3>
               <div className="space-y-4">
                 <SettingToggle
-                  icon="📧"
-                  label="Email Notifications"
-                  description="Receive notifications via email"
-                  checked={settings.emailNotifications}
-                  onChange={(checked) => handleSettingChange('emailNotifications', checked)}
-                />
-
-                <SettingToggle
                   icon="📱"
                   label="Push Notifications"
                   description="Receive push notifications on your device"

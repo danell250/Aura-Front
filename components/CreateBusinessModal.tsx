@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { BusinessPage } from '../types';
 import { INDUSTRIES, COUNTRIES } from '../constants';
+import { uploadService } from '../services/upload';
 
 interface CreateBusinessModalProps {
   onClose: () => void;
@@ -24,20 +25,23 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ onClose, onCr
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>, field: 'logo' | 'coverImage') => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>, field: 'logo' | 'coverImage') => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      const type = file.type.startsWith('video/') ? 'video' : 'image';
-      
-      // Fix: correct mapping for logo vs cover
+    if (!file) return;
+
+    try {
+      const result = await uploadService.uploadFile(file);
+      const type = result.mimetype.startsWith('video') ? 'video' : 'image';
       const typeProperty = field === 'logo' ? 'logoType' : 'coverType';
-      
-      setForm(prev => ({ 
-        ...prev, 
-        [field]: url, 
-        [typeProperty]: type 
+
+      setForm(prev => ({
+        ...prev,
+        [field]: result.url,
+        [typeProperty]: type
       }));
+    } catch (error) {
+      console.error('Upload failed', error);
+      alert('Upload failed');
     }
   };
 

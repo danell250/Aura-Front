@@ -421,6 +421,7 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                     {userMessages.map((msg) => {
                       const isCurrentUser = msg.senderId === currentUser.id;
                       const sender = allUsers.find(u => u.id === msg.senderId);
+                      const kind = msg.messageType || 'text';
                       
                       return (
                         <div 
@@ -428,7 +429,7 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                           className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
                         >
                           <div 
-                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                            className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
                               isCurrentUser 
                                 ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-br-none' 
                                 : 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-bl-none'
@@ -437,8 +438,48 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                             {!isCurrentUser && sender && (
                               <p className="text-xs font-bold mb-1">{sender.name}</p>
                             )}
-                            <p>{msg.text}</p>
-                            <p className={`text-xs mt-1 ${isCurrentUser ? 'text-purple-200' : 'text-slate-500 dark:text-slate-400'} text-right`}>
+                            <div className="space-y-2">
+                              {kind === 'image' && msg.mediaUrl && (
+                                <a
+                                  href={msg.mediaUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="block overflow-hidden rounded-2xl border border-white/10"
+                                >
+                                  <img
+                                    src={msg.mediaUrl}
+                                    alt={msg.text || 'Image'}
+                                    className="max-h-64 w-full object-cover"
+                                  />
+                                </a>
+                              )}
+                              {kind === 'file' && msg.mediaUrl && (
+                                <a
+                                  href={msg.mediaUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                                    isCurrentUser
+                                      ? 'bg-white/10 text-white'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-50'
+                                  }`}
+                                >
+                                  <span className="text-base">📎</span>
+                                  <span className="truncate max-w-[160px]">
+                                    {msg.text || 'Download file'}
+                                  </span>
+                                </a>
+                              )}
+                              {(kind === 'text' || !msg.mediaUrl) && msg.text && (
+                                <p>{msg.text}</p>
+                              )}
+                              {kind === 'image' && msg.mediaUrl && msg.text && (
+                                <p className="text-xs opacity-90">
+                                  {msg.text}
+                                </p>
+                              )}
+                            </div>
+                            <p className={`text-xs mt-2 ${isCurrentUser ? 'text-purple-200' : 'text-slate-500 dark:text-slate-400'} text-right`}>
                               {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>

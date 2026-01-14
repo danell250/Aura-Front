@@ -6,6 +6,7 @@ import AdCard from './AdCard';
 import SubscriptionManager from './SubscriptionManager';
 import { subscriptionService } from '../services/subscriptionService';
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
+import { uploadService } from '../services/upload';
 
 declare global {
   interface Window {
@@ -51,7 +52,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
     ctaLink: `https://auraradiance.vercel.app/profile/${currentUser.id}` 
   });
 
-  const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com' || currentUser.id === '1';
+  const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
 
   // Debug logging
   useEffect(() => {
@@ -74,26 +75,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const loadActiveSubscriptions = async () => {
     try {
       const subscriptions = await adSubscriptionService.getActiveSubscriptions(currentUser.id);
-      
-      // For testing: Add mock subscription for special user if none exist
-      if (isSpecialUser && subscriptions.length === 0) {
-        const mockSubscription = {
-          id: 'mock-sub-1',
-          userId: currentUser.id,
-          packageId: 'pkg-pro',
-          packageName: 'Aura Radiance',
-          status: 'active' as const,
-          startDate: Date.now() - (7 * 24 * 60 * 60 * 1000), // 7 days ago
-          endDate: Date.now() + (23 * 24 * 60 * 60 * 1000), // 23 days from now
-          adsUsed: 2,
-          adLimit: 5,
-          createdAt: Date.now() - (7 * 24 * 60 * 60 * 1000),
-          updatedAt: Date.now()
-        };
-        setActiveSubscriptions([mockSubscription]);
-      } else {
-        setActiveSubscriptions(subscriptions);
-      }
+      setActiveSubscriptions(subscriptions);
     } catch (error) {
       console.error('Failed to load active subscriptions:', error);
     }
@@ -492,12 +474,16 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
     };
   }, [step, sdkReady, selectedPkg, paymentVerified, mountKey, cleanupPayPal, showPayPal]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      const type = file.type.startsWith('video/') ? 'video' : 'image';
-      setForm({ ...form, mediaUrl: url, mediaType: type as any });
+    if (!file) return;
+    try {
+      const result = await uploadService.uploadFile(file);
+      const type = result.mimetype.startsWith('video') ? 'video' : 'image';
+      setForm({ ...form, mediaUrl: result.url, mediaType: type });
+    } catch (error) {
+      console.error('Upload failed', error);
+      alert('Upload failed');
     }
   };
 

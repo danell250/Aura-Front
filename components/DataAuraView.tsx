@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { User, Post } from '../types';
 import { geminiService } from '../services/gemini';
 import Logo from './Logo';
@@ -82,7 +84,6 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
         locationTracking: false,
         activityTracking: true,
         personalizedAds: false,
-        emailNotifications: true,
         pushNotifications: true
       });
     }
@@ -110,49 +111,149 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
   const exportPrivacyData = async () => {
     setIsExporting(true);
     try {
-      // Create privacy data export from current user data and privacy settings
-      const exportData = {
-        user: {
-          id: currentUser.id,
-          name: currentUser.name,
-          email: currentUser.email,
-          handle: currentUser.handle,
-          bio: currentUser.bio,
-          industry: currentUser.industry,
-          companyName: currentUser.companyName,
-          phone: currentUser.phone,
-          dob: currentUser.dob,
-          trustScore: currentUser.trustScore,
-          auraCredits: currentUser.auraCredits,
-          activeGlow: currentUser.activeGlow
+      const doc = new jsPDF();
+
+      doc.setFontSize(22);
+      doc.setTextColor(16, 185, 129);
+      doc.text('Aura Social', 14, 22);
+
+      doc.setFontSize(16);
+      doc.setTextColor(33, 41, 54);
+      doc.text('Personal Data Export', 14, 32);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
+      doc.text(`User ID: ${currentUser.id}`, 14, 45);
+
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.5);
+      doc.line(14, 50, 196, 50);
+
+      doc.setFontSize(14);
+      doc.setTextColor(15, 23, 42);
+      doc.text('Profile Information', 14, 60);
+
+      const profileData = [
+        ['Display Name', currentUser.name],
+        ['Handle', currentUser.handle],
+        ['Email', currentUser.email || 'N/A'],
+        ['Phone', currentUser.phone || 'N/A'],
+        ['Bio', currentUser.bio || 'N/A'],
+        ['Industry', currentUser.industry || 'N/A'],
+        ['Company Name', currentUser.companyName || 'N/A'],
+        ['Trust Score', `${currentUser.trustScore} / 100`],
+        ['Aura Credits', String(currentUser.auraCredits)],
+        ['Account Type', currentUser.isCompany ? 'Business' : 'Personal'],
+        ['Date of Birth', currentUser.dob ? new Date(currentUser.dob).toLocaleDateString() : 'N/A'],
+        ['Active Glow', currentUser.activeGlow || 'None'],
+        ['Total Posts', String(posts.length)],
+        ['Acquaintances', String(currentUser.acquaintances?.length || 0)],
+        ['Blocked Users', String(currentUser.blockedUsers?.length || 0)]
+      ];
+
+      autoTable(doc, {
+        startY: 65,
+        head: [['Field', 'Value']],
+        body: profileData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [16, 185, 129],
+          textColor: 255,
+          fontStyle: 'bold'
         },
-        privacySettings: privacySettings,
-        posts: posts.map(post => ({
-          id: post.id,
-          content: post.content,
-          timestamp: post.timestamp,
-          energy: post.energy,
-          radiance: post.radiance,
-          mediaType: post.mediaType
-        })),
-        acquaintances: currentUser.acquaintances || [],
-        blockedUsers: currentUser.blockedUsers || [],
-        exportDate: new Date().toISOString(),
-        exportVersion: '1.0'
-      };
-      
-      // Create and download JSON file
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `aura-privacy-data-${currentUser.handle}-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      alert('✅ Your privacy data has been exported successfully!');
+        styles: {
+          fontSize: 10,
+          cellPadding: 6,
+          lineColor: [226, 232, 240]
+        },
+        alternateRowStyles: {
+          fillColor: [241, 245, 249]
+        }
+      });
+
+      let finalY = (doc as any).lastAutoTable?.finalY || 65;
+
+      if (finalY > 220) {
+        doc.addPage();
+        finalY = 20;
+        doc.setFontSize(14);
+        doc.setTextColor(15, 23, 42);
+        doc.text('Privacy Configuration', 14, finalY);
+        finalY += 5;
+      } else {
+        doc.setFontSize(14);
+        doc.setTextColor(15, 23, 42);
+        doc.text('Privacy Configuration', 14, finalY + 15);
+        finalY = finalY + 20;
+      }
+
+      const settingsSource =
+        privacySettings ||
+        {
+          profileVisibility: 'public',
+          showOnlineStatus: true,
+          allowDirectMessages: 'everyone',
+          showProfileViews: true,
+          allowTagging: true,
+          showInSearch: true,
+          dataProcessingConsent: true,
+          marketingConsent: false,
+          analyticsConsent: true,
+          thirdPartySharing: false,
+          locationTracking: false,
+          activityTracking: true,
+          personalizedAds: false,
+          pushNotifications: true
+        };
+
+      const privacyData = Object.entries(settingsSource).map(([key, value]) => {
+        const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+        const formattedValue =
+          typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value);
+        return [label, formattedValue];
+      });
+
+      autoTable(doc, {
+        startY: finalY,
+        head: [['Setting', 'Value']],
+        body: privacyData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [59, 130, 246],
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        styles: {
+          fontSize: 10,
+          cellPadding: 6,
+          lineColor: [226, 232, 240]
+        },
+        alternateRowStyles: {
+          fillColor: [239, 246, 255]
+        }
+      });
+
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Page ${i} of ${pageCount}`, 196, 285, { align: 'right' });
+        doc.text(
+          `© ${new Date().getFullYear()} Aura Social - Confidential Personal Data Export`,
+          14,
+          285
+        );
+      }
+
+      doc.save(
+        `aura-data-export-${currentUser.handle}-${new Date()
+          .toISOString()
+          .split('T')[0]}.pdf`
+      );
+
+      alert('✅ Your privacy data PDF has been exported successfully!');
     } catch (error) {
       console.error('Failed to export privacy data:', error);
       alert('❌ Failed to export privacy data. Please try again.');
@@ -442,12 +543,6 @@ const PrivacySettingsModal = ({ settings, onUpdate, onClose }: any) => (
           description="Let others tag you in posts and comments"
           value={settings.allowTagging} 
           onChange={(value) => onUpdate('allowTagging', value)} 
-        />
-        <SettingToggle 
-          label="Email Notifications" 
-          description="Receive notifications via email"
-          value={settings.emailNotifications} 
-          onChange={(value) => onUpdate('emailNotifications', value)} 
         />
         <SettingToggle 
           label="Analytics Consent" 

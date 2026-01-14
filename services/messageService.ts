@@ -95,6 +95,27 @@ export class MessageService {
     }
   }
 
+  // Delete all messages in a conversation
+  static async deleteConversation(userId: string, otherUserId: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/messages/conversation`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          otherUserId
+        }),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      throw error;
+    }
+  }
+
   // Mark messages as read
   static async markAsRead(senderId: string, receiverId: string) {
     try {

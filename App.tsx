@@ -221,6 +221,7 @@ const App: React.FC = () => {
 
             wasAuthenticated = true;
             console.log('[App] User authenticated via OAuth token (fetched from backend):', user.id);
+            navigateToView({ type: 'feed' });
           } else {
             console.error('[App] Failed to fetch user with OAuth token:', result.error);
           }
@@ -232,12 +233,11 @@ const App: React.FC = () => {
         }
       })();
     } else {
-      // Check for saved session
       const savedSession = localStorage.getItem(STORAGE_KEY);
-      if (savedSession) {
+      const savedToken = localStorage.getItem('aura_auth_token');
+      if (savedSession && savedToken) {
         try {
           const user = JSON.parse(savedSession);
-          // Find user by ID in the latest users list to get fresh profile data (avatar etc)
           const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
           setCurrentUser(refreshedUser);
           setIsAuthenticated(true);
@@ -245,6 +245,8 @@ const App: React.FC = () => {
         } catch (e) {
           localStorage.removeItem(STORAGE_KEY);
         }
+      } else if (savedSession && !savedToken) {
+        localStorage.removeItem(STORAGE_KEY);
       }
     }
 
@@ -261,7 +263,7 @@ const App: React.FC = () => {
     setTimeout(() => {
       setLoading(false);
     }, 1000);
-  }, [syncViewFromLocation]);
+  }, [syncViewFromLocation, navigateToView]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -276,16 +278,15 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       syncBirthdays(allUsers);
-      
-      // Restore credits from localStorage if not already loaded
-      const persistedCredits = localStorage.getItem('aura_credits');
-      if (persistedCredits && currentUser && currentUser.auraCredits === 0) {
-        const updatedUser = { ...currentUser, auraCredits: parseInt(persistedCredits) };
-        setCurrentUser(updatedUser);
-        console.log('💰 Restored credits in useEffect:', updatedUser.auraCredits);
-      }
     }
   }, [isAuthenticated, allUsers, syncBirthdays]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (window.location.pathname === '/login') {
+      navigateToView({ type: 'feed' });
+    }
+  }, [isAuthenticated, navigateToView]);
 
   useEffect(() => { if (posts.length > 0) localStorage.setItem(POSTS_KEY, JSON.stringify(posts)); }, [posts]);
   useEffect(() => { if (ads.length > 0) localStorage.setItem(ADS_KEY, JSON.stringify(ads)); }, [ads]);
@@ -301,7 +302,6 @@ const App: React.FC = () => {
   };
 
   const handleLogin = (userData: any) => {
-    // Search in all users (both initial mocks and newly registered ones)
     const existingUser = allUsers.find(u => 
       (userData.email && u.email.toLowerCase() === userData.email.toLowerCase()) || 
       (userData.handle && u.handle.toLowerCase() === userData.handle.toLowerCase()) || 
@@ -309,11 +309,6 @@ const App: React.FC = () => {
     );
 
     if (existingUser) {
-      const persistedCredits = localStorage.getItem('aura_credits');
-      if (persistedCredits) {
-        existingUser.auraCredits = parseInt(persistedCredits);
-        console.log('💰 Restored credits on app load:', existingUser.auraCredits);
-      }
       setCurrentUser(existingUser);
       setIsAuthenticated(true);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(existingUser));
@@ -336,14 +331,6 @@ const App: React.FC = () => {
       activeGlow: 'none'
     };
     
-    // Update both state and localStorage consistently
-    const persistedCredits = localStorage.getItem('aura_credits');
-    if (persistedCredits) {
-      newUser.auraCredits = parseInt(persistedCredits);
-      console.log('💰 Restored persisted credits:', newUser.auraCredits);
-    }
-    
-    // Update both state and localStorage consistently
     const updatedUsers = [...allUsers, newUser];
     setAllUsers(updatedUsers);
 

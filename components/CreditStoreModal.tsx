@@ -21,14 +21,10 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
   const [isPaying, setIsPaying] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
-  const [mountKey, setMountKey] = useState(0);
-  const [buttonsRendered, setButtonsRendered] = useState(false);
 
   const [networkStatus, setNetworkStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
-  const paypalRef = useRef<HTMLDivElement>(null);
-  const activeInstanceRef = useRef<any>(null);
-  const isRenderingRef = useRef<boolean>(false);
+  const paypalRef = useRef<HTMLDivElement | null>(null);
 
   // Check network connectivity
   useEffect(() => {
@@ -53,21 +49,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
   const retryPayPal = useCallback(() => {
     console.log("[Aura] Retrying PayPal connection...");
     setRenderError(null);
-    setButtonsRendered(false);
     setSdkReady(false);
-    setMountKey(prev => prev + 1); // Force container remount
-    
-    // Clean up existing PayPal instance
-    if (activeInstanceRef.current) {
-      try {
-        if (activeInstanceRef.current && typeof activeInstanceRef.current.close === 'function') {
-          activeInstanceRef.current.close();
-        }
-      } catch (e) {
-        console.debug("[Aura] Previous PayPal instance closed", e);
-      }
-      activeInstanceRef.current = null;
-    }
     
     // Remove existing PayPal scripts
     const existingScripts = document.querySelectorAll('script[src*="paypal.com/sdk/js"]');
@@ -174,125 +156,71 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
 
     return () => { 
       isMounted = false;
-      // Clean up PayPal script on unmount
-      if (paypalScript && document.body.contains(paypalScript)) {
-        document.body.removeChild(paypalScript);
-      }
     };
   }, []);
 
   useEffect(() => {
-    let isComponentMounted = true;
-    
-    if (step === 2 && sdkReady && selectedBundle && !buttonsRendered && !isRenderingRef.current) {
-      const initButtons = async () => {
-        const containerId = `paypal-credits-container-${mountKey}`;
-        const container = document.getElementById(containerId);
-        if (!container || isRenderingRef.current) return;
+    if (step !== 2 || !sdkReady || !selectedBundle || !paypalRef.current) return;
+    if (!window.paypal || !window.paypal.Buttons) return;
 
-        isRenderingRef.current = true;
-        setRenderError(null);
-        
-        // Clear container before rendering new buttons - safer approach
-        while (container.firstChild && container.parentNode) {
-          container.removeChild(container.firstChild);
+    setRenderError(null);
+
+    const buttons = window.paypal.Buttons({
+      style: { 
+        layout: 'vertical', 
+        color: 'gold', 
+        shape: 'rect',
+        label: 'pay'
+      },
+      createOrder: (data: any, actions: any) => {
+        if (!actions || !actions.order) {
+          throw new Error('PayPal actions not available');
         }
-
-        try {
-          console.log("[Aura] Initializing PayPal buttons for credits...");
-          
-          // Validate that PayPal SDK is fully ready
-          if (!window.paypal || !window.paypal.Buttons) {
-            throw new Error('PayPal SDK not fully loaded');
-          }
-
-          const buttons = window.paypal.Buttons({
-            style: { 
-              layout: 'vertical', 
-              color: 'gold', 
-              shape: 'rect',
-              label: 'pay'
-            },
-            createOrder: (data: any, actions: any) => {
-              console.log("[Aura] Creating order for credit bundle:", selectedBundle.name);
-              if (!actions || !actions.order) {
-                throw new Error('PayPal actions not available');
-              }
-              return actions.order.create({
-                purchase_units: [{
-                  description: `Aura Credit Bundle: ${selectedBundle.name}`,
-                  amount: { 
-                    currency_code: "USD", 
-                    value: selectedBundle.numericPrice.toString() 
-                  }
-                }]
-              });
-            },
-            onApprove: async (data: any, actions: any) => {
-              console.log("[Aura] Payment approved, processing...");
-              setIsPaying(true);
-              try {
-                if (data.orderID && actions && actions.order) {
-                  await actions.order.capture();
-                  console.log("[Aura] Payment captured successfully");
-                  
-                  if (isComponentMounted) {
-                    onPurchase(selectedBundle);
-                    setTimeout(() => {
-                      onClose();
-                    }, 1000);
-                  }
-                } else {
-                  throw new Error('Invalid payment data received');
-                }
-              } catch (err) {
-                console.error('Payment processing error:', err);
-                if (isComponentMounted) {
-                  setIsPaying(false);
-                  setRenderError('Payment processing failed. Please try again.');
-                }
-              }
-            },
-            onError: (err: any) => {
-              console.error('PayPal button error:', err);
-              if (isComponentMounted) {
-                const errorMessage = err?.message || JSON.stringify(err);
-                setRenderError(`Payment failed: ${errorMessage}`);
-                isRenderingRef.current = false;
-              }
-            },
-            onCancel: () => {
-              console.log('PayPal payment cancelled');
-              isRenderingRef.current = false;
-            },
-            onInit: () => {
-              console.log("[Aura] PayPal buttons initialized for credits");
+        return actions.order.create({
+          purchase_units: [{
+            description: `Aura Credit Bundle: ${selectedBundle.name}`,
+            amount: { 
+              currency_code: "USD", 
+              value: selectedBundle.numericPrice.toString() 
             }
-          });
-
-          if (isComponentMounted) {
-            activeInstanceRef.current = buttons;
-            setButtonsRendered(true);
-            await buttons.render(`#${containerId}`);
-            console.log("[Aura] PayPal buttons rendered successfully");
+          }]
+        });
+      },
+      onApprove: async (data: any, actions: any) => {
+        setIsPaying(true);
+        try {
+          if (data.orderID && actions && actions.order) {
+            await actions.order.capture();
+            onPurchase(selectedBundle);
+            onClose();
+          } else {
+            throw new Error('Invalid payment data received');
           }
-        } catch (error: any) {
-          console.error('PayPal button initialization error:', error);
-          isRenderingRef.current = false;
-          if (isComponentMounted) {
-            setRenderError(`Payment Gateway Connection Failed: ${error?.message || 'Unknown error'}`);
-          }
+        } catch (err) {
+          console.error('Payment processing error:', err);
+          setIsPaying(false);
+          setRenderError('Payment processing failed. Please try again.');
         }
-      };
+      },
+      onError: (err: any) => {
+        console.error('PayPal button error:', err);
+        const errorMessage = err?.message || JSON.stringify(err);
+        setRenderError(`Payment failed: ${errorMessage}`);
+      },
+      onCancel: () => {
+        console.log('PayPal payment cancelled');
+      }
+    });
 
-      // Add a small delay to ensure DOM is ready
-      setTimeout(initButtons, 100);
-    }
+    buttons.render(paypalRef.current);
 
     return () => {
-      isComponentMounted = false;
+      try {
+        buttons.close();
+      } catch {
+      }
     };
-  }, [step, sdkReady, selectedBundle, mountKey, buttonsRendered, onPurchase, onClose]);
+  }, [step, sdkReady, selectedBundle, onPurchase, onClose]);
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-xl animate-in fade-in duration-300">
@@ -364,8 +292,8 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
               </div>
             )}
             
-            <div id={`paypal-credits-container-${mountKey}`} key={mountKey} className="min-h-[150px] mb-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-6 relative">
-              {!buttonsRendered && !renderError && (
+            <div ref={paypalRef} className="min-h-[150px] mb-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-6 relative">
+              {!sdkReady && !renderError && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                   <div className="w-6 h-6 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
@@ -379,20 +307,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
 
             <button onClick={() => { 
               setStep(1); 
-              setButtonsRendered(false); 
-              isRenderingRef.current = false; 
               setRenderError(null);
-              // Clean up PayPal instance
-              if (activeInstanceRef.current) {
-                try {
-                  if (activeInstanceRef.current && typeof activeInstanceRef.current.close === 'function') {
-                    activeInstanceRef.current.close();
-                  }
-                } catch (e) {
-                  console.debug("[Aura] PayPal instance cleanup", e);
-                }
-                activeInstanceRef.current = null;
-              }
             }} className="mt-8 text-[10px] font-black uppercase text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all underline">Back to bundles</button>
           </div>
         )}

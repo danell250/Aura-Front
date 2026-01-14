@@ -566,8 +566,23 @@ const App: React.FC = () => {
   }, []);
 
   const handlePurchaseCredits = (bundle: CreditBundle) => {
-    // Refresh user data from backend as purchase should have been handled there
-    fetchCurrentUser();
+    (async () => {
+      if (!currentUser?.id) return;
+      try {
+        const result = await UserService.purchaseCredits(currentUser.id, {
+          credits: bundle.credits,
+          bundleName: bundle.name,
+          paymentMethod: 'paypal'
+        });
+        if (!result.success) {
+          console.error('Failed to purchase credits:', result.error);
+          return;
+        }
+        await fetchCurrentUser();
+      } catch (error) {
+        console.error('Error purchasing credits:', error);
+      }
+    })();
   };
 
   const handleComment = useCallback((postId: string, text: string, parentId?: string) => {

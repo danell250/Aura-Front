@@ -311,18 +311,27 @@ export class UserService {
   }
 
   // Purchase credits
-  static async purchaseCredits(userId: string, amount: number): Promise<{ success: boolean; error?: string }> {
+  static async purchaseCredits(
+    userId: string,
+    payload: { credits: number; bundleName: string; transactionId?: string; paymentMethod?: string }
+  ): Promise<{ success: boolean; error?: string; data?: any }> {
     try {
       const response = await fetch(`${API_BASE_URL}/users/${userId}/purchase-credits`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ amount })
+        body: JSON.stringify({
+          credits: payload.credits,
+          bundleName: payload.bundleName,
+          transactionId: payload.transactionId,
+          paymentMethod: payload.paymentMethod || 'paypal'
+        })
       });
 
       if (response.ok) {
-        return { success: true };
+        const result = await response.json();
+        return { success: true, data: result.data };
       } else {
         const errorData = await response.json();
         return { success: false, error: errorData.message || 'Failed to purchase credits' };

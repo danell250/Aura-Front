@@ -90,24 +90,93 @@ const App: React.FC = () => {
     const usersToProcess = savedUsers ? JSON.parse(savedUsers) : MOCK_USERS;
     setAllUsers(usersToProcess);
 
-    const savedSession = localStorage.getItem(STORAGE_KEY);
+    // Check for OAuth token in URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
     let wasAuthenticated = false;
-    if (savedSession) {
+
+    if (token) {
+      // Handle OAuth callback with token
+      console.log('[App] Processing OAuth token from URL');
       try {
-        const user = JSON.parse(savedSession);
-        // Find user by ID in the latest users list to get fresh profile data (avatar etc)
-        const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
-        setCurrentUser(refreshedUser);
-        setIsAuthenticated(true);
-        wasAuthenticated = true;
-      } catch (e) { localStorage.removeItem(STORAGE_KEY); }
+        // Decode and validate token (basic check - in production you'd verify with backend)
+        const tokenData = JSON.parse(atob(token.split('.')[1])); // Decode JWT payload
+        console.log('[App] Token data:', tokenData);
+
+        // Find or create user from token data
+        let user = usersToProcess.find((u: User) => u.id === tokenData.id);
+
+        if (!user && tokenData) {
+          // Create user from token data (for OAuth users)
+          user = {
+            id: tokenData.id,
+            firstName: tokenData.firstName || 'User',
+            lastName: tokenData.lastName || '',
+            name: tokenData.name || `${tokenData.firstName || 'User'} ${tokenData.lastName || ''}`.trim(),
+            email: tokenData.email || '',
+            handle: tokenData.handle || `@${tokenData.firstName?.toLowerCase() || 'user'}${Math.floor(Math.random() * 10000)}`,
+            avatar: tokenData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tokenData.id}`,
+            avatarType: 'image',
+            bio: 'New to Aura',
+            industry: 'Other',
+            companyName: '',
+            phone: '',
+            dob: '',
+            acquaintances: [],
+            blockedUsers: [],
+            trustScore: 10,
+            auraCredits: 100,
+            activeGlow: 'none'
+          };
+
+          // Add to users list
+          const updatedUsers = [...usersToProcess, user];
+          setAllUsers(updatedUsers);
+          localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+        }
+
+        if (user) {
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+          localStorage.setItem('aura_auth_token', token);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+          wasAuthenticated = true;
+          console.log('[App] User authenticated via OAuth token:', user.id);
+        }
+
+        // Clean up URL by removing token parameter and redirecting
+        const newUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, newUrl);
+
+      } catch (error) {
+        console.error('[App] Error processing OAuth token:', error);
+        // Remove invalid token from URL
+        const newUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    } else {
+      // Check for saved session
+      const savedSession = localStorage.getItem(STORAGE_KEY);
+      if (savedSession) {
+        try {
+          const user = JSON.parse(savedSession);
+          // Find user by ID in the latest users list to get fresh profile data (avatar etc)
+          const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
+          setCurrentUser(refreshedUser);
+          setIsAuthenticated(true);
+          wasAuthenticated = true;
+        } catch (e) {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
     }
 
     const savedPosts = localStorage.getItem(POSTS_KEY);
     setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
     const savedAds = localStorage.getItem(ADS_KEY);
     setAds(savedAds ? JSON.parse(savedAds) : INITIAL_ADS);
-    
+
     if (localStorage.getItem('aura_theme') === 'dark') {
       setIsDarkMode(true);
       document.documentElement.classList.add('dark');

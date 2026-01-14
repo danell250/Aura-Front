@@ -35,6 +35,7 @@ const POSTS_KEY = 'aura_posts_data';
 const ADS_KEY = 'aura_ads_data';
 const USERS_KEY = 'aura_all_users';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
+const AURA_SUPPORT_EMAIL = 'aurasocialradiate@gmail.com';
 
 interface BirthdayAnnouncement {
   id: string;
@@ -136,6 +137,26 @@ const App: React.FC = () => {
     const newUrl = path + window.location.search + window.location.hash;
     window.history.pushState({ view: nextView }, '', newUrl);
   }, [buildPathFromView]);
+
+  const ensureAuraSupportUser = useCallback((users: User[]): User[] => {
+    const exists = users.some(u => (u.email || '').toLowerCase() === AURA_SUPPORT_EMAIL);
+    if (exists) return users;
+    const supportUser: User = {
+      id: `support-${AURA_SUPPORT_EMAIL}`,
+      firstName: 'Aura',
+      lastName: 'Support',
+      name: 'Aura Support',
+      handle: '@aurasupport',
+      avatar: '/og-image.svg',
+      avatarType: 'image',
+      bio: 'Aura Support',
+      email: AURA_SUPPORT_EMAIL,
+      trustScore: 100,
+      auraCredits: 0,
+      activeGlow: 'emerald'
+    };
+    return [supportUser, ...users];
+  }, []);
 
   const fetchCurrentUser = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -289,7 +310,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const savedUsers = localStorage.getItem(USERS_KEY);
     const usersToProcess = savedUsers ? JSON.parse(savedUsers) : MOCK_USERS;
-    setAllUsers(usersToProcess);
+    setAllUsers(ensureAuraSupportUser(usersToProcess));
 
     // Check for OAuth token in URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -383,13 +404,13 @@ const App: React.FC = () => {
       try {
         const result = await UserService.getAllUsers();
         if (result.success && result.users) {
-          setAllUsers(result.users);
+          setAllUsers(ensureAuraSupportUser(result.users));
         }
       } catch (error) {
         console.error('Failed to load users from backend:', error);
       }
     })();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, ensureAuraSupportUser]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -421,7 +442,7 @@ const App: React.FC = () => {
     updateTimeCapsules();
     const interval = setInterval(updateTimeCapsules, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [ensureAuraSupportUser]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1308,6 +1329,7 @@ const App: React.FC = () => {
           onEditProfile={() => setIsSettingsOpen(true)}
           onDeletePost={handleDeletePost}
           onDeleteComment={handleDeleteComment}
+          onOpenMessaging={(userId) => navigateToView({ type: 'chat', targetId: userId || '' })}
           onCancelAd={async (id) => {
             // Optimistic update
             setAds(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' as const } : a));

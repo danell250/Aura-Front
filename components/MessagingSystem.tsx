@@ -45,7 +45,7 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   );
 
   const getDisplayName = (user: User) =>
-    user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Admin' : user.name;
+    user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Support' : user.name;
 
   // Filter users for messaging - show users with message history plus Aura Admin for support
   const messagingUsers = (() => {

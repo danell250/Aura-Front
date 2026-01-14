@@ -30,6 +30,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   const [conversations, setConversations] = useState<any[]>([]);
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const headerMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -37,6 +38,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   const [attachments, setAttachments] = useState<File[]>([]);
   const messagesInitRef = useRef(false);
   const lastMessageIdRef = useRef<string | null>(null);
+  const shouldStickToBottomRef = useRef(true);
 
   const auraAdminUser = useMemo(
     () => allUsers.find(u => (u.email || '').toLowerCase() === AURA_ADMIN_EMAIL),
@@ -141,6 +143,8 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
 
 
   useEffect(() => {
+    if (!activeContact) return;
+    if (!shouldStickToBottomRef.current && messagesInitRef.current) return;
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, activeContact]);
 
@@ -187,8 +191,14 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   const handleSend = async () => {
     if ((!inputText.trim() && attachments.length === 0) || !activeContact || isSending) return;
     
+    shouldStickToBottomRef.current = true;
     setIsSending(true);
     try {
+      const isAuraSupport = activeContact.email && activeContact.email.toLowerCase() === AURA_ADMIN_EMAIL;
+      const hasAuraReply = isAuraSupport && messages.some(
+        msg => msg.senderId === (auraAdminUser?.id || activeContact.id) && msg.receiverId === currentUser.id
+      );
+
       const createdMessages: Message[] = [];
 
       for (const file of attachments) {
@@ -225,10 +235,14 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
       }
 
       if (createdMessages.length > 0 || textMessage) {
-        setMessages(prev => [
-          ...prev,
+        const newMessages = [
           ...createdMessages,
           ...(textMessage ? [textMessage] : [])
+        ];
+
+        setMessages(prev => [
+          ...prev,
+          ...newMessages
         ]);
         setInputText('');
         setAttachments([]);
@@ -244,6 +258,23 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
             .filter((conv: any) => conv.isArchived)
             .map((conv: any) => conv._id as string);
           setArchivedIds(archivedFromBackend);
+        }
+
+        if (isAuraSupport && !hasAuraReply && newMessages.some(msg => msg.senderId === currentUser.id)) {
+          setTimeout(async () => {
+            try {
+              const reply = await MessageService.sendMessage(
+                auraAdminUser?.id || activeContact.id,
+                currentUser.id,
+                "Hi there, thanks for reaching out to Aura Support. Share any issues or ideas and we'll assist you as soon as possible."
+              );
+              if (reply.success) {
+                setMessages(prev => [...prev, reply.data]);
+              }
+            } catch (error) {
+              console.error('Failed to send Aura Support auto-response:', error);
+            }
+          }, 1000);
         }
       }
     } catch (error) {
@@ -269,6 +300,13 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
 
   const removeAttachment = (index: number) => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleMessagesScroll = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldStickToBottomRef.current = distanceFromBottom < 120;
   };
 
   const handleArchive = async () => {
@@ -390,7 +428,6 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   }, [sidebarTab, searchResults, allUsers, currentUser.id, conversations, contactSearch, archivedIds, auraAdminUser]);
 
   const getLastMessage = (userId: string) => {
-    // Find conversation data from backend
     const conversation = conversations.find(conv => conv._id === userId);
     if (conversation?.lastMessage) {
       return conversation.lastMessage;
@@ -399,8 +436,162 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
     return null;
   };
 
+  const isSameDay = (a: Date, b: Date) => {
+    return (
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate()
+    );
+  };
+
+  const getDaySeparatorLabel = (date: Date) => {
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (isSameDay(date, today)) {
+      return 'Today';
+    }
+
+    if (isSameDay(date, yesterday)) {
+      return 'Yesterday';
+    }
+
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }).format(date);
+  };
+
+  const renderMessages = () => {
+    const items: React.ReactElement[] = [];
+    let lastDateKey: string | null = null;
+
+    messages.forEach((msg, idx) => {
+      const isMe = msg.senderId === currentUser.id;
+      const prevMsg = messages[idx - 1];
+      const isFirstInSequence = !prevMsg || prevMsg.senderId !== msg.senderId;
+      const timestamp = typeof msg.timestamp === 'number' ? msg.timestamp : new Date(msg.timestamp).getTime();
+      const kind = msg.messageType || 'text';
+      const messageDate = new Date(timestamp);
+      const dateKey = messageDate.toDateString();
+
+      if (dateKey !== lastDateKey) {
+        const label = getDaySeparatorLabel(messageDate);
+        items.push(
+          <div
+            key={`separator-${dateKey}`}
+            className="flex items-center my-4"
+          >
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+            <span className="mx-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 whitespace-nowrap">
+              {label}
+            </span>
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+          </div>
+        );
+        lastDateKey = dateKey;
+      }
+
+      const dateLabel = new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(timestamp);
+
+      items.push(
+        <div
+          key={msg.id}
+          className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-4 duration-300`}
+        >
+          <div
+            className={`max-w-[78%] sm:max-w-[68%] px-5 py-4 sm:px-6 sm:py-5 rounded-3xl text-[14px] font-medium shadow-md leading-relaxed transition-all hover:translate-y-[1px] ${
+              isMe
+                ? 'aura-bg-gradient text-white shadow-emerald-500/10'
+                : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-100 dark:border-slate-800 shadow-slate-200/40 dark:shadow-black/30'
+            } ${isMe ? 'rounded-br-xl' : 'rounded-bl-xl'} ${
+              !isFirstInSequence && (isMe ? 'rounded-tr-xl' : 'rounded-tl-xl')
+            }`}
+          >
+            <div className="space-y-2.5">
+              {kind === 'image' && msg.mediaUrl && (
+                <a
+                  href={msg.mediaUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block overflow-hidden rounded-3xl border border-white/10"
+                >
+                  <img
+                    src={msg.mediaUrl}
+                    alt={msg.text || 'Image'}
+                    className="max-h-72 w-full object-cover"
+                  />
+                </a>
+              )}
+              {kind === 'file' && msg.mediaUrl && (
+                <a
+                  href={msg.mediaUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`inline-flex items-center gap-3 px-4 py-2 rounded-2xl text-sm font-bold ${
+                    isMe
+                      ? 'bg-white/10 text-white'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-50'
+                  }`}
+                >
+                  <span className="text-lg">📎</span>
+                  <span className="truncate max-w-[220px]">
+                    {msg.text || 'Download file'}
+                  </span>
+                </a>
+              )}
+              {(kind === 'text' || !msg.mediaUrl) && msg.text && (
+                <div className="break-words">
+                  {msg.text}
+                </div>
+              )}
+              {kind === 'image' && msg.mediaUrl && msg.text && (
+                <div className="break-words text-[13px] opacity-90">
+                  {msg.text}
+                </div>
+              )}
+            </div>
+            <div
+              className={`text-[10px] mt-3 font-semibold tracking-wide flex items-center gap-2 ${
+                isMe ? 'text-white/70 justify-end' : 'text-slate-400 dark:text-slate-500'
+              }`}
+            >
+              <span>{dateLabel}</span>
+              {msg.isEdited && <span className="opacity-70">· Edited</span>}
+              {isMe && (
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={4}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    });
+
+    return items;
+  };
+
   return (
-    <div className="flex h-[850px] bg-white dark:bg-slate-900 rounded-[3rem] sm:rounded-[4rem] overflow-hidden border border-slate-200/60 dark:border-slate-800 shadow-[0_50px_100px_-30px_rgba(0,0,0,0.15)] animate-in fade-in zoom-in-95 duration-1000 max-w-7xl mx-auto transition-colors">
+    <div className="flex h-[calc(100vh-8rem)] min-h-[600px] max-h-[900px] bg-white dark:bg-slate-900 rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden border border-slate-200/60 dark:border-slate-800 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in-95 duration-700 max-w-7xl mx-auto transition-colors">
       
       {/* Sidebar */}
       <div className="w-80 border-r border-slate-100 dark:border-slate-800 flex flex-col bg-slate-50/20 dark:bg-slate-900/40">
@@ -474,7 +665,13 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                   className={`w-full flex items-center gap-4 p-4 rounded-[1.75rem] transition-all active:scale-[0.97] duration-300 group relative ${activeContact?.id === user.id ? 'aura-bg-gradient text-white shadow-xl shadow-emerald-500/20' : 'hover:bg-white dark:hover:bg-slate-800/60 text-slate-600'}`}
                 >
                   <div className="relative flex-shrink-0">
-                    <img src={user.avatar} className="w-12 h-12 rounded-2xl object-cover ring-4 ring-white/10 group-hover:scale-110 transition-transform" alt="" />
+                    {user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? (
+                      <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white flex items-center justify-center ring-4 ring-white/10 group-hover:scale-110 transition-transform">
+                        <Logo size="sm" showText={false} />
+                      </div>
+                    ) : (
+                      <img src={user.avatar} className="w-12 h-12 rounded-2xl object-cover ring-4 ring-white/10 group-hover:scale-110 transition-transform" alt="" />
+                    )}
                     {user.trustScore > 80 && (
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full shadow-lg"></div>
                     )}
@@ -490,7 +687,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                       }}
                       className={`font-black truncate text-sm leading-none uppercase tracking-tight hover:text-emerald-400 transition-colors text-left ${activeContact?.id === user.id ? 'text-white hover:text-emerald-200' : 'text-slate-900 dark:text-slate-100'}`}
                     >
-                      {user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Admin' : user.name}
+                      {user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Support' : user.name}
                     </button>
                     <p className={`text-[9px] truncate tracking-wide mt-2 font-bold ${activeContact?.id === user.id ? 'text-white/70' : 'text-slate-400'}`}>
                       {lastMsg ? lastMsg.text : 
@@ -518,12 +715,18 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
             <div className="p-8 sm:px-14 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white/50 dark:bg-slate-900/50 backdrop-blur-3xl h-32 relative z-10">
               <div className="flex items-center gap-8">
                 <div className="relative group/avatar">
+                  {activeContact.email && activeContact.email.toLowerCase() === AURA_ADMIN_EMAIL ? (
+                    <div className="w-16 h-16 rounded-[1.75rem] overflow-hidden bg-white flex items-center justify-center shadow-2xl border-4 border-white dark:border-slate-800 transition-all group-hover/avatar:scale-105">
+                      <Logo size="md" showText={false} />
+                    </div>
+                  ) : (
                     <img src={activeContact.avatar} className="w-16 h-16 rounded-[1.75rem] object-cover shadow-2xl border-4 border-white dark:border-slate-800 transition-all group-hover/avatar:scale-105" alt="" />
-                    <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 bg-emerald-500 border-4 border-white dark:border-slate-800 rounded-full shadow-lg shadow-emerald-500/20"></div>
+                  )}
+                  <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 bg-emerald-500 border-4 border-white dark:border-slate-800 rounded-full shadow-lg shadow-emerald-500/20"></div>
                 </div>
                 <div>
                   <h3 className="font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white text-lg leading-none">
-                    {activeContact.email && activeContact.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Admin' : activeContact.name}
+                    {activeContact.email && activeContact.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Support' : activeContact.name}
                   </h3>
                   <div className="flex items-center gap-3 mt-3">
                     <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
@@ -562,7 +765,11 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
             </div>
             
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-8 sm:p-14 space-y-8 no-scrollbar bg-slate-50/10 dark:bg-slate-950/20">
+            <div
+              ref={messagesContainerRef}
+              onScroll={handleMessagesScroll}
+              className="flex-1 overflow-y-auto px-6 sm:px-10 py-6 sm:py-10 space-y-6 no-scrollbar bg-slate-50/10 dark:bg-slate-950/20"
+            >
               {isLoading ? (
                 <div className="h-full flex flex-col items-center justify-center opacity-40">
                   <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full mb-4"></div>
@@ -574,76 +781,13 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                   <p className="text-[10px] font-black uppercase tracking-[0.4em] mt-8 text-slate-400">Security Clearance Verified. Begin Sync.</p>
                 </div>
               ) : (
-                messages.map((msg, idx) => {
-                  const isMe = msg.senderId === currentUser.id;
-                  const prevMsg = messages[idx - 1];
-                  const isFirstInSequence = !prevMsg || prevMsg.senderId !== msg.senderId;
-                  const timestamp = typeof msg.timestamp === 'number' ? msg.timestamp : new Date(msg.timestamp).getTime();
-                  const kind = msg.messageType || 'text';
-                  
-                  return (
-                    <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-4 duration-500`}>
-                      <div className={`max-w-[80%] sm:max-w-[70%] p-6 sm:p-8 rounded-[2.5rem] text-[15px] font-bold shadow-2xl leading-relaxed transition-all hover:scale-[1.01] ${isMe ? 'aura-bg-gradient text-white shadow-emerald-500/10' : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-100 dark:border-slate-800 shadow-slate-200/20 dark:shadow-black/20'} ${isMe ? 'rounded-br-none' : 'rounded-bl-none'} ${!isFirstInSequence && (isMe ? 'rounded-tr-xl' : 'rounded-tl-xl')}`}>
-                        <div className="space-y-3">
-                          {kind === 'image' && msg.mediaUrl && (
-                            <a
-                              href={msg.mediaUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="block overflow-hidden rounded-3xl border border-white/10"
-                            >
-                              <img
-                                src={msg.mediaUrl}
-                                alt={msg.text || 'Image'}
-                                className="max-h-72 w-full object-cover"
-                              />
-                            </a>
-                          )}
-                          {kind === 'file' && msg.mediaUrl && (
-                            <a
-                              href={msg.mediaUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className={`inline-flex items-center gap-3 px-4 py-2 rounded-2xl text-sm font-bold ${
-                                isMe
-                                  ? 'bg-white/10 text-white'
-                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-50'
-                              }`}
-                            >
-                              <span className="text-lg">📎</span>
-                              <span className="truncate max-w-[220px]">
-                                {msg.text || 'Download file'}
-                              </span>
-                            </a>
-                          )}
-                          {(kind === 'text' || !msg.mediaUrl) && msg.text && (
-                            <div className="break-words">
-                              {msg.text}
-                            </div>
-                          )}
-                          {kind === 'image' && msg.mediaUrl && msg.text && (
-                            <div className="break-words text-[13px] opacity-90">
-                              {msg.text}
-                            </div>
-                          )}
-                        </div>
-                        <div className={`text-[8px] mt-4 font-black uppercase tracking-[0.2em] flex items-center gap-2 ${isMe ? 'text-white/50 justify-end' : 'text-slate-300 dark:text-slate-600'}`}>
-                          {new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric' }).format(timestamp)}
-                          {msg.isEdited && <span className="opacity-60">(edited)</span>}
-                          {isMe && (
-                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
+                renderMessages()
               )}
               <div ref={chatEndRef} />
             </div>
 
-            <div className="px-8 sm:px-14 py-10 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-              <div className="max-w-6xl mx-auto space-y-4">
+            <div className="px-6 sm:px-10 py-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+              <div className="max-w-5xl mx-auto space-y-4">
                 {attachments.length > 0 && (
                   <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3">
                     <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
@@ -673,11 +817,11 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                     </span>
                   </div>
                 )}
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
                   <button
                     type="button"
                     onClick={handleAttachmentClick}
-                    className="w-14 h-14 flex-shrink-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 active:scale-90 shadow-sm"
+                    className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 active:scale-90 shadow-sm"
                   >
                     <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                   </button>
@@ -689,7 +833,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                       className="hidden"
                       onChange={handleAttachmentChange}
                     />
-                    <div className="absolute left-3 top-3 text-slate-300 dark:text-slate-600 pointer-events-none">
+                    <div className="absolute left-3 top-2.5 text-slate-300 dark:text-slate-600 pointer-events-none">
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m2 0a8 8 0 11-16 0 8 8 0 0116 0z" /></svg>
                     </div>
                     <textarea
@@ -705,11 +849,11 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                       placeholder="Synthesize neural message..."
                       disabled={isSending}
                       rows={2}
-                      className="w-full pl-10 pr-32 py-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-[1.6rem] border-2 border-transparent outline-none focus:ring-12 focus:ring-emerald-500/5 dark:focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-400/20 transition-all text-base font-bold text-slate-900 dark:text-white shadow-inner disabled:opacity-50 resize-none overflow-y-auto max-h-80 min-h-[64px]"
+                      className="w-full pl-10 pr-32 py-3 bg-slate-50/70 dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700/70 outline-none focus:ring-8 focus:ring-emerald-500/10 dark:focus:ring-emerald-500/20 focus:bg-white dark:focus:bg-slate-900 transition-all text-sm font-medium text-slate-900 dark:text-white disabled:opacity-50 resize-none overflow-y-auto max-h-60 min-h-[52px]"
                     />
                     <button
                       onClick={() => setShowEmojiPicker(v => !v)}
-                      className="absolute right-24 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700"
+                      className="absolute right-24 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700"
                       title="Insert emoji"
                     >
                       😊
@@ -717,7 +861,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                     <button 
                       onClick={handleSend} 
                       disabled={(!inputText.trim() && attachments.length === 0) || isSending} 
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 px-10 py-3.5 aura-bg-gradient text-white rounded-[1.5rem] shadow-xl shadow-emerald-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-20 text-[11px] font-black uppercase tracking-[0.3em] min-w-[80px]"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-7 py-2.5 aura-bg-gradient text-white rounded-xl shadow-lg shadow-emerald-500/30 flex items-center justify-center hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 text-[11px] font-black uppercase tracking-[0.25em] min-w-[72px]"
                     >
                       {isSending ? (
                         <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>

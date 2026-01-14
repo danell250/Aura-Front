@@ -16,6 +16,8 @@ import ShareModal from './components/ShareModal';
 import CreditStoreModal from './components/CreditStoreModal';
 import FeedFilters from './components/FeedFilters';
 import Logo from './components/Logo';
+import TermsAndConditions from './components/TermsAndConditions';
+import PrivacyPolicy from './components/PrivacyPolicy';
 import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
 import { UserService } from './services/userService';
@@ -55,7 +57,7 @@ const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
   
-  const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string}>({ type: 'feed' });
+  const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy', targetId?: string}>({ type: 'feed' });
 
   const syncViewFromLocation = useCallback(() => {
     const path = window.location.pathname || '/feed';
@@ -63,6 +65,20 @@ const App: React.FC = () => {
 
     if (segments.length === 0 || segments[0] === 'feed') {
       setView({ type: 'feed' });
+      return;
+    }
+
+    if (segments[0] === 'login') {
+      return;
+    }
+
+    if (segments[0] === 'terms') {
+      setView({ type: 'terms' });
+      return;
+    }
+
+    if (segments[0] === 'privacy') {
+      setView({ type: 'privacy' });
       return;
     }
 
@@ -94,17 +110,19 @@ const App: React.FC = () => {
     setView({ type: 'feed' });
   }, []);
 
-  const buildPathFromView = useCallback((nextView: { type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura'; targetId?: string }) => {
+  const buildPathFromView = useCallback((nextView: { type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy'; targetId?: string }) => {
     if (nextView.type === 'feed') return '/feed';
     if (nextView.type === 'acquaintances') return '/acquaintances';
     if (nextView.type === 'data_aura') return '/data-aura';
+    if (nextView.type === 'terms') return '/terms';
+    if (nextView.type === 'privacy') return '/privacy';
     if (nextView.type === 'profile' && nextView.targetId) return `/profile/${nextView.targetId}`;
     if (nextView.type === 'chat' && nextView.targetId) return `/chat/${nextView.targetId}`;
     if (nextView.type === 'chat') return '/chat';
     return '/feed';
   }, []);
 
-  const navigateToView = useCallback((nextView: { type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura'; targetId?: string }) => {
+  const navigateToView = useCallback((nextView: { type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy'; targetId?: string }) => {
     setView(nextView);
     const path = buildPathFromView(nextView);
     const newUrl = path + window.location.search + window.location.hash;
@@ -781,7 +799,32 @@ const App: React.FC = () => {
   }, [handleAcceptConnection]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center dark:bg-slate-950 transition-colors"><Logo size="lg" className="animate-float" /></div>;
-  if (!isAuthenticated) return <Login onLogin={handleLogin} allUsers={allUsers} />;
+  if (!isAuthenticated) {
+    const path = typeof window !== 'undefined' ? window.location.pathname : '/login';
+    const segments = path.split('/').filter(Boolean);
+
+    if (segments[0] === 'terms') {
+      return (
+        <div className="min-h-screen bg-[#FDFDFF] dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+          <TermsAndConditions onClose={() => { window.history.back(); }} />
+        </div>
+      );
+    }
+
+    if (segments[0] === 'privacy') {
+      return (
+        <div className="min-h-screen bg-[#FDFDFF] dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+          <PrivacyPolicy onClose={() => { window.history.back(); }} />
+        </div>
+      );
+    }
+
+    if (typeof window !== 'undefined' && path !== '/login') {
+      const newUrl = '/login' + window.location.search + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+    return <Login onLogin={handleLogin} allUsers={allUsers} />;
+  }
 
   return (
     <Layout 

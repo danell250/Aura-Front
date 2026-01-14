@@ -57,6 +57,60 @@ const App: React.FC = () => {
   
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura', targetId?: string}>({ type: 'feed' });
 
+  const syncViewFromLocation = useCallback(() => {
+    const path = window.location.pathname || '/feed';
+    const segments = path.split('/').filter(Boolean);
+
+    if (segments.length === 0 || segments[0] === 'feed') {
+      setView({ type: 'feed' });
+      return;
+    }
+
+    if (segments[0] === 'acquaintances') {
+      setView({ type: 'acquaintances' });
+      return;
+    }
+
+    if (segments[0] === 'data-aura' || segments[0] === 'data_aura') {
+      setView({ type: 'data_aura' });
+      return;
+    }
+
+    if (segments[0] === 'profile' && segments[1]) {
+      setView({ type: 'profile', targetId: segments[1] });
+      return;
+    }
+
+    if (segments[0] === 'chat') {
+      setView({ type: 'chat', targetId: segments[1] || '' });
+      return;
+    }
+
+    const fallbackPath = '/feed';
+    if (window.location.pathname !== fallbackPath) {
+      const newUrl = fallbackPath + window.location.search + window.location.hash;
+      window.history.replaceState({ view: { type: 'feed' } }, '', newUrl);
+    }
+    setView({ type: 'feed' });
+  }, []);
+
+  const buildPathFromView = useCallback((nextView: { type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura'; targetId?: string }) => {
+    if (nextView.type === 'feed') return '/feed';
+    if (nextView.type === 'acquaintances') return '/acquaintances';
+    if (nextView.type === 'data_aura') return '/data-aura';
+    if (nextView.type === 'profile' && nextView.targetId) return `/profile/${nextView.targetId}`;
+    if (nextView.type === 'chat' && nextView.targetId) return `/chat/${nextView.targetId}`;
+    if (nextView.type === 'chat') return '/chat';
+    return '/feed';
+  }, []);
+
+  const navigateToView = useCallback((nextView: { type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura'; targetId?: string }) => {
+    setView(nextView);
+    const path = buildPathFromView(nextView);
+    const newUrl = path + window.location.search + window.location.hash;
+    window.history.pushState({ view: nextView }, '', newUrl);
+  }, [buildPathFromView]);
+
   const fetchCurrentUser = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
@@ -214,10 +268,21 @@ const App: React.FC = () => {
       setIsDarkMode(true);
       document.documentElement.classList.add('dark');
     }
+    syncViewFromLocation();
     setTimeout(() => {
       setLoading(false);
     }, 1000);
-  }, []);
+  }, [syncViewFromLocation]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      syncViewFromLocation();
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [syncViewFromLocation]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -264,6 +329,7 @@ const App: React.FC = () => {
       setIsAuthenticated(true);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(existingUser));
       syncBirthdays(allUsers);
+      navigateToView({ type: 'feed' });
       return;
     }
 
@@ -297,6 +363,7 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
     localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
     syncBirthdays(updatedUsers);
+    navigateToView({ type: 'feed' });
   };
 
   const handleUpdateProfile = (updates: Partial<User>) => {
@@ -719,16 +786,23 @@ const App: React.FC = () => {
   return (
     <Layout 
       activeView={view.type} searchQuery={searchQuery} onSearchChange={setSearchQuery} 
-      onLogout={() => { setIsAuthenticated(false); localStorage.removeItem(STORAGE_KEY); localStorage.removeItem('aura_credits'); }}
+      onLogout={() => { 
+        setIsAuthenticated(false); 
+        localStorage.removeItem(STORAGE_KEY); 
+        localStorage.removeItem('aura_credits'); 
+        localStorage.removeItem('aura_auth_token');
+        const newUrl = '/login' + window.location.search + window.location.hash;
+        window.history.pushState({}, '', newUrl);
+      }}
       currentUser={currentUser} isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode}
       onStartCampaign={() => setIsAdManagerOpen(true)} onViewSettings={() => setIsSettingsOpen(true)} 
       onOpenCreditStore={() => setIsCreditStoreOpen(true)}
       posts={posts} users={allUsers} ads={ads} notifications={notifications}
-      onGoHome={() => setView({ type: 'feed' })} 
-      onViewChat={(userId) => setView({ type: 'chat', targetId: userId || '' })}
-      onViewFriends={() => setView({ type: 'acquaintances' })}
-      onViewPrivacy={() => setView({ type: 'data_aura' })} 
-      onViewProfile={(userId) => setView({ type: 'profile', targetId: userId })}
+      onGoHome={() => navigateToView({ type: 'feed' })} 
+      onViewChat={(userId) => navigateToView({ type: 'chat', targetId: userId || '' })}
+      onViewFriends={() => navigateToView({ type: 'acquaintances' })}
+      onViewPrivacy={() => navigateToView({ type: 'data_aura' })} 
+      onViewProfile={(userId) => navigateToView({ type: 'profile', targetId: userId })}
     >
       {view.type === 'feed' && (
         <div className="space-y-6">
@@ -772,12 +846,12 @@ const App: React.FC = () => {
           adRefreshTick={adSubsRefreshTick}
           currentUser={currentUser}
           allUsers={allUsers}
-          onBack={() => setView({ type: 'feed' })}
+          onBack={() => navigateToView({ type: 'feed' })}
           onLike={handleLike}
           onComment={handleComment}
           onSendConnectionRequest={handleSendConnectionRequest}
           onReact={handleReact}
-          onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
+          onViewProfile={(id) => navigateToView({ type: 'profile', targetId: id })}
           onShare={() => {}}
           onAddAcquaintance={handleAddAcquaintance}
           onRemoveAcquaintance={handleRemoveAcquaintance}
@@ -845,18 +919,18 @@ const App: React.FC = () => {
           onOpenAdManager={() => setIsAdManagerOpen(true)}
         />
       )}
-      {view.type === 'chat' && <ChatView currentUser={currentUser} allUsers={allUsers} acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} onBack={() => setView({ type: 'feed' })} initialContactId={view.targetId} />}
+      {view.type === 'chat' && <ChatView currentUser={currentUser} allUsers={allUsers} acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} onBack={() => navigateToView({ type: 'feed' })} initialContactId={view.targetId} />}
       {view.type === 'acquaintances' && (
         <AcquaintancesView 
           currentUser={currentUser} 
           acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} 
-          onViewProfile={(id) => setView({ type: 'profile', targetId: id })} 
-          onViewChat={(id) => setView({ type: 'chat', targetId: id })} 
+          onViewProfile={(id) => navigateToView({ type: 'profile', targetId: id })} 
+          onViewChat={(id) => navigateToView({ type: 'chat', targetId: id })} 
           onRemoveAcquaintance={handleRemoveAcquaintance} 
-          onBack={() => setView({ type: 'feed' })} 
+          onBack={() => navigateToView({ type: 'feed' })} 
         />
       )}
-      {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => setView({ type: 'feed' })} onPurchaseGlow={(glow) => handleUpdateProfile({ activeGlow: glow })} onClearData={() => {}} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
+      {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => navigateToView({ type: 'feed' })} onPurchaseGlow={(glow) => handleUpdateProfile({ activeGlow: glow })} onClearData={() => {}} onViewProfile={(id) => navigateToView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
       {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={handleAdCreated} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onAdUpdated={async (adId, updates) => {
         try {

@@ -85,7 +85,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
     // Reload PayPal SDK after a short delay
     setTimeout(() => {
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=capture&vault=true&components=buttons&t=${Date.now()}`;
+      script.src = `https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=capture&components=buttons&t=${Date.now()}`;
       script.setAttribute('data-sdk-integration-source', 'button-factory');
       script.async = true;
       script.onload = () => {
@@ -144,7 +144,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
       try {
         console.log("[Aura] Loading PayPal SDK for credits...");
         paypalScript = document.createElement('script');
-        paypalScript.src = `https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=capture&vault=true&components=buttons`;
+        paypalScript.src = `https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=capture&components=buttons`;
         paypalScript.setAttribute('data-sdk-integration-source', 'button-factory');
         paypalScript.async = true;
         paypalScript.onload = () => {
@@ -272,12 +272,9 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
 
           if (isComponentMounted) {
             activeInstanceRef.current = buttons;
-            // Render into the container
+            setButtonsRendered(true);
             await buttons.render(`#${containerId}`);
             console.log("[Aura] PayPal buttons rendered successfully");
-            if (isComponentMounted) {
-              setButtonsRendered(true);
-            }
           }
         } catch (error: any) {
           console.error('PayPal button initialization error:', error);

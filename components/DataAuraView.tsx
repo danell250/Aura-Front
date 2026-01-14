@@ -60,7 +60,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
 
   const loadPrivacySettings = async () => {
     try {
-      const response = await apiFetch(`/api/users/${currentUser.id}/privacy-settings`);
+      const response = await apiFetch(`/users/${currentUser.id}/privacy-settings`);
       if (response.ok) {
         const data = await response.json();
         setPrivacySettings(data.data);
@@ -95,7 +95,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
     setPrivacySettings(updatedSettings);
 
     try {
-      await apiFetch(`/api/users/${currentUser.id}/privacy-settings`, {
+      await apiFetch(`/users/${currentUser.id}/privacy-settings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [key]: value })
@@ -170,7 +170,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
 
     setIsDeleting(true);
     try {
-      const response = await apiFetch(`/api/users/${currentUser.id}/clear-data`, {
+      const response = await apiFetch(`/users/${currentUser.id}/clear-data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

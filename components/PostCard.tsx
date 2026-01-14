@@ -359,15 +359,18 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
 
   const displayMediaUrl = post.mediaUrl || (post.content.match(/https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov|gif|gifv|jpg|jpeg|png|webp)/i)?.[0] || (getEmbedUrl(post.content) ? post.content.match(/https?:\/\/[^\s]+/)?.[0] : null));
   const rootComments = (post.comments || []).filter(c => !c.parentId);
-  const radianceGlow = post.radiance > 10 ? `0 20px 40px -10px rgba(16, 185, 129, ${Math.min(post.radiance / 100, 0.4)})` : 'none';
+  const baseShadow = '0 24px 80px -32px rgba(15,23,42,0.65)';
+  const radianceGlow = post.radiance > 10
+    ? `${baseShadow}, 0 0 0 1px rgba(16,185,129,${Math.min(post.radiance / 120, 0.6)})`
+    : baseShadow;
 
   return (
     <div 
       id={`post-${post.id}`}
-      className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.04)] overflow-hidden mb-8 group relative ${post.isBoosted ? 'ring-1 ring-emerald-500/30' : ''}`} 
+      className={`relative mb-8 group overflow-hidden rounded-[2.25rem] border border-slate-200/70 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/60 backdrop-blur-xl transition-all duration-500 ${post.isBoosted ? 'ring-1 ring-emerald-400/40' : ''}`} 
       style={{ boxShadow: radianceGlow }}
     >
-      <div className="p-6">
+      <div className="p-6 sm:p-7">
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-3 cursor-pointer flex-1 min-w-0" onClick={() => onViewProfile(post.author.id)}>
             <div className={`w-11 h-11 rounded-xl overflow-hidden border transition-all duration-300 bg-slate-50 dark:bg-slate-800 shrink-0 ${post.author.activeGlow === 'emerald' ? 'border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'border-slate-100 dark:border-slate-800'}`}>

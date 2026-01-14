@@ -28,6 +28,7 @@ import { NotificationService } from './services/notificationService';
 import { CommentService } from './services/commentService';
 import { SearchResult } from './services/searchService';
 import { MessageService } from './services/messageService';
+import { soundService } from './services/soundService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -167,28 +168,6 @@ const App: React.FC = () => {
   const prevNotificationIdsRef = useRef<Set<string> | null>(null);
   const messageInitRef = useRef(false);
   const prevUnreadCountRef = useRef(0);
-  const audioContextRef = useRef<AudioContext | null>(null);
-
-  const playAlertSound = useCallback(() => {
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-      const ctx = audioContextRef.current;
-      if (!ctx) return;
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.type = 'sine';
-      oscillator.frequency.value = 880;
-      gain.gain.value = 0.08;
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      const now = ctx.currentTime;
-      oscillator.start(now);
-      oscillator.stop(now + 0.12);
-    } catch {
-    }
-  }, []);
 
   const fetchNotifications = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -204,7 +183,7 @@ const App: React.FC = () => {
           const hasNew = result.data.some((n: Notification) => !previousSet.has(n.id));
           const hasRemoved = previousIds.some(id => !currentSet.has(id));
           if (hasPrevious && hasNew && !hasRemoved) {
-            playAlertSound();
+            soundService.playNotification();
           }
           prevNotificationIdsRef.current = currentSet;
           return result.data;
@@ -213,7 +192,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     }
-  }, [currentUser?.id, playAlertSound]);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.id) return;
@@ -237,7 +216,7 @@ const App: React.FC = () => {
           const hasPrevious = messageInitRef.current;
           messageInitRef.current = true;
           if (hasPrevious && next > previous) {
-            playAlertSound();
+            soundService.playMessage();
           }
           prevUnreadCountRef.current = next;
           return next;
@@ -247,7 +226,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch message conversations:', error);
     }
-  }, [currentUser?.id, playAlertSound]);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.id) return;

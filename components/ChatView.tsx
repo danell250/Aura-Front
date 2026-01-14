@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Message } from '../types';
 import { MessageService } from '../services/messageService';
 import { uploadService } from '../services/upload';
+import { soundService } from '../services/soundService';
 import Logo from './Logo';
 
 interface ChatViewProps {
@@ -34,51 +35,13 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
-  const [videoError, setVideoError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const videoStreamRef = useRef<MediaStream | null>(null);
-  const [isCallActive, setIsCallActive] = useState(false);
-  const [isMicOn, setIsMicOn] = useState(true);
-  const [isCameraOn, setIsCameraOn] = useState(true);
-  const audioContextRef = useRef<AudioContext | null>(null);
   const messagesInitRef = useRef(false);
   const lastMessageIdRef = useRef<string | null>(null);
-
-  const playMessageSound = () => {
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-      const ctx = audioContextRef.current;
-      if (!ctx) return;
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.type = 'triangle';
-      oscillator.frequency.value = 660;
-      gain.gain.value = 0.08;
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      const now = ctx.currentTime;
-      oscillator.start(now);
-      oscillator.stop(now + 0.12);
-    } catch {
-    }
-  };
 
   const auraAdminUser = useMemo(
     () => allUsers.find(u => (u.email || '').toLowerCase() === AURA_ADMIN_EMAIL),
     [allUsers, AURA_ADMIN_EMAIL]
   );
-
-  const handleStartVideoCall = () => {
-    if (!activeContact) return;
-    setIsVideoCallOpen(true);
-    setIsCallActive(false);
-    setIsMicOn(true);
-    setIsCameraOn(true);
-    setVideoError(null);
-  };
 
 
   // Load conversations and keep them updated
@@ -129,7 +92,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
             ) {
               const lastMessage = nextMessages[nextMessages.length - 1];
               if (lastMessage.senderId !== currentUser.id) {
-                playMessageSound();
+                soundService.playMessage();
               }
             }
             lastMessageIdRef.current = nextLast;
@@ -163,82 +126,6 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, activeContact]);
 
-  useEffect(() => {
-    if (!isCallActive) {
-      if (videoStreamRef.current) {
-        videoStreamRef.current.getTracks().forEach(track => track.stop());
-        videoStreamRef.current = null;
-      }
-      return;
-    }
-
-    let cancelled = false;
-
-    const startStream = async () => {
-      try {
-        setVideoError(null);
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (cancelled) {
-          stream.getTracks().forEach(track => track.stop());
-          return;
-        }
-        videoStreamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          try {
-            await videoRef.current.play();
-          } catch {
-          }
-        }
-      } catch {
-        setVideoError('Unable to access camera or microphone. Check permissions.');
-      }
-    };
-
-    startStream();
-
-    return () => {
-      cancelled = true;
-      if (videoStreamRef.current) {
-        videoStreamRef.current.getTracks().forEach(track => track.stop());
-        videoStreamRef.current = null;
-      }
-    };
-  }, [isCallActive]);
-
-  useEffect(() => {
-    if (!videoStreamRef.current) return;
-    const audioTracks = videoStreamRef.current.getAudioTracks();
-    audioTracks.forEach(track => {
-      track.enabled = isMicOn;
-    });
-  }, [isMicOn]);
-
-  useEffect(() => {
-    if (!videoStreamRef.current) return;
-    const videoTracks = videoStreamRef.current.getVideoTracks();
-    videoTracks.forEach(track => {
-      track.enabled = isCameraOn;
-    });
-  }, [isCameraOn]);
-
-  const handleToggleMic = () => {
-    setIsMicOn(prev => !prev);
-  };
-
-  const handleToggleCamera = () => {
-    setIsCameraOn(prev => !prev);
-  };
-
-  const handleAcceptCall = () => {
-    setIsCallActive(true);
-  };
-
-  const handleEndCall = () => {
-    setIsCallActive(false);
-    setIsVideoCallOpen(false);
-    setVideoError(null);
-  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -627,12 +514,6 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                 </div>
               </div>
               <div className="flex gap-4 relative">
-                 <button
-                   onClick={handleStartVideoCall}
-                   className="w-12 h-12 flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-slate-900 dark:hover:bg-emerald-600 hover:text-white transition-all active:scale-90 border border-slate-100 dark:border-slate-700 shadow-sm"
-                 >
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                 </button>
                  <div ref={headerMenuRef}>
                     <button 
                       onClick={() => setShowHeaderMenu(!showHeaderMenu)}
@@ -866,97 +747,6 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
         )}
       </div>
 
-      {isVideoCallOpen && activeContact && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="relative w-full max-w-3xl mx-4 bg-slate-950 border border-slate-800 rounded-[2rem] p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Video Call</p>
-                <h4 className="mt-2 text-sm font-black uppercase tracking-[0.25em] text-slate-100">
-                  {activeContact.email && activeContact.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Admin' : activeContact.name}
-                </h4>
-              </div>
-              <button
-                onClick={handleEndCall}
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 text-slate-300 hover:bg-rose-600 hover:text-white border border-slate-700 hover:border-rose-500 transition-all active:scale-95"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" stroke="currentColor" fill="none">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="relative w-full rounded-2xl overflow-hidden bg-black aspect-video flex items-center justify-center">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-              {videoError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/70 px-6">
-                  <p className="text-xs font-black uppercase tracking-[0.25em] text-rose-300 text-center">
-                    {videoError}
-                  </p>
-                </div>
-              )}
-            </div>
-            <div className="mt-6 flex flex-col items-center gap-4">
-              <div className="flex items-center justify-center gap-4">
-                <button
-                  onClick={handleToggleMic}
-                  disabled={!isCallActive}
-                  className={`w-12 h-12 rounded-full border text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center transition-all ${
-                    isCallActive
-                      ? isMicOn
-                        ? 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500'
-                        : 'bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700'
-                      : 'bg-slate-900 text-slate-600 border-slate-800 cursor-not-allowed'
-                  }`}
-                >
-                  {isMicOn ? 'Mic On' : 'Mic Off'}
-                </button>
-                <button
-                  onClick={handleToggleCamera}
-                  disabled={!isCallActive}
-                  className={`w-12 h-12 rounded-full border text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center transition-all ${
-                    isCallActive
-                      ? isCameraOn
-                        ? 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500'
-                        : 'bg-slate-800 text-slate-300 border-slate-600 hover:bg-slate-700'
-                      : 'bg-slate-900 text-slate-600 border-slate-800 cursor-not-allowed'
-                  }`}
-                >
-                  {isCameraOn ? 'Cam On' : 'Cam Off'}
-                </button>
-              </div>
-              {isCallActive ? (
-                <button
-                  onClick={handleEndCall}
-                  className="px-10 py-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black uppercase tracking-[0.3em] shadow-lg shadow-rose-500/40 flex items-center gap-2 active:scale-95 transition-all"
-                >
-                  <span>End Call</span>
-                </button>
-              ) : (
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleAcceptCall}
-                    className="px-8 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black uppercase tracking-[0.3em] shadow-lg shadow-emerald-500/40 flex items-center gap-2 active:scale-95 transition-all"
-                  >
-                    <span>Accept</span>
-                  </button>
-                  <button
-                    onClick={handleEndCall}
-                    className="px-8 py-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black uppercase tracking-[0.3em] shadow-lg shadow-rose-500/40 flex items-center gap-2 active:scale-95 transition-all"
-                  >
-                    <span>Decline</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

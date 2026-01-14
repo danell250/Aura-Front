@@ -306,7 +306,12 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                       Edit
                     </button>
                     <button
-                      onClick={() => onCancelAd && onCancelAd(ad.id)}
+                      onClick={() => {
+                        if (onCancelAd) {
+                          onCancelAd(ad.id);
+                          setInternalRefreshTrigger(prev => prev + 1);
+                        }
+                      }}
                       className="px-3 py-2 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold uppercase rounded-lg tracking-widest"
                     >
                       Kill Signal

@@ -125,7 +125,7 @@ export const adAnalyticsService = {
   async trackImpression(adId: string): Promise<void> {
     try {
       const token = localStorage.getItem('aura_auth_token');
-      await fetch(`${API_BASE_URL}/ads/${adId}/impression`, {
+      const response = await fetch(`${API_BASE_URL}/ads/${adId}/impression`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,6 +133,10 @@ export const adAnalyticsService = {
         },
         credentials: 'include'
       });
+      
+      if (!response.ok && response.status === 404) {
+        console.warn(`[AdAnalytics] Ad ${adId} not found for impression tracking (404). This might happen if the ad was just deleted or the backend is out of sync.`);
+      }
     } catch (error) {
       console.error('[AdAnalytics] Error tracking impression:', error);
     }

@@ -26,7 +26,7 @@ const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
 const ADS_KEY = 'aura_ads_data';
 const USERS_KEY = 'aura_all_users';
-const API_BASE_URL = 'https://aura-back-s1bw.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
 
 interface BirthdayAnnouncement {
   id: string;
@@ -788,6 +788,9 @@ const App: React.FC = () => {
           onDeletePost={handleDeletePost}
           onDeleteComment={handleDeleteComment}
           onCancelAd={async (id) => {
+            // Optimistic update
+            setAds(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' as const } : a));
+            
             try {
               const token = localStorage.getItem('aura_auth_token') || '';
               const response = await fetch(`${API_BASE_URL}/ads/${id}/status`, {
@@ -801,11 +804,10 @@ const App: React.FC = () => {
               const result = await response.json();
               if (result.success && result.data) {
                 setAds(prev => prev.map(a => a.id === id ? { ...a, ...result.data } : a));
-              } else {
-                setAds(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' as const } : a));
               }
             } catch (e) {
-              setAds(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' as const } : a));
+              // Keep the optimistic update or revert if critical
+              console.error('Failed to cancel ad remotely:', e);
             } finally {
               setAdSubsRefreshTick(prev => prev + 1);
             }

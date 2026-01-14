@@ -105,17 +105,20 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
     }
   }, [isSpecialUser, step, selectedPkg]);
 
-  // Auto-select first active subscription if available and no package selected
+  // Auto-select first active subscription with available slots if available and no package selected
   useEffect(() => {
     if (step === 1 && activeSubscriptions.length > 0 && !selectedSubscription && !selectedPkg) {
-      const firstSub = activeSubscriptions[0];
-      const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === firstSub.packageId);
-      if (matchingPkg) {
-        console.log("📦 Auto-selecting first active subscription:", firstSub);
-        setSelectedSubscription(firstSub);
-        setSelectedPkg(matchingPkg);
-        setPaymentVerified(true);
-        setStep(3);
+      // Find first subscription with available ad slots
+      const availableSub = activeSubscriptions.find(sub => sub.adsUsed < sub.adLimit);
+      if (availableSub) {
+        const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === availableSub.packageId);
+        if (matchingPkg) {
+          console.log("📦 Auto-selecting first active subscription with available slots:", availableSub);
+          setSelectedSubscription(availableSub);
+          setSelectedPkg(matchingPkg);
+          setPaymentVerified(true);
+          setStep(3);
+        }
       }
     }
   }, [step, activeSubscriptions, selectedSubscription, selectedPkg]);
@@ -143,10 +146,10 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
         return;
       }
 
-      // Load SDK Dynamically with proper error handling - Updated to support both payment types
+      // Load SDK Dynamically with proper error handling - Updated to support subscriptions
       console.log("[Aura] Injecting Payment Neural Link...");
       paypalScript = document.createElement('script');
-      paypalScript.src = "https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=capture&vault=true&components=buttons";
+      paypalScript.src = "https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=subscription&components=buttons";
       paypalScript.setAttribute('data-sdk-integration-source', 'button-factory');
       paypalScript.async = true;
       paypalScript.onload = () => {
@@ -224,7 +227,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
         setSdkReady(true);
       } else {
         const script = document.createElement('script');
-        script.src = "https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=capture&vault=true&components=buttons";
+        script.src = "https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=subscription&components=buttons";
         script.setAttribute('data-sdk-integration-source', 'button-factory');
         script.async = true;
         script.onload = () => {
@@ -283,37 +286,71 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
           throw new Error('PayPal SDK not fully loaded');
         }
         
-        // Create button configuration - simplified approach for both payment types
+        // Create button configuration based on payment type
         const buttonConfig: any = {
           style: {
             layout: 'vertical',
             color: 'gold',
             shape: 'rect',
-            label: 'pay'
+            label: 'subscribe'
           }
         };
 
         // Add the appropriate payment method based on package type
         if (selectedPkg.paymentType === 'subscription' && selectedPkg.subscriptionPlanId) {
-          // For now, treat subscriptions as regular payments with a note
-          // In production, you'd integrate with PayPal's subscription API separately
-          buttonConfig.createOrder = (data: any, actions: any) => {
-            console.log("[Aura] Creating subscription payment for package:", selectedPkg.name);
-            if (!actions || !actions.order) {
-              throw new Error('PayPal actions not available');
-            }
-            return actions.order.create({
-              purchase_units: [{
-                description: `Aura Subscription: ${selectedPkg.name} (Monthly)`,
-                amount: {
-                  currency_code: "USD",
-                  value: selectedPkg.numericPrice.toString()
-                }
-              }]
+          // Use PayPal Subscriptions API for monthly subscription plans
+          console.log("[Aura] Setting up subscription with plan ID:", selectedPkg.subscriptionPlanId);
+          buttonConfig.createSubscription = (data: any, actions: any) => {
+            console.log("[Aura] Creating subscription for package:", selectedPkg.name);
+            return actions.subscription.create({
+              plan_id: selectedPkg.subscriptionPlanId
             });
           };
+          
+          buttonConfig.onApprove = async (data: any, actions: any) => {
+            console.log("[Aura] Subscription Approved. Subscription ID:", data.subscriptionID);
+            setIsPaying(true);
+            try {
+              // Create ad subscription record with PayPal subscription ID
+              if (selectedPkg) {
+                try {
+                  const subscriptionData = {
+                    userId: currentUser.id,
+                    packageId: selectedPkg.id,
+                    packageName: selectedPkg.name,
+                    paypalSubscriptionId: data.subscriptionID,
+                    adLimit: selectedPkg.adLimit,
+                    durationDays: undefined // Subscriptions don't have fixed duration
+                  };
+                  
+                  await adSubscriptionService.createSubscription(subscriptionData);
+                  console.log("[Aura] Ad subscription record created successfully");
+                  
+                  // Reload active subscriptions
+                  await loadActiveSubscriptions();
+                } catch (error) {
+                  console.error("[Aura] Failed to create ad subscription record:", error);
+                  // Continue anyway - the subscription was successful
+                }
+              }
+              
+              if (isComponentMounted) {
+                setPaymentVerified(true);
+                setIsPaying(false);
+                setTimeout(() => setStep(3), 800);
+              }
+            } catch (err) {
+              console.error('Subscription processing error:', err);
+              if (isComponentMounted) {
+                setIsPaying(false);
+                setRenderError('Neural Handshake Refused: Subscription activation failed.');
+                isRenderingRef.current = false;
+              }
+            }
+          };
         } else {
-          // One-time payment configuration
+          // One-time payment configuration (for Personal Pulse)
+          buttonConfig.style.label = 'pay';
           buttonConfig.createOrder = (data: any, actions: any) => {
             console.log("[Aura] Creating one-time payment for package:", selectedPkg.name);
             if (!actions || !actions.order) {
@@ -329,14 +366,11 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
               }]
             });
           };
-        }
-
-        // Add common event handlers
-        buttonConfig.onApprove = async (data: any, actions: any) => {
+          
+          buttonConfig.onApprove = async (data: any, actions: any) => {
             console.log("[Aura] Payment Approved. Processing...");
             setIsPaying(true);
             try {
-              // Handle payment capture for both one-time and subscription payments
               if (data.orderID && actions && actions.order) {
                 console.log("[Aura] Capturing payment:", data.orderID);
                 await actions.order.capture();
@@ -348,11 +382,9 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                       userId: currentUser.id,
                       packageId: selectedPkg.id,
                       packageName: selectedPkg.name,
-                      paypalSubscriptionId: selectedPkg.paymentType === 'subscription' 
-                        ? `sub_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
-                        : undefined,
+                      paypalSubscriptionId: undefined,
                       adLimit: selectedPkg.adLimit,
-                      durationDays: selectedPkg.paymentType === 'one-time' ? selectedPkg.durationDays : undefined
+                      durationDays: selectedPkg.durationDays
                     };
                     
                     await adSubscriptionService.createSubscription(subscriptionData);
@@ -383,6 +415,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
               }
             }
           };
+        }
 
         buttonConfig.onCancel = () => {
           console.log("[Aura] Payment Cancelled.");
@@ -936,6 +969,31 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
             {step === 3 && (
               <div className="grid lg:grid-cols-2 gap-16 animate-in slide-in-from-bottom-12 duration-700 pb-12">
                 <div className="space-y-8">
+                  {/* Show current subscription status */}
+                  {selectedSubscription && (
+                    <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 mb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-1">Active Plan: {selectedSubscription.packageName}</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            <span className="font-bold text-emerald-600">{selectedSubscription.adLimit - selectedSubscription.adsUsed}</span> of {selectedSubscription.adLimit} ads remaining
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                            <span className="text-2xl font-black text-emerald-600">{selectedSubscription.adLimit - selectedSubscription.adsUsed}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3 w-full bg-emerald-200 dark:bg-emerald-800 rounded-full h-2">
+                        <div
+                          className="bg-emerald-500 h-2 rounded-full transition-all"
+                          style={{ width: `${((selectedSubscription.adLimit - selectedSubscription.adsUsed) / selectedSubscription.adLimit) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div>
                     <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-3 block ml-1">Broadcast Headline</label>
                     <input placeholder="Personal catchphrase..." className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-emerald-400 rounded-3xl font-black text-base text-slate-900 dark:text-white outline-none shadow-inner transition-all" value={form.headline} onChange={e => setForm({...form, headline: e.target.value})} />
@@ -971,6 +1029,36 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                     </div>
                   </div>
                   <button onClick={handleBroadcast} className="w-full py-6 aura-bg-gradient text-white font-black uppercase rounded-[2.5rem] text-sm tracking-[0.4em] shadow-2xl shadow-emerald-500/40 hover:brightness-110 active:scale-95 transition-all mt-6">Launch Broadcast</button>
+                  
+                  {/* Option to create another ad if slots available */}
+                  {selectedSubscription && selectedSubscription.adsUsed < selectedSubscription.adLimit - 1 && (
+                    <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                        After publishing, you can create {selectedSubscription.adLimit - selectedSubscription.adsUsed - 1} more ad{selectedSubscription.adLimit - selectedSubscription.adsUsed - 1 !== 1 ? 's' : ''} with this plan
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Back to plans button */}
+                  <button
+                    onClick={() => {
+                      setStep(1);
+                      setSelectedPkg(null);
+                      setSelectedSubscription(null);
+                      setPaymentVerified(false);
+                      setForm({
+                        headline: '',
+                        description: '',
+                        mediaUrl: '',
+                        mediaType: 'image',
+                        ctaText: 'Explore My Profile',
+                        ctaLink: `https://auraradiance.vercel.app/profile/${currentUser.id}`
+                      });
+                    }}
+                    className="w-full py-4 bg-transparent text-slate-400 font-black uppercase rounded-2xl text-[10px] tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-all mt-2"
+                  >
+                    ← Back to Plans
+                  </button>
                 </div>
                 
                 <div className="sticky top-0">

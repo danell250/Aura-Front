@@ -7,16 +7,17 @@ interface AdPlansDashboardProps {
   user: User;
   ads: Ad[];
   onOpenAdManager?: () => void;
+  refreshTrigger?: number;
 }
 
-const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAdManager }) => {
+const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAdManager, refreshTrigger: externalRefreshTrigger }) => {
   const [adSubscriptions, setAdSubscriptions] = useState<AdSubscription[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [internalRefreshTrigger, setInternalRefreshTrigger] = useState(0);
 
   useEffect(() => {
     loadAdSubscriptions();
-  }, [user.id, refreshTrigger]);
+  }, [user.id, internalRefreshTrigger, externalRefreshTrigger]);
 
   const loadAdSubscriptions = async () => {
     setLoading(true);
@@ -57,7 +58,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setRefreshTrigger(prev => prev + 1)}
+              onClick={() => setInternalRefreshTrigger(prev => prev + 1)}
               className="p-3 bg-white/10 backdrop-blur-sm rounded-xl hover:bg-white/20 transition-all"
               title="Refresh data"
             >

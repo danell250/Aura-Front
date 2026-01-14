@@ -49,6 +49,7 @@ const App: React.FC = () => {
   const [activeMediaType, setActiveMediaType] = useState<'all' | 'image' | 'video' | 'document'>('all');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAdManagerOpen, setIsAdManagerOpen] = useState(false);
+  const [adSubsRefreshTick, setAdSubsRefreshTick] = useState(0);
   const [isCreditStoreOpen, setIsCreditStoreOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
@@ -423,6 +424,7 @@ const App: React.FC = () => {
       if (result.success) {
         // Replace local ad with data from backend
         setAds(prev => prev.map(a => a.id === ad.id ? { ...result.data, status: 'active' } : a));
+        setAdSubsRefreshTick(prev => prev + 1);
         return true;
       } else {
         console.error('Failed to create ad on backend:', result.error);
@@ -681,6 +683,8 @@ const App: React.FC = () => {
         <ProfileView
           user={allUsers.find(u => u.id === (view.targetId || currentUser.id)) || currentUser}
           posts={posts.filter(p => p.author.id === (view.targetId || currentUser.id))}
+          ads={ads}
+          adRefreshTick={adSubsRefreshTick}
           currentUser={currentUser}
           allUsers={allUsers}
           onBack={() => setView({ type: 'feed' })}
@@ -714,7 +718,7 @@ const App: React.FC = () => {
       )}
       {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => setView({ type: 'feed' })} onPurchaseGlow={(glow) => handleUpdateProfile({ activeGlow: glow })} onClearData={() => {}} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
-      {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={handleAdCreated} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => setIsAdManagerOpen(false)} />}
+      {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={handleAdCreated} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onClose={() => { setIsAdManagerOpen(false); setAdSubsRefreshTick(prev => prev + 1); }} />}
       {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} bundles={CREDIT_BUNDLES} onPurchase={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
       {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} onClose={() => setSharingContent(null)} />}
     </Layout>

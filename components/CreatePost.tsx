@@ -216,27 +216,63 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onGenera
           </div>
         </div>
 
-        {/* Professional media preview */}
         {mediaPreview && (
           <div className="mt-6 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 relative group/preview">
             {mediaPreview.type === 'video' ? (
               <video src={mediaPreview.url} className="w-full h-auto max-h-[400px] object-contain" controls />
             ) : mediaPreview.type === 'document' ? (
-               <div className="p-6 flex items-center gap-4 bg-white dark:bg-gray-800">
-                  <div className="w-12 h-12 bg-blue-600 text-white rounded-lg flex items-center justify-center text-lg font-semibold shadow-sm flex-shrink-0">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              <>
+                {mediaPreview.url.toLowerCase().endsWith('.pdf') ? (
+                  <div className="w-full flex flex-col bg-white dark:bg-gray-900">
+                    <iframe
+                      src={mediaPreview.url}
+                      className="w-full h-[500px] border-none bg-white"
+                      title="Document preview"
+                    />
+                    <div className="w-full flex items-center justify-between px-5 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm flex-shrink-0">
+                          PDF
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                            {mediaPreview.name}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Scroll to preview all pages
+                          </p>
+                        </div>
+                      </div>
+                      <a
+                        href={mediaPreview.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-blue-600 dark:text-blue-400 underline"
+                      >
+                        Open in new tab
+                      </a>
+                    </div>
                   </div>
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{mediaPreview.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Document ready for sharing</p>
+                ) : (
+                  <div className="p-6 flex items-center gap-4 bg-white dark:bg-gray-800">
+                    <div className="w-12 h-12 bg-blue-600 text-white rounded-lg flex items-center justify-center text-lg font-semibold shadow-sm flex-shrink-0">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{mediaPreview.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Document ready for sharing</p>
+                    </div>
                   </div>
-               </div>
+                )}
+              </>
             ) : (
               <div className="relative">
                 <img src={mediaPreview.url} className="w-full h-auto max-h-[400px] object-contain mx-auto" alt="" />
               </div>
             )}
-            <button 
+            <button
               onClick={() => setMediaPreview(null)}
               className="absolute top-3 right-3 p-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-all duration-200 shadow-sm hover:shadow-md"
             >

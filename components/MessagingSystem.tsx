@@ -426,14 +426,19 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
 
               {/* Message input */}
               <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-end">
                   <textarea
                     value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
+                    onChange={(e) => {
+                      const el = e.currentTarget;
+                      el.style.height = 'auto';
+                      el.style.height = Math.min(el.scrollHeight, 240) + 'px';
+                      setMessageText(e.target.value);
+                    }}
                     onKeyPress={handleKeyPress}
                     placeholder={`Message ${selectedUser.name}...`}
-                    className="flex-1 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                    rows={2}
+                    className="flex-1 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none overflow-y-auto max-h-60 min-h-[64px]"
+                    rows={3}
                   />
                   <button
                     onClick={handleSendMessage}

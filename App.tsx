@@ -27,6 +27,7 @@ import { PostService } from './services/postService';
 import { NotificationService } from './services/notificationService';
 import { CommentService } from './services/commentService';
 import { SearchResult } from './services/searchService';
+import { MessageService } from './services/messageService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -60,6 +61,8 @@ const App: React.FC = () => {
   const [isCreditStoreOpen, setIsCreditStoreOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [messagePulse, setMessagePulse] = useState(false);
   
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy', targetId?: string}>({ type: 'feed' });
 
@@ -177,6 +180,30 @@ const App: React.FC = () => {
       fetchNotifications();
     }
   }, [isAuthenticated, fetchNotifications]);
+
+  const fetchUnreadMessages = useCallback(async () => {
+    if (!currentUser?.id) return;
+    try {
+      const result = await MessageService.getConversations(currentUser.id);
+      if (result.success && Array.isArray(result.data)) {
+        const totalUnread = result.data.reduce(
+          (sum: number, conv: any) => sum + (typeof conv.unreadCount === 'number' ? conv.unreadCount : 0),
+          0
+        );
+        setUnreadMessageCount(totalUnread);
+        setMessagePulse(totalUnread > 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch message conversations:', error);
+    }
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetchUnreadMessages();
+    const interval = setInterval(fetchUnreadMessages, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, fetchUnreadMessages]);
 
   const syncBirthdays = useCallback(async (users: User[]) => {
     const today = new Date();
@@ -351,6 +378,13 @@ const App: React.FC = () => {
       navigateToView({ type: 'feed' });
     }
   }, [isAuthenticated, navigateToView]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (view.type === 'chat') {
+      fetchUnreadMessages();
+    }
+  }, [view, isAuthenticated, fetchUnreadMessages]);
 
   useEffect(() => { if (posts.length > 0) localStorage.setItem(POSTS_KEY, JSON.stringify(posts)); }, [posts]);
   useEffect(() => { if (ads.length > 0) localStorage.setItem(ADS_KEY, JSON.stringify(ads)); }, [ads]);
@@ -1128,6 +1162,8 @@ const App: React.FC = () => {
       onAcceptAcquaintance={handleAcceptConnection}
       onRejectAcquaintance={handleRejectConnection}
       onNavigateNotification={handleNavigateNotification}
+      unreadMessageCount={unreadMessageCount}
+      messagePulse={messagePulse}
     >
       {view.type === 'feed' && (
         <div className="space-y-6">

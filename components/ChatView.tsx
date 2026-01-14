@@ -173,9 +173,8 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
 
   const handleTextAreaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget;
-    // Reset height then set to scrollHeight for auto-grow
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 240) + 'px'; // cap ~10-12 lines
+    el.style.height = Math.min(el.scrollHeight, 320) + 'px';
     setInputText(el.value);
   };
 
@@ -190,9 +189,8 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
       el.focus();
       const caret = start + emoji.length;
       el.setSelectionRange(caret, caret);
-      // adjust height after insertion
       el.style.height = 'auto';
-      el.style.height = Math.min(el.scrollHeight, 240) + 'px';
+      el.style.height = Math.min(el.scrollHeight, 320) + 'px';
     });
     setShowEmojiPicker(false);
   };
@@ -442,8 +440,8 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                     }}
                     placeholder="Synthesize neural message..."
                     disabled={isSending}
-                    rows={1}
-                    className="w-full pl-10 pr-32 py-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-[1.6rem] border-2 border-transparent outline-none focus:ring-12 focus:ring-emerald-500/5 dark:focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-400/20 transition-all text-base font-bold text-slate-900 dark:text-white shadow-inner disabled:opacity-50 resize-none overflow-y-auto max-h-60"
+                    rows={2}
+                    className="w-full pl-10 pr-32 py-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-[1.6rem] border-2 border-transparent outline-none focus:ring-12 focus:ring-emerald-500/5 dark:focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-400/20 transition-all text-base font-bold text-slate-900 dark:text-white shadow-inner disabled:opacity-50 resize-none overflow-y-auto max-h-80 min-h-[64px]"
                   />
 
                   {/* Emoji Button */}

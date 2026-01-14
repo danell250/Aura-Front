@@ -46,38 +46,48 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
 
   // Load conversations and keep them updated
   useEffect(() => {
+    let cancelled = false;
+
     const loadConversations = async () => {
       try {
         const response = await MessageService.getConversations(currentUser.id);
-        if (response.success) {
-          const data = response.data || [];
-          setConversations(data);
-          const archivedFromBackend = data
-            .filter((conv: any) => conv.isArchived)
-            .map((conv: any) => conv._id as string);
-          setArchivedIds(archivedFromBackend);
-        }
+        if (!response.success) return;
+        if (cancelled) return;
+        const data = response.data || [];
+        setConversations(data);
+        const archivedFromBackend = data
+          .filter((conv: any) => conv.isArchived)
+          .map((conv: any) => conv._id as string);
+        setArchivedIds(archivedFromBackend);
       } catch (error) {
         console.error('Failed to load conversations:', error);
       }
     };
 
-    loadConversations();
+    const loop = async () => {
+      if (cancelled) return;
+      await loadConversations();
+      if (cancelled) return;
+      setTimeout(loop, 2000);
+    };
 
-    const interval = setInterval(loadConversations, 5000);
-    return () => clearInterval(interval);
+    loop();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentUser.id]);
 
   // Load messages when active contact changes and keep them updated
   useEffect(() => {
-    let interval: number | undefined;
+    let cancelled = false;
 
     const loadMessages = async () => {
-      if (!activeContact) return;
+      if (!activeContact || cancelled) return;
 
       try {
         const response = await MessageService.getMessages(currentUser.id, activeContact.id);
-        if (response.success) {
+        if (response.success && !cancelled) {
           setMessages(prev => {
             const previousLast = prev.length > 0 ? prev[prev.length - 1].id : null;
             const nextMessages = response.data;
@@ -101,24 +111,32 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
           await MessageService.markAsRead(activeContact.id, currentUser.id);
         }
       } catch (error) {
-        console.error('Failed to load messages:', error);
+        if (!cancelled) {
+          console.error('Failed to load messages:', error);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
+    };
+
+    const loop = async () => {
+      if (!activeContact || cancelled) return;
+      setIsLoading(prev => prev || messages.length === 0);
+      await loadMessages();
+      if (cancelled) return;
+      setTimeout(loop, 1200);
     };
 
     if (activeContact) {
-      setIsLoading(true);
-      loadMessages();
-      interval = window.setInterval(loadMessages, 5000);
+      loop();
     }
 
     return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
+      cancelled = true;
     };
-  }, [activeContact, currentUser.id]);
+  }, [activeContact, currentUser.id, messages.length]);
 
 
 

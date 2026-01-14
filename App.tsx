@@ -181,8 +181,7 @@ const App: React.FC = () => {
           const hasPrevious = prev.length > 0 || notificationInitRef.current;
           notificationInitRef.current = true;
           const hasNew = result.data.some((n: Notification) => !previousSet.has(n.id));
-          const hasRemoved = previousIds.some(id => !currentSet.has(id));
-          if (hasPrevious && hasNew && !hasRemoved) {
+          if (hasPrevious && hasNew) {
             soundService.playNotification();
           }
           prevNotificationIdsRef.current = currentSet;
@@ -196,9 +195,20 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.id) return;
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
+    let cancelled = false;
+
+    const loop = async () => {
+      if (cancelled) return;
+      await fetchNotifications();
+      if (cancelled) return;
+      setTimeout(loop, 2000);
+    };
+
+    loop();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated, currentUser?.id, fetchNotifications]);
 
   const fetchUnreadMessages = useCallback(async () => {
@@ -230,9 +240,20 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.id) return;
-    fetchUnreadMessages();
-    const interval = setInterval(fetchUnreadMessages, 5000);
-    return () => clearInterval(interval);
+    let cancelled = false;
+
+    const loop = async () => {
+      if (cancelled) return;
+      await fetchUnreadMessages();
+      if (cancelled) return;
+      setTimeout(loop, 2000);
+    };
+
+    loop();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated, currentUser?.id, fetchUnreadMessages]);
 
   const syncBirthdays = useCallback(async (users: User[]) => {

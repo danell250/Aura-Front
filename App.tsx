@@ -332,16 +332,16 @@ const App: React.FC = () => {
     }
 
     const newUser: User = {
-      id: userData.id || `user-${Date.now()}`, 
+      id: userData.id || `user-${Date.now()}`,
       ...userData,
       avatar: userData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.firstName}${userData.lastName}${Date.now()}`,
-      avatarType: 'image', 
+      avatarType: 'image',
       handle: userData.handle || ('@' + userData.firstName.toLowerCase().replace(/\s+/g, '') + userData.lastName.toLowerCase().replace(/\s+/g, '') + Math.floor(Math.random() * 100)),
       name: userData.name || `${userData.firstName} ${userData.lastName}`,
-      acquaintances: ['1', '2', '3'], 
-      blockedUsers: [], 
-      trustScore: 10, 
-      auraCredits: 50, 
+      acquaintances: ['1', '2', '3'],
+      blockedUsers: [],
+      trustScore: 10,
+      auraCredits: 0,
       activeGlow: 'none'
     };
     
@@ -451,11 +451,6 @@ const App: React.FC = () => {
       return;
     }
     
-    if (!isSpecialUser) {
-      const newCredits = currentUser.auraCredits - boostCost;
-      setCurrentUser(prev => ({ ...prev, auraCredits: newCredits }));
-    }
-    
     try {
       const token = localStorage.getItem('aura_auth_token');
       const response = await fetch(`${API_BASE_URL}/posts/${postId}/boost`, {
@@ -491,9 +486,6 @@ const App: React.FC = () => {
     }
     
     if (!isSpecialUser) {
-      const newCredits = currentUser.auraCredits - boostCost;
-      setCurrentUser(prev => ({ ...prev, auraCredits: newCredits }));
-      
       try {
         const token = localStorage.getItem('aura_auth_token');
         const response = await fetch(`${API_BASE_URL}/users/${currentUser.id}/spend-credits`, {
@@ -520,7 +512,7 @@ const App: React.FC = () => {
       }
     }
     
-    setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, trustScore: Math.min(100, u.trustScore + 10), auraCredits: u.auraCredits + 50 } : u));
+    setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, trustScore: Math.min(100, u.trustScore + 10) } : u));
   }, [currentUser, fetchCurrentUser]);
 
   const handleTimeCapsule = useCallback(async (data: any) => {

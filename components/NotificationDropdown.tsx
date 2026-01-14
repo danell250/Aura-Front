@@ -90,7 +90,23 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-slate-800 dark:text-slate-200 leading-tight">
-                  <span className="font-bold">{notif.fromUser.name}</span> {notif.message}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!notif.isRead) {
+                        onRead(notif.id);
+                      }
+                      if (onNavigate) {
+                        onNavigate(notif);
+                      }
+                      onClose();
+                    }}
+                    className="font-bold hover:text-emerald-600 dark:hover:text-emerald-400"
+                  >
+                    {notif.fromUser.name}
+                  </button>{' '}
+                  {notif.message}
                 </p>
                 {(notif.type === 'acquaintance_request' || notif.type === 'connection_request') && !notif.isRead && (
                   <div className="mt-2 flex gap-2">

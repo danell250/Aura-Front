@@ -138,9 +138,6 @@ const Layout: React.FC<LayoutProps> = ({
           <div className="relative">
             <button 
               onClick={() => {
-                if (!isNotificationsOpen && onMarkAllNotificationsRead) {
-                  onMarkAllNotificationsRead();
-                }
                 setIsNotificationsOpen(!isNotificationsOpen);
               }}
               className="p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg relative transition-colors"

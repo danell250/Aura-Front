@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Ad } from '../types';
+import { adAnalyticsService } from '../services/adAnalyticsService';
 
 interface AdSidebarCardProps {
   ad: Ad;
@@ -8,9 +9,14 @@ interface AdSidebarCardProps {
 }
 
 const AdSidebarCard: React.FC<AdSidebarCardProps> = ({ ad, onCTAClick }) => {
+  useEffect(() => {
+    adAnalyticsService.trackImpression(ad.id);
+  }, [ad.id]);
+  
   const handleCTAClick = (e: React.MouseEvent) => {
     if (onCTAClick) {
       e.preventDefault();
+      adAnalyticsService.trackClick(ad.id);
       onCTAClick(ad.ctaLink);
     }
   };

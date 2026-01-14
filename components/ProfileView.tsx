@@ -35,6 +35,8 @@ interface ProfileViewProps {
    onBoost?: (postId: string, credits: number) => void;
    onSendConnectionRequest: (targetUserId: string) => void;
    onOpenAdManager?: () => void;
+   onCancelAd?: (adId: string) => void;
+   onUpdateAd?: (adId: string, updates: Partial<Ad>) => Promise<boolean>;
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({
@@ -404,6 +406,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               user={currentUser}
               ads={ads}
               onOpenAdManager={() => onOpenAdManager && onOpenAdManager()}
+              onCancelAd={(id) => onCancelAd && onCancelAd(id)}
+              onUpdateAd={(id, updates) => onUpdateAd ? onUpdateAd(id, updates) : Promise.resolve(false)}
               refreshTrigger={adRefreshTick}
             />
           ) : null}

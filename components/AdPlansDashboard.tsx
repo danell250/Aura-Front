@@ -9,14 +9,19 @@ interface AdPlansDashboardProps {
   ads: Ad[];
   onOpenAdManager?: () => void;
   refreshTrigger?: number;
+  onUpdateAd?: (adId: string, updates: Partial<Ad>) => Promise<boolean>;
+  onCancelAd?: (adId: string) => void;
 }
 
-const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAdManager, refreshTrigger: externalRefreshTrigger }) => {
+const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAdManager, onUpdateAd, onCancelAd, refreshTrigger: externalRefreshTrigger }) => {
   const [adSubscriptions, setAdSubscriptions] = useState<AdSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [internalRefreshTrigger, setInternalRefreshTrigger] = useState(0);
   const [adPerformance, setAdPerformance] = useState<AdPerformanceMetrics[]>([]);
   const [loadingPerf, setLoadingPerf] = useState(true);
+  const [editingAd, setEditingAd] = useState<Ad | null>(null);
+  const [editForm, setEditForm] = useState<{headline: string; description: string; mediaUrl: string; mediaType?: 'image' | 'video'; ctaText: string; ctaLink: string}>({headline: '', description: '', mediaUrl: '', mediaType: 'image', ctaText: 'Explore', ctaLink: ''});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     loadAdSubscriptions();
@@ -281,10 +286,75 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                       </span>
                     </span>
                   </div>
+                  <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      onClick={() => {
+                        setEditingAd(ad);
+                        setEditForm({
+                          headline: ad.headline,
+                          description: ad.description,
+                          mediaUrl: ad.mediaUrl,
+                          mediaType: ad.mediaType || 'image',
+                          ctaText: ad.ctaText,
+                          ctaLink: ad.ctaLink
+                        });
+                      }}
+                      className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold uppercase rounded-lg tracking-widest"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => onCancelAd && onCancelAd(ad.id)}
+                      className="px-3 py-2 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold uppercase rounded-lg tracking-widest"
+                    >
+                      Kill Signal
+                    </button>
+                  </div>
                 </div>
               );
               })}
             </div>
+            
+            {editingAd && (
+              <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl p-6 border border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-bold text-slate-900 dark:text-white">Edit Signal</h4>
+                    <button onClick={() => setEditingAd(null)} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-rose-500">✕</button>
+                  </div>
+                  <div className="space-y-3">
+                    <input value={editForm.headline} onChange={e => setEditForm({...editForm, headline: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm" placeholder="Headline" />
+                    <textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm" placeholder="Description" rows={3} />
+                    <input value={editForm.mediaUrl} onChange={e => setEditForm({...editForm, mediaUrl: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm" placeholder="Media URL" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <input value={editForm.ctaText} onChange={e => setEditForm({...editForm, ctaText: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm" placeholder="CTA Text" />
+                      <input value={editForm.ctaLink} onChange={e => setEditForm({...editForm, ctaLink: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm" placeholder="CTA Link" />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-5">
+                    <button onClick={() => setEditingAd(null)} className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase tracking-widest">Cancel</button>
+                    <button
+                      disabled={savingEdit}
+                      onClick={async () => {
+                        if (!editingAd) return;
+                        setSavingEdit(true);
+                        const ok = onUpdateAd ? await onUpdateAd(editingAd.id, editForm) : false;
+                        setSavingEdit(false);
+                        if (ok) {
+                          setEditingAd(null);
+                          setInternalRefreshTrigger(prev => prev + 1);
+                        } else {
+                          alert('Failed to save changes');
+                        }
+                      }}
+                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-widest disabled:opacity-60"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : (

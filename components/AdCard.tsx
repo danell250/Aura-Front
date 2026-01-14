@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Ad } from '../types';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import { Avatar } from './MediaDisplay';
+import { adAnalyticsService } from '../services/adAnalyticsService';
 
 interface AdCardProps {
   ad: Ad;
@@ -26,6 +27,10 @@ const AdCard: React.FC<AdCardProps> = React.memo(({ ad, onReact, onShare, onSear
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+  
+  useEffect(() => {
+    adAnalyticsService.trackImpression(ad.id);
+  }, [ad.id]);
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     if (onReact) onReact(ad.id, emojiData.emoji);
@@ -189,6 +194,7 @@ const AdCard: React.FC<AdCardProps> = React.memo(({ ad, onReact, onShare, onSear
             href={ad.ctaLink} 
             target="_blank"
             rel="noreferrer"
+            onClick={() => adAnalyticsService.trackClick(ad.id)}
             className={`px-6 py-2.5 font-bold rounded-xl text-xs shadow-sm hover:brightness-110 active:scale-95 transition-all ${isUniversalTier ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white'}`}
            >
             {ad.ctaText}

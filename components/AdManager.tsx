@@ -1123,30 +1123,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                 {ads.filter(a => a.ownerId === currentUser.id).map(ad => (
                   <div key={ad.id} className="relative group">
                     <AdCard ad={ad} />
-                    <div className="absolute top-12 right-12 flex flex-col gap-5 opacity-0 group-hover:opacity-100 transition-all translate-x-10 group-hover:translate-x-0">
-                      <button
-                        onClick={() => {
-                          setEditingAd(ad);
-                          setTab('create');
-                          setStep(3);
-                          setSelectedPkg(null);
-                          setSelectedSubscription(null);
-                          setPaymentVerified(true);
-                          setForm({
-                            headline: ad.headline,
-                            description: ad.description,
-                            mediaUrl: ad.mediaUrl,
-                            mediaType: ad.mediaType || 'image',
-                            ctaText: ad.ctaText,
-                            ctaLink: ad.ctaLink
-                          });
-                        }}
-                        className="p-6 bg-amber-500 text-white rounded-[2.5rem] shadow-2xl hover:bg-amber-600 active:scale-90 font-black uppercase text-[11px] tracking-widest border-4 border-white dark:border-slate-900"
-                      >
-                        Edit Signal
-                      </button>
-                      <button onClick={() => onAdCancelled(ad.id)} className="p-6 bg-rose-500 text-white rounded-[2.5rem] shadow-2xl hover:bg-rose-600 active:scale-90 font-black uppercase text-[11px] tracking-widest border-4 border-white dark:border-slate-900">Kill Signal</button>
-                    </div>
+                    <div className="absolute top-12 right-12 flex flex-col gap-5 opacity-0 group-hover:opacity-100 transition-all translate-x-10 group-hover:translate-x-0"></div>
                   </div>
                 ))}
               </div>

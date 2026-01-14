@@ -702,6 +702,41 @@ const App: React.FC = () => {
           onEditProfile={() => setIsSettingsOpen(true)}
           onDeletePost={handleDeletePost}
           onDeleteComment={handleDeleteComment}
+          onCancelAd={(id) => {
+            AdService.deleteAd(id)
+              .then(result => {
+                if (result.success) {
+                  setAds(prev => prev.filter(a => a.id !== id));
+                  setAdSubsRefreshTick(prev => prev + 1);
+                }
+              })
+              .catch(e => {
+                console.error('Failed to delete ad:', e);
+              });
+          }}
+          onUpdateAd={async (adId, updates) => {
+            try {
+              const token = localStorage.getItem('aura_auth_token') || '';
+              const response = await fetch(`${API_BASE_URL}/ads/${adId}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updates)
+              });
+              const result = await response.json();
+              if (result.success && result.data) {
+                setAds(prev => prev.map(a => a.id === adId ? { ...a, ...result.data } : a));
+                setAdSubsRefreshTick(prev => prev + 1);
+                return true;
+              }
+              return false;
+            } catch (e) {
+              console.error('Failed to update ad:', e);
+              return false;
+            }
+          }}
           onOpenAdManager={() => setIsAdManagerOpen(true)}
         />
       )}

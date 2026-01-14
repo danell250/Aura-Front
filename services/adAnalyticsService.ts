@@ -20,6 +20,7 @@ export interface CampaignPerformance {
   totalSpend: number;
   averageCTR: number;
   activeAds: number;
+  daysToNextExpiry?: number | null;
   performanceScore: number;
   trendData: {
     date: string;

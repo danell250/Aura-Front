@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Ad } from '../types';
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
-import { adAnalyticsService, AdPerformanceMetrics } from '../services/adAnalyticsService';
+import { adAnalyticsService, AdPerformanceMetrics, CampaignPerformance } from '../services/adAnalyticsService';
 import { AD_PACKAGES } from '../constants';
 import { uploadService } from '../services/upload';
 
@@ -19,6 +19,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
   const [loading, setLoading] = useState(true);
   const [internalRefreshTrigger, setInternalRefreshTrigger] = useState(0);
   const [adPerformance, setAdPerformance] = useState<AdPerformanceMetrics[]>([]);
+  const [campaignPerformance, setCampaignPerformance] = useState<CampaignPerformance | null>(null);
   const [loadingPerf, setLoadingPerf] = useState(true);
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
   const [editForm, setEditForm] = useState<{headline: string; description: string; mediaUrl: string; mediaType?: 'image' | 'video'; ctaText: string; ctaLink: string}>({headline: '', description: '', mediaUrl: '', mediaType: 'image', ctaText: 'Explore', ctaLink: ''});
@@ -52,8 +53,12 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
   const loadAdPerformance = async () => {
     setLoadingPerf(true);
     try {
-      const perf = await adAnalyticsService.getUserAdPerformance(user.id);
+      const [perf, campPerf] = await Promise.all([
+        adAnalyticsService.getUserAdPerformance(user.id),
+        adAnalyticsService.getCampaignPerformance(user.id)
+      ]);
       setAdPerformance(perf || []);
+      setCampaignPerformance(campPerf);
     } catch (e) {
       console.error('[AdPlansDashboard] Failed to load ad performance:', e);
       setAdPerformance([]);
@@ -75,21 +80,26 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
     .filter(s => s.status === 'active')
     .reduce((sum, s) => sum + (s.adLimit * 100), 0);
 
-  const totalActiveAds = userAds.length;
-  const totalImpressions = adPerformance.reduce((sum, m) => sum + (m.impressions || 0), 0);
-  const totalClicks = adPerformance.reduce((sum, m) => sum + (m.clicks || 0), 0);
-  const averageCTR = adPerformance.length > 0
-    ? Math.round((adPerformance.reduce((sum, m) => sum + (m.ctr || 0), 0) / adPerformance.length) * 100) / 100
-    : 0;
-  const totalEngagement = adPerformance.reduce((sum, m) => sum + (m.engagement || 0), 0);
+  // Use backend data if available, otherwise fallback to frontend calculation
+  const totalActiveAds = campaignPerformance ? campaignPerformance.activeAds : userAds.length;
+  const totalImpressions = campaignPerformance ? campaignPerformance.totalImpressions : adPerformance.reduce((sum, m) => sum + (m.impressions || 0), 0);
+  const totalClicks = campaignPerformance ? campaignPerformance.totalClicks : adPerformance.reduce((sum, m) => sum + (m.clicks || 0), 0);
+  const averageCTR = campaignPerformance 
+    ? campaignPerformance.averageCTR 
+    : (adPerformance.length > 0
+      ? Math.round((adPerformance.reduce((sum, m) => sum + (m.ctr || 0), 0) / adPerformance.length) * 100) / 100
+      : 0);
+  const totalEngagement = campaignPerformance ? campaignPerformance.totalEngagement : adPerformance.reduce((sum, m) => sum + (m.engagement || 0), 0);
 
   const nextExpiringAd = userAds
     .filter(ad => ad.expiryDate)
     .sort((a, b) => (a.expiryDate || 0) - (b.expiryDate || 0))[0];
 
-  const daysToNextAdExpiry = nextExpiringAd
-    ? Math.max(0, Math.ceil(((nextExpiringAd.expiryDate as number) - Date.now()) / (1000 * 60 * 60 * 24)))
-    : null;
+  const daysToNextAdExpiry = campaignPerformance?.daysToNextExpiry !== undefined
+    ? campaignPerformance.daysToNextExpiry
+    : (nextExpiringAd
+      ? Math.max(0, Math.ceil(((nextExpiringAd.expiryDate as number) - Date.now()) / (1000 * 60 * 60 * 24)))
+      : null);
 
   return (
     <div className="space-y-6">
@@ -160,7 +170,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {Math.max(totalImpressions || totalActiveAds * 100, 500).toLocaleString()}
+                    {totalImpressions.toLocaleString()}
                   </p>
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Impressions

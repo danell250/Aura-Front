@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Message } from '../types';
 import { MessageService } from '../services/messageService';
+import { uploadService } from '../services/upload';
 import Logo from './Logo';
 
 interface ChatViewProps {
@@ -18,7 +19,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [contactSearch, setContactSearch] = useState('');
-  const [sidebarTab, setSidebarTab] = useState<'recent' | 'all' | 'search'>('recent');
+  const [sidebarTab, setSidebarTab] = useState<'recent' | 'all' | 'search' | 'archived'>('recent');
   const [archivedIds, setArchivedIds] = useState<string[]>([]);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
@@ -29,7 +30,9 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   const chatEndRef = useRef<HTMLDivElement>(null);
   const headerMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   // Load conversations and messages from backend
   useEffect(() => {
@@ -37,7 +40,12 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
       try {
         const response = await MessageService.getConversations(currentUser.id);
         if (response.success) {
-          setConversations(response.data);
+          const data = response.data || [];
+          setConversations(data);
+          const archivedFromBackend = data
+            .filter((conv: any) => conv.isArchived)
+            .map((conv: any) => conv._id as string);
+          setArchivedIds(archivedFromBackend);
         }
       } catch (error) {
         console.error('Failed to load conversations:', error);
@@ -116,35 +124,90 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
   }, [contactSearch, allUsers, currentUser.id, sidebarTab]);
 
   const handleSend = async () => {
-    if (!inputText.trim() || !activeContact || isSending) return;
+    if ((!inputText.trim() && attachments.length === 0) || !activeContact || isSending) return;
     
     setIsSending(true);
     try {
-      const response = await MessageService.sendMessage(
-        currentUser.id,
-        activeContact.id,
-        inputText.trim()
-      );
-      
-      if (response.success) {
-        // Add message to local state immediately for better UX
-        const newMessage: Message = response.data;
-        setMessages(prev => [...prev, newMessage]);
-        setInputText('');
+      const createdMessages: Message[] = [];
+
+      for (const file of attachments) {
+        try {
+          const result = await uploadService.uploadFile(file);
+          const messageType = result.mimetype.startsWith('image') ? 'image' : 'file';
+          const response = await MessageService.sendMessage(
+            currentUser.id,
+            activeContact.id,
+            file.name,
+            messageType,
+            result.url
+          );
+          if (response.success) {
+            createdMessages.push(response.data);
+          }
+        } catch (err) {
+          console.error('Failed to upload or send attachment:', err);
+          alert('Failed to send an attachment. Please try again.');
+        }
+      }
+
+      let textMessage: Message | null = null;
+      if (inputText.trim()) {
+        const response = await MessageService.sendMessage(
+          currentUser.id,
+          activeContact.id,
+          inputText.trim()
+        );
         
-        // Update conversations list
+        if (response.success) {
+          textMessage = response.data;
+        }
+      }
+
+      if (createdMessages.length > 0 || textMessage) {
+        setMessages(prev => [
+          ...prev,
+          ...createdMessages,
+          ...(textMessage ? [textMessage] : [])
+        ]);
+        setInputText('');
+        setAttachments([]);
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
+
         const updatedConversations = await MessageService.getConversations(currentUser.id);
         if (updatedConversations.success) {
-          setConversations(updatedConversations.data);
+          const data = updatedConversations.data || [];
+          setConversations(data);
+          const archivedFromBackend = data
+            .filter((conv: any) => conv.isArchived)
+            .map((conv: any) => conv._id as string);
+          setArchivedIds(archivedFromBackend);
         }
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      // Show error to user
       alert('Failed to send message. Please try again.');
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleAttachmentClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setAttachments(prev => [...prev, ...files]);
+    e.target.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleArchive = async () => {
@@ -160,7 +223,12 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
       await MessageService.setArchiveState(currentUser.id, activeContact.id, !isArchived);
       const updatedConversations = await MessageService.getConversations(currentUser.id);
       if (updatedConversations.success) {
-        setConversations(updatedConversations.data);
+        const data = updatedConversations.data || [];
+        setConversations(data);
+        const archivedFromBackend = data
+          .filter((conv: any) => conv.isArchived)
+          .map((conv: any) => conv._id as string);
+        setArchivedIds(archivedFromBackend);
       }
     } catch (error) {
       console.error('Failed to update archive state:', error);
@@ -254,13 +322,18 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
             </button>
           </div>
 
-          {/* Sidebar Tabs */}
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl mb-6">
             <button 
               onClick={() => setSidebarTab('recent')}
               className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${sidebarTab === 'recent' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 dark:text-slate-500'}`}
             >
               Recent
+            </button>
+            <button 
+              onClick={() => setSidebarTab('archived')}
+              className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${sidebarTab === 'archived' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-400 dark:text-slate-500'}`}
+            >
+              Archived
             </button>
             <button 
               onClick={() => setSidebarTab('all')}
@@ -284,12 +357,13 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-8 space-y-2">
+          <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-8 space-y-2">
           {filteredContacts.length === 0 ? (
             <div className="py-10 text-center opacity-30">
               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
                 {sidebarTab === 'search' ? 'No users found' : 
                  sidebarTab === 'recent' ? 'No conversations yet' : 
+                 sidebarTab === 'archived' ? 'No archived conversations yet' :
                  contactSearch.trim() ? 'No users found' : 'Search to find people'}
               </p>
               {(sidebarTab === 'recent' || (sidebarTab === 'all' && !contactSearch.trim())) && (
@@ -436,66 +510,101 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input Bar */}
             <div className="px-8 sm:px-14 py-10 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-6 max-w-6xl mx-auto">
-                <button className="w-14 h-14 flex-shrink-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 active:scale-90 shadow-sm">
-                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                </button>
-                <div className="flex-1 relative">
-                  <div className="absolute left-3 top-3 text-slate-300 dark:text-slate-600 pointer-events-none">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m2 0a8 8 0 11-16 0 8 8 0 0116 0z" /></svg>
-                  </div>
-                  <textarea
-                    ref={textareaRef}
-                    value={inputText}
-                    onChange={handleTextAreaInput}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        if (!isSending) handleSend();
-                      }
-                    }}
-                    placeholder="Synthesize neural message..."
-                    disabled={isSending}
-                    rows={2}
-                    className="w-full pl-10 pr-32 py-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-[1.6rem] border-2 border-transparent outline-none focus:ring-12 focus:ring-emerald-500/5 dark:focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-400/20 transition-all text-base font-bold text-slate-900 dark:text-white shadow-inner disabled:opacity-50 resize-none overflow-y-auto max-h-80 min-h-[64px]"
-                  />
-
-                  {/* Emoji Button */}
-                  <button
-                    onClick={() => setShowEmojiPicker(v => !v)}
-                    className="absolute right-24 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700"
-                    title="Insert emoji"
-                  >
-                    😊
-                  </button>
-
-                  {/* Send Button */}
-                  <button 
-                    onClick={handleSend} 
-                    disabled={!inputText.trim() || isSending} 
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 px-10 py-3.5 aura-bg-gradient text-white rounded-[1.5rem] shadow-xl shadow-emerald-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-20 text-[11px] font-black uppercase tracking-[0.3em] min-w-[80px]"
-                  >
-                    {isSending ? (
-                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    ) : (
-                      'Send'
-                    )}
-                  </button>
-
-                  {/* Emoji Picker Popover */}
-                  {showEmojiPicker && (
-                    <div className="absolute bottom-16 right-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-3 w-64 max-h-60 overflow-y-auto z-50">
-                      <div className="grid grid-cols-8 gap-2 text-xl">
-                        {['😀','😁','😂','🤣','😊','😍','😘','😜','🤔','😎','😇','🤗','👍','🙏','👏','🔥','🎉','💯','✅','✨','❤️','💪','🤝','🥳','😅','😭','😤','🥰','😏','🙌','🤩','😴','🤪','😬','😱','🤓','😔','🤷','👌','👀','👋','👑','🌟','🚀','🌈','🍀','🍕','☕','🧠'].map(e => (
-                          <button key={e} onClick={() => insertEmoji(e)} className="hover:scale-125 transition-transform" title={e}>
-                            {e}
-                          </button>
+              <div className="max-w-6xl mx-auto space-y-4">
+                {attachments.length > 0 && (
+                  <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3">
+                    <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 text-lg flex-shrink-0">
+                        📎
+                      </div>
+                      <div className="flex gap-2">
+                        {attachments.map((file, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 px-3 py-1 rounded-xl bg-white/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 max-w-[180px]"
+                          >
+                            <span className="truncate">{file.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeAttachment(index)}
+                              className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-rose-500"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>
-                  )}
+                    <span className="ml-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                      {attachments.length} file{attachments.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center gap-6">
+                  <button
+                    type="button"
+                    onClick={handleAttachmentClick}
+                    className="w-14 h-14 flex-shrink-0 flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 active:scale-90 shadow-sm"
+                  >
+                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                  </button>
+                  <div className="flex-1 relative">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={handleAttachmentChange}
+                    />
+                    <div className="absolute left-3 top-3 text-slate-300 dark:text-slate-600 pointer-events-none">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m2 0a8 8 0 11-16 0 8 8 0 0116 0z" /></svg>
+                    </div>
+                    <textarea
+                      ref={textareaRef}
+                      value={inputText}
+                      onChange={handleTextAreaInput}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (!isSending) handleSend();
+                        }
+                      }}
+                      placeholder="Synthesize neural message..."
+                      disabled={isSending}
+                      rows={2}
+                      className="w-full pl-10 pr-32 py-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-[1.6rem] border-2 border-transparent outline-none focus:ring-12 focus:ring-emerald-500/5 dark:focus:ring-emerald-500/10 focus:bg-white dark:focus:bg-slate-800 focus:border-emerald-400/20 transition-all text-base font-bold text-slate-900 dark:text-white shadow-inner disabled:opacity-50 resize-none overflow-y-auto max-h-80 min-h-[64px]"
+                    />
+                    <button
+                      onClick={() => setShowEmojiPicker(v => !v)}
+                      className="absolute right-24 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-200 dark:border-slate-700"
+                      title="Insert emoji"
+                    >
+                      😊
+                    </button>
+                    <button 
+                      onClick={handleSend} 
+                      disabled={(!inputText.trim() && attachments.length === 0) || isSending} 
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 px-10 py-3.5 aura-bg-gradient text-white rounded-[1.5rem] shadow-xl shadow-emerald-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-20 text-[11px] font-black uppercase tracking-[0.3em] min-w-[80px]"
+                    >
+                      {isSending ? (
+                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      ) : (
+                        'Send'
+                      )}
+                    </button>
+                    {showEmojiPicker && (
+                      <div className="absolute bottom-16 right-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-3 w-64 max-h-60 overflow-y-auto z-50">
+                        <div className="grid grid-cols-8 gap-2 text-xl">
+                          {['😀','😁','😂','🤣','😊','😍','😘','😜','🤔','😎','😇','🤗','👍','🙏','👏','🔥','🎉','💯','✅','✨','❤️','💪','🤝','🥳','😅','😭','😤','🥰','😏','🙌','🤩','😴','🤪','😬','😱','🤓','😔','🤷','👌','👀','👋','👑','🌟','🚀','🌈','🍀','🍕','☕','🧠'].map(e => (
+                            <button key={e} onClick={() => insertEmoji(e)} className="hover:scale-125 transition-transform" title={e}>
+                              {e}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

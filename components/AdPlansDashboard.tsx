@@ -440,7 +440,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {totalAdsCreated}
+                    {totalAdsCreatedFromSubscriptions}
                   </p>
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Ads Created</p>
                 </div>
@@ -481,7 +481,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                 </div>
                 <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
                   {totalActiveSubscriptions > 0
-                    ? Math.round((totalAdsCreated / adSubscriptions.filter(s => s.status === 'active').reduce((sum, s) => sum + s.adLimit, 0)) * 100)
+                    ? Math.round((totalAdsCreatedFromSubscriptions / adSubscriptions.filter(s => s.status === 'active').reduce((sum, s) => sum + s.adLimit, 0)) * 100)
                     : 0}%
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">Of available ad slots</div>

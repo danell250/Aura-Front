@@ -163,6 +163,33 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated, fetchCurrentUser]);
 
+  const notificationInitRef = useRef(false);
+  const prevNotificationIdsRef = useRef<Set<string> | null>(null);
+  const messageInitRef = useRef(false);
+  const prevUnreadCountRef = useRef(0);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const playAlertSound = useCallback(() => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioContextRef.current;
+      if (!ctx) return;
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 880;
+      gain.gain.value = 0.08;
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      oscillator.start(now);
+      oscillator.stop(now + 0.12);
+    } catch {
+    }
+  }, []);
+
   const fetchNotifications = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
@@ -221,33 +248,6 @@ const App: React.FC = () => {
       console.error('Failed to fetch message conversations:', error);
     }
   }, [currentUser?.id, playAlertSound]);
-
-  const notificationInitRef = useRef(false);
-  const prevNotificationIdsRef = useRef<Set<string> | null>(null);
-  const messageInitRef = useRef(false);
-  const prevUnreadCountRef = useRef(0);
-  const audioContextRef = useRef<AudioContext | null>(null);
-
-  const playAlertSound = useCallback(() => {
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-      const ctx = audioContextRef.current;
-      if (!ctx) return;
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.type = 'sine';
-      oscillator.frequency.value = 880;
-      gain.gain.value = 0.08;
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      const now = ctx.currentTime;
-      oscillator.start(now);
-      oscillator.stop(now + 0.12);
-    } catch {
-    }
-  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.id) return;

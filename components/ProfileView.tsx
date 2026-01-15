@@ -177,7 +177,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Left Section - Avatar & Info */}
               <div className="flex flex-col lg:flex-row gap-6 flex-1">
-                {/* Avatar */}
                 <div className="flex justify-center lg:justify-start">
                   <div className={`w-32 h-32 rounded-2xl p-1 shadow-lg ${user.activeGlow !== 'none' ? 'ring-4 ring-emerald-400/30' : ''} bg-white dark:bg-slate-800`}>
                     <Avatar 
@@ -190,11 +189,27 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                 </div>
 
-                {/* User Info */}
                 <div className="flex-1 text-center lg:text-left">
                   <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2 leading-tight">
-                    {user.name}
+                    {user.isCompany && user.companyName ? user.companyName : user.name}
                   </h1>
+                  {user.isCompany && (
+                    <div className="flex items-center justify-center lg:justify-start gap-2 mb-1">
+                      <span className="px-2.5 py-1 text-[11px] font-black uppercase tracking-widest rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                        Business Profile
+                      </span>
+                      {user.companyWebsite && (
+                        <a
+                          href={user.companyWebsite}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-medium text-emerald-600 dark:text-emerald-400 underline underline-offset-4 decoration-emerald-400/60"
+                        >
+                          {user.companyWebsite}
+                        </a>
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-center justify-center lg:justify-start gap-3 mb-2">
                     <p className="text-emerald-600 dark:text-emerald-400 font-medium">
                       {user.handle}
@@ -414,7 +429,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
           ) : activeTab === 'about' ? (
             <div className="space-y-6">
-              {/* Bio Section */}
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">About</h3>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-base">
@@ -422,44 +436,99 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                 </p>
               </div>
 
-              {/* Additional Info */}
-              {(user.dob || user.zodiacSign) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {user.dob && (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                          <span className="text-xl">🎂</span>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Birthday</p>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                            {new Date(user.dob).toLocaleDateString(undefined, {
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                      </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                      <span className="text-xl">📍</span>
                     </div>
-                  )}
-                  
-                  {user.zodiacSign && (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                          <span className="text-xl">✨</span>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Zodiac Sign</p>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-white">{user.zodiacSign}</p>
-                        </div>
-                      </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Location</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {user.country || 'Not set'}
+                      </p>
                     </div>
-                  )}
+                  </div>
                 </div>
-              )}
+
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+                      <span className="text-xl">🏢</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Industry</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {user.industry || 'Not set'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {user.companyName && (
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                        <span className="text-xl">🏬</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Company</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                          {user.companyName}
+                        </p>
+                        {user.companyWebsite && (
+                          <a
+                            href={user.companyWebsite}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-medium text-emerald-600 dark:text-emerald-400 underline underline-offset-4 decoration-emerald-400/60"
+                          >
+                            {user.companyWebsite}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(user.dob || user.zodiacSign) && (
+                  <>
+                    {user.dob && (
+                      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                            <span className="text-xl">🎂</span>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Birthday</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                              {new Date(user.dob).toLocaleDateString(undefined, {
+                                month: 'long',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {user.zodiacSign && (
+                      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                            <span className="text-xl">✨</span>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Zodiac Sign</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{user.zodiacSign}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           ) : activeTab === 'adplans' && isSelf ? (
             <AdPlansDashboard

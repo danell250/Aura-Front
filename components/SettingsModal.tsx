@@ -24,7 +24,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
     isPrivate: currentUser.isPrivate || false,
     dob: currentUser.dob || '',
     country: currentUser.country || '',
-    industry: currentUser.industry || ''
+    industry: currentUser.industry || '',
+    companyName: currentUser.companyName || '',
+    companyWebsite: currentUser.companyWebsite || '',
+    isCompany: currentUser.isCompany || false
   });
 
   const getZodiacSign = (dateString: string) => {
@@ -337,6 +340,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
               onChange={e => setForm({...form, bio: e.target.value})}
               placeholder="Tell the network about yourself..."
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Company Name (optional)</label>
+              <input
+                className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 focus:border-emerald-400 transition-all font-bold text-sm text-slate-900 dark:text-white"
+                value={form.companyName}
+                onChange={e => setForm({ ...form, companyName: e.target.value })}
+                placeholder="Only if you are opening a company profile"
+              />
+            </div>
+            <div>
+              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Company Website (optional)</label>
+              <input
+                type="url"
+                className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 focus:border-emerald-400 transition-all font-bold text-sm text-slate-900 dark:text-white"
+                value={form.companyWebsite}
+                onChange={e => setForm({ ...form, companyWebsite: e.target.value })}
+                placeholder="https://your-company.com"
+              />
+            </div>
           </div>
           
           <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">

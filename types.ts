@@ -25,6 +25,7 @@ export interface User {
   auraCredits: number;
   activeGlow?: 'emerald' | 'cyan' | 'amber' | 'none';
   companyName?: string;
+  companyWebsite?: string;
   industry?: string;
   employeeCount?: number;
   isCompany?: boolean;

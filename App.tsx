@@ -29,7 +29,7 @@ import { CommentService } from './services/commentService';
 import { SearchResult } from './services/searchService';
 import { MessageService } from './services/messageService';
 import { soundService } from './services/soundService';
-import { getSerendipityMatches, SerendipityMatch, trackSerendipitySkip } from './services/trustService';
+import { getSerendipityMatches, SerendipityMatch, trackSerendipitySkip, recalculateTrustForUser } from './services/trustService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -44,7 +44,15 @@ const isProfileComplete = (user: User | null | undefined) => {
   const hasBio = !!user.bio && user.bio.trim().length > 0;
   const hasIndustry = !!user.industry && user.industry.trim().length > 0;
   const hasCountry = !!user.country && user.country.trim().length > 0;
-  return hasDob && hasBio && hasIndustry && hasCountry;
+  const baseComplete = hasDob && hasBio && hasIndustry && hasCountry;
+
+  if (!user.isCompany) {
+    return baseComplete;
+  }
+
+  const hasCompanyName = !!user.companyName && user.companyName.trim().length > 0;
+  const hasCompanyWebsite = !!user.companyWebsite && user.companyWebsite.trim().length > 0;
+  return baseComplete && hasCompanyName && hasCompanyWebsite;
 };
 
 interface BirthdayAnnouncement {
@@ -546,14 +554,40 @@ const App: React.FC = () => {
     navigateToView({ type: 'feed' });
   };
 
-  const handleUpdateProfile = (updates: Partial<User>) => {
-    const updatedUser = { ...currentUser, ...updates };
-    if (updates.firstName && updates.lastName) updatedUser.name = `${updates.firstName} ${updates.lastName}`;
-    setCurrentUser(updatedUser);
-    
-    setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
-    if (isProfileComplete(updatedUser)) {
-      setIsProfileCompletionRequired(false);
+  const handleUpdateProfile = async (updates: Partial<User>) => {
+    const optimisticUser = { ...currentUser, ...updates };
+    if (updates.firstName && updates.lastName) {
+      optimisticUser.name = `${updates.firstName} ${updates.lastName}`;
+    }
+    setCurrentUser(optimisticUser);
+    setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? optimisticUser : u)));
+
+    try {
+      const updateResult = await UserService.updateUser(currentUser.id, updates);
+      let persistedUser: User | null = null;
+      if (updateResult.success && updateResult.user) {
+        persistedUser = updateResult.user as User;
+      } else {
+        await fetchCurrentUser();
+        return;
+      }
+
+      try {
+        const breakdown = await recalculateTrustForUser(persistedUser.id);
+        if (breakdown) {
+          persistedUser = { ...persistedUser, trustScore: breakdown.total };
+        }
+      } catch (e) {
+      }
+
+      setCurrentUser(persistedUser);
+      setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? persistedUser as User : u)));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedUser));
+      if (isProfileComplete(persistedUser)) {
+        setIsProfileCompletionRequired(false);
+      }
+    } catch (error) {
+      await fetchCurrentUser();
     }
   };
 
@@ -1622,29 +1656,46 @@ const App: React.FC = () => {
           requireCompletion={isProfileCompletionRequired}
         />
       )}
-      {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={handleAdCreated} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onAdUpdated={async (adId, updates) => {
-        try {
-          const token = localStorage.getItem('aura_auth_token') || '';
-          const response = await fetch(`${API_BASE_URL}/ads/${adId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(updates)
-          });
-          const result = await response.json();
-          if (result.success && result.data) {
-            setAds(prev => prev.map(a => a.id === adId ? { ...a, ...result.data } : a));
+      {isAdManagerOpen && (
+        <AdManager
+          currentUser={currentUser}
+          ads={ads}
+          onAdCreated={handleAdCreated}
+          onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))}
+          onAdUpdated={async (adId, updates) => {
+            try {
+              const token = localStorage.getItem('aura_auth_token') || '';
+              const response = await fetch(`${API_BASE_URL}/ads/${adId}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updates)
+              });
+              const result = await response.json();
+              if (result.success && result.data) {
+                setAds(prev => prev.map(a => a.id === adId ? { ...a, ...result.data } : a));
+                setAdSubsRefreshTick(prev => prev + 1);
+                return true;
+              }
+              return false;
+            } catch (e) {
+              console.error('Failed to update ad:', e);
+              return false;
+            }
+          }}
+          onClose={() => {
+            setIsAdManagerOpen(false);
             setAdSubsRefreshTick(prev => prev + 1);
-            return true;
-          }
-          return false;
-        } catch (e) {
-          console.error('Failed to update ad:', e);
-          return false;
-        }
-      }} onClose={() => { setIsAdManagerOpen(false); setAdSubsRefreshTick(prev => prev + 1); }} />}
+          }}
+          onGoToAdPlans={() => {
+            setIsAdManagerOpen(false);
+            setAdSubsRefreshTick(prev => prev + 1);
+            navigateToView({ type: 'profile', targetId: currentUser.id });
+          }}
+        />
+      )}
       {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} bundles={CREDIT_BUNDLES} onPurchase={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
       {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} onClose={() => setSharingContent(null)} />}
       <SerendipityModal

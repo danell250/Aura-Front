@@ -21,9 +21,10 @@ interface AdManagerProps {
   onAdCancelled: (adId: string) => void;
   onAdUpdated?: (adId: string, updates: Partial<Ad>) => Promise<boolean>;
   onClose: () => void;
+  onGoToAdPlans?: () => void;
 }
 
-const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, onAdCancelled, onAdUpdated, onClose }) => {
+const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, onAdCancelled, onAdUpdated, onClose, onGoToAdPlans }) => {
   const [tab, setTab] = useState<'create' | 'manage' | 'subscriptions'>('create');
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Select, 2: Pay, 3: Create
   const [selectedPkg, setSelectedPkg] = useState<AdPackage | null>(null);
@@ -1005,6 +1006,20 @@ const buildPayPalSdkUrlForSubscriptions = () => {
                     <p className="mt-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] max-w-xl mx-auto">
                       To create or manage ads later, go to your profile and open the Ad Plans tab.
                     </p>
+                    <div className="mt-10 flex flex-col items-center gap-3">
+                      <button
+                        onClick={() => {
+                          if (onGoToAdPlans) {
+                            onGoToAdPlans();
+                          } else {
+                            onClose();
+                          }
+                        }}
+                        className="px-10 py-4 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all"
+                      >
+                        Go to Ad Plans
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

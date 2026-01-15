@@ -153,13 +153,16 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
       doc.text('Profile Information', 14, 60);
 
       const profileData = [
+        ['Full Name', `${currentUser.firstName} ${currentUser.lastName}`],
         ['Display Name', currentUser.name],
         ['Handle', currentUser.handle],
         ['Email', currentUser.email || 'N/A'],
         ['Phone', currentUser.phone || 'N/A'],
         ['Bio', currentUser.bio || 'N/A'],
+        ['Country', currentUser.country || 'N/A'],
         ['Industry', currentUser.industry || 'N/A'],
         ['Company Name', currentUser.companyName || 'N/A'],
+        ['Company Website', currentUser.companyWebsite || 'N/A'],
         ['Trust Score', `${currentUser.trustScore} / 100`],
         ['Aura Credits', String(currentUser.auraCredits)],
         ['Account Type', currentUser.isCompany ? 'Business' : 'Personal'],

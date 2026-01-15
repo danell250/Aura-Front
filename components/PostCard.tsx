@@ -7,6 +7,8 @@ import BoostModal from './BoostModal';
 import { Avatar, MediaDisplay } from './MediaDisplay';
 import { getTrustBadgeConfig } from '../services/trustService';
 import { PostService } from '../services/postService';
+import PDFViewer from './PDFViewer';
+import { linkService } from '../services/linkService';
 
 interface PostCardProps {
   post: Post;
@@ -45,7 +47,6 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   const [reportNotes, setReportNotes] = useState('');
   const [reportMsg, setReportMsg] = useState<string | null>(null);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
-  const [pdfPages, setPdfPages] = useState<Record<string, number>>({});
 
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
@@ -61,8 +62,26 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!Array.isArray(post.mediaItems) || post.mediaItems.length === 0) return;
+      if (event.key === 'ArrowRight') {
+        setCurrentMediaIndex(prev => {
+          if (prev >= post.mediaItems!.length - 1) return prev;
+          return prev + 1;
+        });
+      } else if (event.key === 'ArrowLeft') {
+        setCurrentMediaIndex(prev => {
+          if (prev <= 0) return prev;
+          return prev - 1;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [post.mediaItems]);
 
   const getEmbedUrl = (url: string) => {
     const ytMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([^&?/\s]+)/);
@@ -104,65 +123,8 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
     const isDocument = type === 'document' || lowerUrl.match(/\.(pdf|doc|docx)$/i) !== null;
     if (isDocument) {
       if (lowerUrl.endsWith('.pdf')) {
-        const currentPage = pdfPages[url] ?? 1;
-        const baseUrl = url.split('#')[0];
-        const viewerUrl = `${baseUrl}#page=${currentPage}`;
-
         return (
-          <div key={url} className="w-full flex flex-col">
-            <div className="relative w-full">
-              <iframe
-                src={viewerUrl}
-                className="w-full h-[600px] border-none bg-white"
-                title="Document viewer"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setPdfPages(prev => {
-                    const current = prev[url] ?? 1;
-                    const next = Math.max(1, current - 1);
-                    return { ...prev, [url]: next };
-                  });
-                }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-slate-900 focus:outline-none"
-              >
-                <span className="text-lg">&#8592;</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPdfPages(prev => {
-                    const current = prev[url] ?? 1;
-                    const next = current + 1;
-                    return { ...prev, [url]: next };
-                  });
-                }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-slate-900 focus:outline-none"
-              >
-                <span className="text-lg">&#8594;</span>
-              </button>
-            </div>
-            <div className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-slate-300">
-                  PDF
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Document</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Page {currentPage}</span>
-                </div>
-              </div>
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-medium text-emerald-600 dark:text-emerald-400 underline"
-              >
-                Open in new tab
-              </a>
-            </div>
-          </div>
+          <PDFViewer key={url} url={url} />
         );
       }
 
@@ -320,15 +282,52 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
     const parts = content.split(/(\s+)/);
     return parts.map((part, i) => {
       if (part.startsWith('#') && part.length > 1) {
-        return <span key={i} onClick={(e) => { e.stopPropagation(); onSearchTag(part); }} className="text-emerald-600 dark:text-emerald-400 font-bold cursor-pointer hover:underline">{part}</span>;
+        return (
+          <span
+            key={i}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSearchTag(part);
+            }}
+            className="text-emerald-600 dark:text-emerald-400 font-bold cursor-pointer hover:underline"
+          >
+            {part}
+          </span>
+        );
       }
       if (part.startsWith('@') && part.length > 1) {
         const handle = part.replace(/[.,!?;:]/g, '');
-        const taggedUser = allUsers.find(u => u.handle === handle);
-        return <span key={i} onClick={(e) => { e.stopPropagation(); if (taggedUser) onViewProfile(taggedUser.id); }} className="text-emerald-500 font-bold cursor-pointer hover:underline">{part}</span>;
+        const taggedUser = allUsers.find((u) => u.handle === handle);
+        return (
+          <span
+            key={i}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (taggedUser) onViewProfile(taggedUser.id);
+            }}
+            className="text-emerald-500 font-bold cursor-pointer hover:underline"
+          >
+            {part}
+          </span>
+        );
       }
-      if (part.match(/https?:\/\/[^\s]+/)) {
-        return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{part}</a>;
+      if (linkService.isUrl(part)) {
+        const { display, title } = linkService.truncateUrl(part);
+        return (
+          <a
+            key={i}
+            href={part}
+            title={title}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium hover:underline max-w-full truncate align-baseline"
+          >
+            <span className="truncate">{display}</span>
+            <span aria-hidden="true" className="text-[11px] align-baseline">
+              ↗
+            </span>
+          </a>
+        );
       }
       return part;
     });
@@ -607,69 +606,85 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
           </div>
         )}
 
-        <div className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed mb-6 whitespace-pre-wrap font-medium tracking-tight">
-          <span className="align-middle inline-block leading-[1.4]">
+        <div className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed mb-6 whitespace-pre-wrap font-medium tracking-tight break-words overflow-hidden w-full">
+          <span className="align-middle inline-block leading-[1.4] max-w-full">
             {renderContent(post.content)}
           </span>
         </div>
 
         {hasMediaItems && currentMediaUrl ? (
           <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner min-h-[100px] flex flex-col items-center justify-center relative group/carousel">
-              <div className="w-full relative">
-                  {renderMedia(currentMediaUrl, currentMediaType, "w-full h-auto max-h-[600px] object-contain")}
-                  
-                  {/* Navigation Buttons */}
-                  {post.mediaItems.length > 1 && (
-                      <>
-                          {currentMediaIndex > 0 && (
-                              <button 
-                                  onClick={(e) => { e.stopPropagation(); setCurrentMediaIndex(prev => prev - 1); }}
-                                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-all opacity-0 group-hover/carousel:opacity-100 z-10"
-                              >
-                                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                              </button>
-                          )}
-                          {currentMediaIndex < post.mediaItems.length - 1 && (
-                              <button 
-                                  onClick={(e) => { e.stopPropagation(); setCurrentMediaIndex(prev => prev + 1); }}
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-all opacity-0 group-hover/carousel:opacity-100 z-10"
-                              >
-                                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                              </button>
-                          )}
-                          
-                          {/* Dots */}
-                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                              {post.mediaItems.map((_, idx) => (
-                                  <div 
-                                      key={idx} 
-                                      className={`w-1.5 h-1.5 rounded-full transition-all shadow-sm ${idx === currentMediaIndex ? 'bg-white w-3' : 'bg-white/50'}`} 
-                                  />
-                              ))}
-                          </div>
-                      </>
-                  )}
-              </div>
-              
-              {/* Caption & Headline */}
-              {(post.mediaItems[currentMediaIndex].headline || post.mediaItems[currentMediaIndex].caption) && (
-                  <div className="w-full p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-                      {post.mediaItems[currentMediaIndex].headline && (
-                          <h4 className="font-bold text-slate-900 dark:text-white mb-1">
-                              {post.mediaItems[currentMediaIndex].headline}
-                          </h4>
-                      )}
-                      {post.mediaItems[currentMediaIndex].caption && (
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                              {post.mediaItems[currentMediaIndex].caption}
-                          </p>
-                      )}
-                  </div>
+            <div className="w-full relative">
+              {renderMedia(currentMediaUrl, currentMediaType, "w-full h-auto max-h-[600px] object-contain")}
+
+              {post.mediaItems.length > 1 && (
+                <div className="absolute left-3 top-3 px-2 py-1 rounded-full bg-black/60 text-white text-xs font-medium z-10">
+                  {currentMediaIndex + 1} / {post.mediaItems.length}
+                </div>
               )}
+
+              {post.mediaItems.length > 1 && (
+                <>
+                  {currentMediaIndex > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentMediaIndex((prev) => prev - 1);
+                      }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-all opacity-0 group-hover/carousel:opacity-100 z-10"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                  )}
+                  {currentMediaIndex < post.mediaItems.length - 1 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentMediaIndex((prev) => prev + 1);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-all opacity-0 group-hover/carousel:opacity-100 z-10"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
+
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                    {post.mediaItems.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={`w-1.5 h-1.5 rounded-full transition-all shadow-sm ${
+                          idx === currentMediaIndex ? 'bg-white w-3' : 'bg-white/50'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {(post.mediaItems[currentMediaIndex].headline ||
+              post.mediaItems[currentMediaIndex].caption) && (
+              <div className="w-full p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+                {post.mediaItems[currentMediaIndex].headline && (
+                  <h4 className="font-bold text-slate-900 dark:text-white mb-1">
+                    {post.mediaItems[currentMediaIndex].headline}
+                  </h4>
+                )}
+                {post.mediaItems[currentMediaIndex].caption && (
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {post.mediaItems[currentMediaIndex].caption}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         ) : !hasMediaItems && currentMediaUrl ? (
           <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner min-h-[100px] flex items-center justify-center">
-            {renderMedia(currentMediaUrl, currentMediaType, "w-full h-auto max-h-[600px] object-cover")}
+            {renderMedia(currentMediaUrl, currentMediaType, "w-full h-auto max-h-[600px] object-contain")}
           </div>
         ) : null}
 

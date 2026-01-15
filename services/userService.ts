@@ -4,14 +4,14 @@ import { getApiBaseUrl } from '../constants';
 const API_BASE_URL = getApiBaseUrl();
 
 export class UserService {
-  // Get current user with token
-  static async getMe(token: string): Promise<{ success: boolean; user?: User; error?: string }> {
+  // Get current user (prefers cookie-based auth, optional bearer token)
+  static async getMe(token?: string | null): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/user`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         credentials: 'include'
       });

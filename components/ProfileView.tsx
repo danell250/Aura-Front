@@ -11,6 +11,27 @@ import { adSubscriptionService, AdSubscription } from '../services/adSubscriptio
 import { AD_PACKAGES } from '../constants';
 import { getTrustBadgeConfig, formatTrustSummary } from '../services/trustService';
 
+const getZodiacSign = (dateString: string) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return 'Aries ♈';
+  if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return 'Taurus ♉';
+  if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return 'Gemini ♊';
+  if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return 'Cancer ♋';
+  if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return 'Leo ♌';
+  if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return 'Virgo ♍';
+  if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return 'Libra ♎';
+  if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return 'Scorpio ♏';
+  if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return 'Sagittarius ♐';
+  if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return 'Capricorn ♑';
+  if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return 'Aquarius ♒';
+  if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return 'Pisces ♓';
+  return '';
+};
+
 interface ProfileViewProps {
    user: User;
    posts: Post[];
@@ -61,6 +82,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const isAcquaintance = currentUser.acquaintances?.includes(user.id);
   const isRequested = currentUser.sentAcquaintanceRequests?.includes(user.id);
   const trustBadge = getTrustBadgeConfig(user.trustScore ?? 0);
+  const zodiacSign = user.zodiacSign || (user.dob ? getZodiacSign(user.dob) : '');
 
   useEffect(() => {
     if (!isSelf) {
@@ -184,7 +206,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
             url={user.coverImage} 
             type={user.coverType} 
             className="w-full h-full" 
-            fallback={<div className="w-full h-full bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500"></div>}
+            fallback={<div className="w-full h-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-700"></div>}
           />
           <div className="absolute inset-0 bg-black/20"></div>
           
@@ -322,7 +344,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                         </button>
                         <button 
                           onClick={onSerendipityMode} 
-                          className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg text-sm shadow-md hover:shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
+                          className="w-full px-4 py-2.5 bg-emerald-600 dark:bg-emerald-700 text-white font-medium rounded-lg text-sm shadow-md hover:bg-emerald-700 dark:hover:bg-emerald-600 hover:shadow-lg transition-all flex items-center justify-center gap-2"
                         >
                           <span>✨</span>
                           <span>Serendipity</span>
@@ -535,42 +557,31 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                   </div>
                 )}
 
-                {(user.dob || user.zodiacSign) && (
-                  <>
-                    {user.dob && (
-                      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                            <span className="text-xl">🎂</span>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Birthday</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                              {new Date(user.dob).toLocaleDateString(undefined, {
-                                month: 'long',
-                                day: 'numeric',
-                                year: 'numeric'
-                              })}
-                            </p>
-                          </div>
-                        </div>
+                {(user.dob || zodiacSign) && (
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                        <span className="text-xl">🎂</span>
                       </div>
-                    )}
-                    
-                    {user.zodiacSign && (
-                      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                            <span className="text-xl">✨</span>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Zodiac Sign</p>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{user.zodiacSign}</p>
-                          </div>
-                        </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Birthday</p>
+                        {user.dob && (
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {new Date(user.dob).toLocaleDateString(undefined, {
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </p>
+                        )}
+                        {zodiacSign && (
+                          <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                            {zodiacSign}
+                          </p>
+                        )}
                       </div>
-                    )}
-                  </>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

@@ -362,76 +362,97 @@ const App: React.FC = () => {
     const usersToProcess = savedUsers ? JSON.parse(savedUsers) : MOCK_USERS;
     setAllUsers(ensureAuraSupportUser(usersToProcess));
 
-    // Check for OAuth token in URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
+    const hasTokenParam = urlParams.has('token');
 
     let wasAuthenticated = false;
 
-    if (token) {
-      // Handle OAuth callback with token by fetching real user from backend
-      localStorage.setItem('aura_auth_token', token);
-      (async () => {
+    (async () => {
+      const isOAuthRedirect = (() => {
         try {
-          const result = await UserService.getMe(token);
-          if (result.success && result.user) {
-            const user = result.user;
-            setCurrentUser(user);
-            setIsAuthenticated(true);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-
-            const filteredUsers = usersToProcess.filter((u: User) => u.id !== user.id);
-            const updatedUsers = [...filteredUsers, user];
-            setAllUsers(updatedUsers);
-            localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-
-            wasAuthenticated = true;
-            ensureProfileCompletion(user);
-            navigateToView({ type: 'feed' });
-          }
-        } catch (error) {
-          console.error('[App] Error processing OAuth token:', error);
-        } finally {
-          const newUrl = window.location.pathname + window.location.hash;
-          window.history.replaceState({}, document.title, newUrl);
+          return sessionStorage.getItem('oauth_in_progress') === 'true';
+        } catch {
+          return false;
         }
       })();
-    } else {
-      const savedSession = localStorage.getItem(STORAGE_KEY);
-      const savedToken = localStorage.getItem('aura_auth_token');
-      if (savedSession && savedToken) {
+
+      if (isOAuthRedirect) {
         try {
-          const user = JSON.parse(savedSession);
-          const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
-          setCurrentUser(refreshedUser);
-          setIsAuthenticated(true);
-          wasAuthenticated = true;
-          ensureProfileCompletion(refreshedUser);
-        } catch (e) {
-          localStorage.removeItem(STORAGE_KEY);
+          try {
+            sessionStorage.removeItem('oauth_in_progress');
+          } catch {
+          }
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch {
         }
-      } else if (savedSession && !savedToken) {
-        localStorage.removeItem(STORAGE_KEY);
       }
-    }
 
-    const savedPosts = localStorage.getItem(POSTS_KEY);
-    setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
-    const savedAds = localStorage.getItem(ADS_KEY);
-    setAds(savedAds ? JSON.parse(savedAds) : INITIAL_ADS);
-    if (wasAuthenticated) {
-      syncBirthdays();
-    }
+      try {
+        const tokenFromStorage = localStorage.getItem('aura_auth_token');
+        const result = await UserService.getMe(tokenFromStorage);
 
-    if (localStorage.getItem('aura_theme') === 'dark') {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
-    }
-    syncViewFromLocation();
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-  }, [syncViewFromLocation, navigateToView, syncBirthdays]);
+        if (result.success && result.user) {
+          const user = result.user;
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+
+          const filteredUsers = usersToProcess.filter((u: User) => u.id !== user.id);
+          const updatedUsers = [...filteredUsers, user];
+          setAllUsers(updatedUsers);
+          localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+
+          wasAuthenticated = true;
+          ensureProfileCompletion(user);
+          navigateToView({ type: 'feed' });
+        } else {
+          const savedSession = localStorage.getItem(STORAGE_KEY);
+          const savedToken = localStorage.getItem('aura_auth_token');
+          if (savedSession && savedToken) {
+            try {
+              const user = JSON.parse(savedSession);
+              const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
+              setCurrentUser(refreshedUser);
+              setIsAuthenticated(true);
+              wasAuthenticated = true;
+              ensureProfileCompletion(refreshedUser);
+            } catch (e) {
+              localStorage.removeItem(STORAGE_KEY);
+            }
+          } else if (savedSession && !savedToken) {
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        }
+      } catch (error) {
+        console.error('[App] Error during initial auth load:', error);
+      } finally {
+        if (hasTokenParam) {
+          const cleanedSearch = new URLSearchParams(window.location.search);
+          cleanedSearch.delete('token');
+          const newSearch = cleanedSearch.toString();
+          const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : '') + window.location.hash;
+          window.history.replaceState({}, document.title, newUrl);
+        }
+      }
+
+      const savedPosts = localStorage.getItem(POSTS_KEY);
+      setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
+      const savedAds = localStorage.getItem(ADS_KEY);
+      setAds(savedAds ? JSON.parse(savedAds) : INITIAL_ADS);
+      if (wasAuthenticated) {
+        syncBirthdays();
+      }
+
+      if (localStorage.getItem('aura_theme') === 'dark') {
+        setIsDarkMode(true);
+        document.documentElement.classList.add('dark');
+      }
+      syncViewFromLocation();
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+    })();
+  }, [syncViewFromLocation, navigateToView, syncBirthdays, ensureAuraSupportUser]);
 
   useEffect(() => {
     const handlePopState = () => {

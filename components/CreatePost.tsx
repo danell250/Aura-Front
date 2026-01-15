@@ -8,8 +8,9 @@ import TimeCapsuleModal, { TimeCapsuleData } from './TimeCapsuleModal';
 import TimeCapsuleTutorial from './TimeCapsuleTutorial';
 import { Avatar } from './MediaDisplay';
 import { PrivacyService } from '../services/privacyService';
-
 import { MediaItem } from '../types';
+import ModernTextarea from './ModernTextarea';
+import MediaUploader from './MediaUploader';
 
 interface CreatePostProps {
   onPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video' | 'document', taggedUserIds?: string[], documentName?: string, energy?: EnergyType, mediaItems?: MediaItem[]) => void;
@@ -337,52 +338,45 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
             </div>
             
             <div className="flex-1 relative">
-              {/* Professional textarea */}
-              <div className="relative">
-                <textarea
-                  ref={textareaRef}
-                  value={content}
-                  onChange={handleContentChange}
-                  placeholder={`What's on your mind, ${currentUser.firstName}?`}
-                  className="w-full border-0 bg-transparent focus:ring-0 text-lg placeholder-gray-400 dark:placeholder-gray-500 resize-none min-h-[120px] outline-none py-3 text-gray-900 dark:text-gray-100 transition-all duration-200"
-                  style={{ fieldSizing: 'content' }}
-                />
-                {/* Character count */}
-                {content.length > 0 && (
-                  <div className="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-gray-500 font-medium">
-                    {content.length}/2000
-                  </div>
-                )}
-                {isMentioning && mentionSuggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20">
-                    {mentionSuggestions.map(user => (
-                      <button
-                        key={user.id}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          handleSelectMention(user);
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
-                      >
-                        <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
-                          <Avatar
-                            src={user.avatar}
-                            type={user.avatarType}
-                            name={user.firstName}
-                            size="custom"
-                            className="w-full h-full"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-gray-900 dark:text-gray-100 font-medium truncate">{user.name}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.handle}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ModernTextarea
+                value={content}
+                onChange={(val) => handleContentChange({ target: { value: val } } as any)}
+                placeholder={`What's on your mind, ${currentUser.firstName}?`}
+                maxLength={500}
+                onSubmit={handleSubmit}
+                submitText="Post"
+                isSubmitting={isProcessingMedia}
+                onEmojiClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              />
+              {isMentioning && mentionSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20">
+                  {mentionSuggestions.map(user => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleSelectMention(user);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
+                    >
+                      <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                        <Avatar
+                          src={user.avatar}
+                          type={user.avatarType}
+                          name={user.firstName}
+                          size="custom"
+                          className="w-full h-full"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-gray-900 dark:text-gray-100 font-medium truncate">{user.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.handle}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -473,43 +467,26 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
           </div>
         )}
 
-        {selectedMediaItems.length > 0 && (
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-             {selectedMediaItems.map((item) => (
-                <div key={item.id} className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                    <div className="relative aspect-video bg-black/5 dark:bg-black/40">
-                        {item.type === 'video' ? (
-                            <video src={item.previewUrl} className="w-full h-full object-contain" controls />
-                        ) : (
-                            <img src={item.previewUrl} className="w-full h-full object-contain" alt="" />
-                        )}
-                        <button
-                          onClick={() => setSelectedMediaItems(prev => prev.filter(i => i.id !== item.id))}
-                          className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-red-600 transition-colors backdrop-blur-sm"
-                        >
-                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                    </div>
-                    <div className="p-3 space-y-2 bg-white dark:bg-gray-900">
-                        <input
-                            type="text"
-                            placeholder="Headline (optional)"
-                            value={item.headline}
-                            onChange={(e) => setSelectedMediaItems(prev => prev.map(i => i.id === item.id ? { ...i, headline: e.target.value } : i))}
-                            className="w-full text-sm font-semibold bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none px-1 py-1 text-gray-900 dark:text-white placeholder-gray-400"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Caption (optional)"
-                            value={item.caption}
-                            onChange={(e) => setSelectedMediaItems(prev => prev.map(i => i.id === item.id ? { ...i, caption: e.target.value } : i))}
-                            className="w-full text-sm text-gray-600 dark:text-gray-400 bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none px-1 py-1 placeholder-gray-400"
-                        />
-                    </div>
-                </div>
-             ))}
-          </div>
-        )}
+        <MediaUploader
+          items={selectedMediaItems}
+          onRemove={(id) =>
+            setSelectedMediaItems((prev) => prev.filter((item) => item.id !== id))
+          }
+          onChangeHeadline={(id, value) =>
+            setSelectedMediaItems((prev) =>
+              prev.map((item) =>
+                item.id === id ? { ...item, headline: value } : item
+              )
+            )
+          }
+          onChangeCaption={(id, value) =>
+            setSelectedMediaItems((prev) =>
+              prev.map((item) =>
+                item.id === id ? { ...item, caption: value } : item
+              )
+            )
+          }
+        />
 
         {/* Professional upload progress */}
         {isProcessingMedia && (

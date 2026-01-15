@@ -3,6 +3,27 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User, EnergyType, Post } from '../types';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 
+const getZodiacSign = (dateString: string) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return 'Aries ♈';
+  if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return 'Taurus ♉';
+  if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return 'Gemini ♊';
+  if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return 'Cancer ♋';
+  if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return 'Leo ♌';
+  if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return 'Virgo ♍';
+  if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return 'Libra ♎';
+  if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return 'Scorpio ♏';
+  if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return 'Sagittarius ♐';
+  if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return 'Capricorn ♑';
+  if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return 'Aquarius ♒';
+  if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return 'Pisces ♓';
+  return '';
+};
+
 interface BirthdayPostProps {
   birthdayUser: User;
   quirkyWish: string;
@@ -21,6 +42,7 @@ const BirthdayPost: React.FC<BirthdayPostProps> = ({
 }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const zodiacSign = birthdayUser.zodiacSign || (birthdayUser.dob ? getZodiacSign(birthdayUser.dob) : '');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -67,6 +89,11 @@ const BirthdayPost: React.FC<BirthdayPostProps> = ({
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                   Neural Sync Announcement
                 </span>
+                {zodiacSign && (
+                  <span className="px-3 py-1 bg-white/80 dark:bg-slate-900/60 text-emerald-700 dark:text-emerald-300 text-[9px] font-black uppercase rounded-full tracking-widest border border-emerald-200 dark:border-emerald-700">
+                    {zodiacSign}
+                  </span>
+                )}
               </div>
             </div>
           </div>

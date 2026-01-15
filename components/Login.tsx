@@ -61,7 +61,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
   };
 
   const handleGoogleLogin = async () => {
-    // Redirect to backend Google OAuth flow
+    try {
+      sessionStorage.setItem('oauth_in_progress', 'true');
+    } catch {
+    }
     window.location.href = `${API_BASE_URL}/auth/google`;
   };
 

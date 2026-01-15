@@ -14,13 +14,13 @@ export const uploadService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const apiBase = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
-    const backendBase =
-      import.meta.env.VITE_BACKEND_URL ||
-      apiBase.replace(/\/api\/?$/, '');
+    const backendBase = import.meta.env.VITE_BACKEND_URL;
+    const uploadUrl = backendBase
+      ? `${backendBase.replace(/\/api\/?$/, '')}/api/upload`
+      : '/api/upload';
 
-    console.log('Attempting upload to backend:', backendBase);
-    const response = await fetch(`${backendBase}/api/upload`, {
+    console.log('Attempting upload to backend:', uploadUrl);
+    const response = await fetch(uploadUrl, {
       method: 'POST',
       body: formData,
     });

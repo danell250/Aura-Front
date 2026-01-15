@@ -3,7 +3,7 @@ import { AdPackage, Ad, User, EnergyType, CreditBundle, Post } from './types';
 
 export const APP_NAME = "Aura";
 export const PRIMARY_COLOR = "emerald-600";
-export const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : '/api';
 
 export const CREDIT_BUNDLES: CreditBundle[] = [
   {

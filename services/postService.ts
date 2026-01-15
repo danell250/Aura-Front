@@ -96,6 +96,31 @@ export class PostService {
   }
 
   /**
+   * Increment view count for a post
+   */
+  static async incrementPostViews(postId: string): Promise<{ success: boolean; viewCount?: number; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/view`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' as RequestCredentials
+      });
+
+      const result = await response.json().catch(() => null as any);
+      if (response.ok && result && result.success) {
+        return { success: true, viewCount: result.data?.viewCount ?? undefined };
+      }
+
+      return { success: false, error: result?.message || 'Failed to increment post views' };
+    } catch (error: any) {
+      console.error('❌ Error incrementing post views:', error);
+      return { success: false, error: error?.message || 'Failed to increment post views' };
+    }
+  }
+
+  /**
    * Get post by ID with privacy filtering
    */
   static async getPostById(postId: string): Promise<{ success: boolean; post?: Post; error?: string }> {

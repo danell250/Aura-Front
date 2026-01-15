@@ -304,6 +304,10 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
     };
   }, [post.id, onSyncPost]);
 
+  useEffect(() => {
+    PostService.incrementPostViews(post.id).catch(() => {});
+  }, [post.id]);
+
   const handleAISuggestion = async () => {
     if (isSuggesting) return;
     setIsSuggesting(true);
@@ -524,6 +528,9 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
               <span className="px-2 py-1 bg-blue-500 text-white text-[8px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Just posted</span>
             )}
             <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">{new Date(post.timestamp).toLocaleDateString()}</span>
+            <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
+              {(post.viewCount ?? 0).toLocaleString()} views
+            </span>
             {post.author.id === currentUser.id && (
               <button 
                 onClick={() => onDeletePost && onDeletePost(post.id)} 

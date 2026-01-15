@@ -97,6 +97,7 @@ export interface Post {
   commentCount?: number;
   isBoosted?: boolean;
   hashtags?: string[];
+   viewCount?: number;
   // Time Capsule fields
   isTimeCapsule?: boolean;
   unlockDate?: number; // timestamp when the post becomes visible

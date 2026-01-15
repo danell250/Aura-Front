@@ -221,6 +221,22 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
     setSelectedEnergy(EnergyType.NEUTRAL);
   };
 
+  const handleRemoveMedia = (id: string) => {
+    setSelectedMediaItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleChangeHeadline = (id: string, value: string) => {
+    setSelectedMediaItems(prev =>
+      prev.map(item => (item.id === id ? { ...item, headline: value } : item))
+    );
+  };
+
+  const handleChangeCaption = (id: string, value: string) => {
+    setSelectedMediaItems(prev =>
+      prev.map(item => (item.id === id ? { ...item, caption: value } : item))
+    );
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, forcedType?: 'image' | 'video' | 'document') => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -469,23 +485,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
 
         <MediaUploader
           items={selectedMediaItems}
-          onRemove={(id) =>
-            setSelectedMediaItems((prev) => prev.filter((item) => item.id !== id))
-          }
-          onChangeHeadline={(id, value) =>
-            setSelectedMediaItems((prev) =>
-              prev.map((item) =>
-                item.id === id ? { ...item, headline: value } : item
-              )
-            )
-          }
-          onChangeCaption={(id, value) =>
-            setSelectedMediaItems((prev) =>
-              prev.map((item) =>
-                item.id === id ? { ...item, caption: value } : item
-              )
-            )
-          }
+          onRemove={handleRemoveMedia}
+          onChangeHeadline={handleChangeHeadline}
+          onChangeCaption={handleChangeCaption}
         />
 
         {/* Professional upload progress */}

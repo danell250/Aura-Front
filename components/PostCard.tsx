@@ -444,6 +444,14 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   };
 
   const displayMediaUrl = post.mediaUrl || (post.content.match(/https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov|gif|gifv|jpg|jpeg|png|webp)/i)?.[0] || (getEmbedUrl(post.content) ? post.content.match(/https?:\/\/[^\s]+/)?.[0] : null));
+  const hasMediaItems = Array.isArray(post.mediaItems) && post.mediaItems.length > 0;
+  const currentMediaItem = hasMediaItems ? post.mediaItems[currentMediaIndex] : undefined;
+  const currentMediaUrl = hasMediaItems
+    ? (currentMediaItem?.url || post.mediaUrl || displayMediaUrl)
+    : displayMediaUrl;
+  const currentMediaType = hasMediaItems
+    ? (currentMediaItem?.type || post.mediaType)
+    : post.mediaType;
   const rootComments = (post.comments || []).filter(c => !c.parentId);
   const baseShadow = '0 24px 80px -32px rgba(15,23,42,0.65)';
   const radianceGlow = post.radiance > 10
@@ -605,10 +613,10 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
           </span>
         </div>
 
-        {post.mediaItems && post.mediaItems.length > 0 ? (
+        {hasMediaItems && currentMediaUrl ? (
           <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner min-h-[100px] flex flex-col items-center justify-center relative group/carousel">
               <div className="w-full relative">
-                  {renderMedia(post.mediaItems[currentMediaIndex].url, post.mediaItems[currentMediaIndex].type, "w-full h-auto max-h-[600px] object-contain")}
+                  {renderMedia(currentMediaUrl, currentMediaType, "w-full h-auto max-h-[600px] object-contain")}
                   
                   {/* Navigation Buttons */}
                   {post.mediaItems.length > 1 && (
@@ -659,11 +667,11 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
                   </div>
               )}
           </div>
-        ) : displayMediaUrl && (
+        ) : !hasMediaItems && currentMediaUrl ? (
           <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner min-h-[100px] flex items-center justify-center">
-            {renderMedia(displayMediaUrl, post.mediaType, "w-full h-auto max-h-[600px] object-cover")}
+            {renderMedia(currentMediaUrl, currentMediaType, "w-full h-auto max-h-[600px] object-cover")}
           </div>
-        )}
+        ) : null}
 
         <div className="flex items-center gap-2 mb-6 flex-wrap">
            {Object.entries(post.reactions).map(([emoji, count]) => (

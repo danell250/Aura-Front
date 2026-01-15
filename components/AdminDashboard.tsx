@@ -62,7 +62,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ allUsers, onBack }) => 
                 <tr className="border-b border-slate-50 dark:border-slate-800">
                   <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Node Identity</th>
                   <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Sync Status</th>
-                  <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Registration</th>
+                  <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Member Since</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">

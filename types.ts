@@ -14,7 +14,7 @@ export interface User {
   zodiacSign?: string;
   email?: string;
   phone?: string;
-   country?: string;
+  country?: string;
   acquaintances?: string[]; 
   sentAcquaintanceRequests?: string[];
   notifications?: Notification[];
@@ -29,6 +29,9 @@ export interface User {
   industry?: string;
   employeeCount?: number;
   isCompany?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  lastLogin?: string;
 }
 
 export interface CreditBundle {

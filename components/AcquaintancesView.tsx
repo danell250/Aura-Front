@@ -84,54 +84,89 @@ const AcquaintancesView: React.FC<AcquaintancesViewProps> = ({
           )}
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-6">
-          {filtered.map(user => (
-            <div key={user.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-              <div className="flex items-center gap-4 mb-6">
-                <img 
-                  src={user.avatar} 
-                  className="w-16 h-16 rounded-[1.5rem] object-contain bg-slate-50 dark:bg-slate-800 ring-4 ring-slate-50 group-hover:ring-indigo-50 transition-all" 
-                  alt="" 
-                />
-                <div className="overflow-hidden">
-                  <button 
-                    onClick={() => onViewProfile(user.id)}
-                    className="font-black text-slate-900 truncate uppercase text-sm leading-none hover:text-emerald-600 transition-colors cursor-pointer text-left"
-                  >
-                    {user.name}
-                  </button>
-                  <button 
-                    onClick={() => onViewProfile(user.id)}
-                    className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest mt-1.5 hover:text-emerald-600 transition-colors cursor-pointer block text-left"
-                  >
-                    {user.handle}
-                  </button>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Member since 2024</p>
-                </div>
-              </div>
+        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+          <div className="divide-y divide-slate-100">
+            {filtered.map(user => {
+              let memberSinceLabel = 'Member';
+              if (user.createdAt) {
+                const created = new Date(user.createdAt);
+                if (!Number.isNaN(created.getTime())) {
+                  memberSinceLabel = `Member since ${created.getFullYear()}`;
+                }
+              }
 
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={() => onViewProfile(user.id)}
-                  className="py-2.5 bg-slate-50 text-slate-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
-                >
-                  View Profile
-                </button>
-                <button 
-                  onClick={() => onViewChat(user.id)}
-                  className="py-2.5 bg-slate-50 text-slate-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
-                >
-                  Message
-                </button>
-                <button 
-                  onClick={() => onRemoveAcquaintance(user.id)}
-                  className="col-span-2 py-2.5 bg-rose-50 text-rose-500 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all border border-rose-100"
-                >
-                  Remove Acquaintance
-                </button>
-              </div>
-            </div>
-          ))}
+              const statusLabel = currentUser.blockedUsers?.includes(user.id) ? 'Blocked' : 'Acquaintance';
+
+              return (
+                <div key={user.id} className="px-6 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                  <img 
+                    src={user.avatar} 
+                    className="w-12 h-12 rounded-2xl object-cover bg-slate-50 dark:bg-slate-800 border border-slate-200" 
+                    alt="" 
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <button 
+                          onClick={() => onViewProfile(user.id)}
+                          className="font-semibold text-slate-900 truncate text-sm hover:text-emerald-600 text-left"
+                        >
+                          {user.name}
+                        </button>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <button 
+                            onClick={() => onViewProfile(user.id)}
+                            className="text-[11px] text-indigo-600 font-semibold tracking-wide hover:text-emerald-600"
+                          >
+                            {user.handle}
+                          </button>
+                          <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-widest">
+                            {memberSinceLabel}
+                          </span>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest ${
+                        statusLabel === 'Blocked'
+                          ? 'bg-rose-50 text-rose-600 border border-rose-100'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                      }`}>
+                        {statusLabel}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                      <button 
+                        onClick={() => onViewProfile(user.id)}
+                        className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold tracking-wide hover:bg-slate-200"
+                      >
+                        View profile
+                      </button>
+                      <button 
+                        onClick={() => onViewChat(user.id)}
+                        className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold tracking-wide hover:bg-slate-200"
+                      >
+                        Message
+                      </button>
+                      {statusLabel === 'Blocked' ? (
+                        <button 
+                          onClick={() => onRemoveAcquaintance(user.id)}
+                          className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-[11px] font-semibold tracking-wide hover:bg-emerald-700"
+                        >
+                          Unblock
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => onRemoveAcquaintance(user.id)}
+                          className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-[11px] font-semibold tracking-wide hover:bg-rose-600 hover:text-white border border-rose-100"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

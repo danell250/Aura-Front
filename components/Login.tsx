@@ -485,7 +485,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
         </div>
         </div>
 
-        <p className="text-center mt-12 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.5em] animate-pulse">{APP_NAME} © 2024</p>
+        <p className="text-center mt-12 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.5em] animate-pulse">{APP_NAME} © 2025</p>
       </div>
 
       </div>

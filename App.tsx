@@ -29,7 +29,7 @@ import { CommentService } from './services/commentService';
 import { SearchResult } from './services/searchService';
 import { MessageService } from './services/messageService';
 import { soundService } from './services/soundService';
-import { getSerendipityMatches, SerendipityMatch } from './services/trustService';
+import { getSerendipityMatches, SerendipityMatch, trackSerendipitySkip } from './services/trustService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -56,6 +56,12 @@ interface BirthdayAnnouncement {
 }
 
 const App: React.FC = () => {
+  useEffect(() => {
+    if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
+      const httpsUrl = `https://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.replace(httpsUrl);
+    }
+  }, []);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User>(CURRENT_USER);
   const [allUsers, setAllUsers] = useState<User[]>(MOCK_USERS);
@@ -1346,6 +1352,14 @@ const App: React.FC = () => {
     [handleAddAcquaintance, navigateToView]
   );
 
+  const handleSerendipitySkip = useCallback(
+    (targetUserId: string) => {
+      if (!currentUser?.id) return;
+      trackSerendipitySkip(currentUser.id, targetUserId);
+    },
+    [currentUser?.id]
+  );
+
   const processedFeedItems = useMemo(() => {
     // Apply filters first
     const filteredPosts = posts.filter(p => {
@@ -1640,6 +1654,7 @@ const App: React.FC = () => {
         onMessage={handleSerendipityMessage}
         onRefresh={handleRefreshSerendipity}
         onConnect={handleSerendipityConnect}
+        onSkip={handleSerendipitySkip}
         matches={serendipityMatches}
         isLoading={isSerendipityLoading}
       />

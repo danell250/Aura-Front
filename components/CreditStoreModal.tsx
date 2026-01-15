@@ -15,6 +15,14 @@ interface CreditStoreModalProps {
   onClose: () => void;
 }
 
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj';
+
+const buildPayPalSdkUrlForCredits = (withTimestamp: boolean) => {
+  const base = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=capture&components=buttons`;
+  if (!withTimestamp) return base;
+  return `${base}&t=${Date.now()}`;
+};
+
 const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundles, onPurchase, onClose }) => {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedBundle, setSelectedBundle] = useState<CreditBundle | null>(null);
@@ -74,10 +82,9 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
       delete window.paypal;
     }
     
-    // Reload PayPal SDK after a short delay
     setTimeout(() => {
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=capture&components=buttons&t=${Date.now()}`;
+      script.src = buildPayPalSdkUrlForCredits(true);
       script.setAttribute('data-sdk-integration-source', 'button-factory');
       script.async = true;
       script.onload = () => {
@@ -136,7 +143,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
       try {
         console.log("[Aura] Loading PayPal SDK for credits...");
         paypalScript = document.createElement('script');
-        paypalScript.src = `https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=capture&components=buttons`;
+        paypalScript.src = buildPayPalSdkUrlForCredits(false);
         paypalScript.setAttribute('data-sdk-integration-source', 'button-factory');
         paypalScript.async = true;
         paypalScript.onload = () => {

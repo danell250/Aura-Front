@@ -160,3 +160,21 @@ export async function getSerendipityMatches(userId: string, limit: number = 20):
     return [];
   }
 }
+
+export async function trackSerendipitySkip(userId: string, targetUserId: string): Promise<void> {
+  try {
+    await fetch(
+      `${API_BASE_URL}/users/${encodeURIComponent(userId)}/serendipity-skip`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ targetUserId })
+      }
+    );
+  } catch (error) {
+    console.error('Failed to track serendipity skip:', error);
+  }
+}

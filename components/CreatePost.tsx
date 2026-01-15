@@ -154,10 +154,24 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, forcedType?: 'image' | 'video' | 'document') => {
     const file = e.target.files?.[0];
     if (file) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+      const maxSizeBytes = 10 * 1024 * 1024;
+
+      if (!allowedTypes.includes(file.type)) {
+        alert('Invalid file type. Allowed: JPG, PNG, WEBP, MP4');
+        e.target.value = '';
+        return;
+      }
+
+      if (file.size > maxSizeBytes) {
+        alert('File too large. Max size is 10MB');
+        e.target.value = '';
+        return;
+      }
+
       let type: 'image' | 'video' | 'document' = forcedType || 'image';
       if (!forcedType) {
         if (file.type.startsWith('video/')) type = 'video';
-        else if (file.type === 'application/pdf' || file.type.includes('msword') || file.type.includes('officedocument')) type = 'document';
       }
       setIsProcessingMedia(true);
       setUploadProgress(0);

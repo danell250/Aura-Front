@@ -108,7 +108,10 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
           <div className="flex-1">
             <h3 className="text-2xl font-bold mb-2">Ad Campaign Dashboard</h3>
             <p className="text-emerald-100 text-sm">
-              Monitor your advertising performance and subscription status
+              Monitor your advertising performance and use your Ad Plans to create new ads
+            </p>
+            <p className="mt-1 text-emerald-100/90 text-xs">
+              Access this space anytime from your profile by opening the Ad Plans tab.
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -351,10 +354,26 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                       <div className="relative">
                         <input
                           type="file"
-                          accept="image/*,video/*,.gif,.mp4,.webm,.mov"
+                          accept="image/jpeg,image/png,image/webp,video/mp4"
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
+
+                            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+                            const maxSizeBytes = 10 * 1024 * 1024;
+
+                            if (!allowedTypes.includes(file.type)) {
+                              alert('Invalid file type. Allowed: JPG, PNG, WEBP, MP4');
+                              e.target.value = '';
+                              return;
+                            }
+
+                            if (file.size > maxSizeBytes) {
+                              alert('File size must be less than 10MB');
+                              e.target.value = '';
+                              return;
+                            }
+
                             setUploadingMedia(true);
                             try {
                               const result = await uploadService.uploadFile(file);

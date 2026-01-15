@@ -29,6 +29,21 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ onClose, onCr
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+    const maxSizeBytes = 10 * 1024 * 1024;
+
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Allowed: JPG, PNG, WEBP, MP4');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > maxSizeBytes) {
+      alert('File size must be less than 10MB');
+      e.target.value = '';
+      return;
+    }
+
     try {
       const result = await uploadService.uploadFile(file);
       const type = result.mimetype.startsWith('video') ? 'video' : 'image';

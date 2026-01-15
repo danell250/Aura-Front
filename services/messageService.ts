@@ -1,12 +1,13 @@
 import { Message } from '../types';
+import { BACKEND_URL } from '../constants';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
+const API_BASE_URL = BACKEND_URL;
 
 export class MessageService {
   // Get conversations for a user
   static async getConversations(userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/messages/conversations?userId=${userId}`);
+      const response = await fetch(`${API_BASE_URL}/messages/conversations?userId=${userId}`);
       const data = await response.json();
       return data;
     } catch (error) {
@@ -19,7 +20,7 @@ export class MessageService {
   static async getMessages(currentUserId: string, otherUserId: string, page = 1, limit = 50) {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/messages/${otherUserId}?currentUserId=${currentUserId}&page=${page}&limit=${limit}`
+        `${API_BASE_URL}/messages/${otherUserId}?currentUserId=${currentUserId}&page=${page}&limit=${limit}`
       );
       const data = await response.json();
       return data;
@@ -32,7 +33,7 @@ export class MessageService {
   // Send a new message
   static async sendMessage(senderId: string, receiverId: string, text: string, messageType = 'text', mediaUrl?: string, replyTo?: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/messages`, {
+      const response = await fetch(`${API_BASE_URL}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,7 +58,7 @@ export class MessageService {
   // Edit a message
   static async editMessage(messageId: string, text: string, userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/messages/${messageId}`, {
+      const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -78,7 +79,7 @@ export class MessageService {
   // Delete a message
   static async deleteMessage(messageId: string, userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/messages/${messageId}`, {
+      const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -98,7 +99,7 @@ export class MessageService {
   // Delete all messages in a conversation
   static async deleteConversation(userId: string, otherUserId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/messages/conversation`, {
+      const response = await fetch(`${API_BASE_URL}/messages/conversation`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -119,7 +120,7 @@ export class MessageService {
   // Mark messages as read
   static async markAsRead(senderId: string, receiverId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/messages/mark-read`, {
+      const response = await fetch(`${API_BASE_URL}/messages/mark-read`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -139,7 +140,7 @@ export class MessageService {
 
   static async setArchiveState(userId: string, otherUserId: string, archived: boolean) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/messages/archive`, {
+      const response = await fetch(`${API_BASE_URL}/messages/archive`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AD_PACKAGES } from '../constants';
 import { AdPackage, Ad, User } from '../types';
 import AdCard from './AdCard';
@@ -42,6 +42,12 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const paypalRef = useRef<HTMLDivElement>(null);
   const activeInstanceRef = useRef<any>(null);
   const isRenderingRef = useRef<boolean>(false);
+
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj';
+
+const buildPayPalSdkUrlForSubscriptions = () => {
+  return `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=subscription&components=buttons`;
+};
 
   const [form, setForm] = useState({ 
     headline: '', 
@@ -130,10 +136,9 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
         return;
       }
 
-      // Load SDK Dynamically with proper error handling - Updated to support subscriptions
       console.log("[Aura] Injecting Payment Neural Link...");
       paypalScript = document.createElement('script');
-      paypalScript.src = "https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=subscription&components=buttons";
+      paypalScript.src = buildPayPalSdkUrlForSubscriptions();
       paypalScript.setAttribute('data-sdk-integration-source', 'button-factory');
       paypalScript.async = true;
       paypalScript.onload = () => {
@@ -211,7 +216,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
         setSdkReady(true);
       } else {
         const script = document.createElement('script');
-        script.src = "https://www.paypal.com/sdk/js?client-id=AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj&currency=USD&intent=subscription&components=buttons";
+        script.src = buildPayPalSdkUrlForSubscriptions();
         script.setAttribute('data-sdk-integration-source', 'button-factory');
         script.async = true;
         script.onload = () => {
@@ -477,6 +482,22 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+    const maxSizeBytes = 10 * 1024 * 1024;
+
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Allowed: JPG, PNG, WEBP, MP4');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > maxSizeBytes) {
+      alert('File size must be less than 10MB');
+      e.target.value = '';
+      return;
+    }
+
     try {
       const result = await uploadService.uploadFile(file);
       const type = result.mimetype.startsWith('video') ? 'video' : 'image';
@@ -867,10 +888,9 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
 
                       <div className="flex flex-col gap-4">
                         {selectedPkg?.id === 'pkg-starter' ? (
-                          // Simple PayPal button for Personal Pulse - one-time payment only
                           <div className="space-y-4">
                             <a 
-                              href="https://www.paypal.com/ncp/payment/SMLPVSKBVZ8P6?return_url=https://aura-front-s1bw.onrender.com/payment-success&cancel_url=https://aura-front-s1bw.onrender.com/payment-cancelled" 
+                              href={`https://www.paypal.com/ncp/payment/SMLPVSKBVZ8P6?return_url=${encodeURIComponent((import.meta.env.VITE_FRONTEND_URL || window.location.origin) + '/payment-success')}&cancel_url=${encodeURIComponent((import.meta.env.VITE_FRONTEND_URL || window.location.origin) + '/payment-cancelled')}`} 
                               target="_blank" 
                               className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all text-center block"
                             >
@@ -978,9 +998,12 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
                     </h3>
                     <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
                       {selectedPkg?.paymentType === 'subscription' 
-                        ? 'Monthly billing activated • Create unlimited ads'
+                        ? 'Plan active • Your ad slots are now ready'
                         : 'Initializing Neural Broadcast Builder...'
                       }
+                    </p>
+                    <p className="mt-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] max-w-xl mx-auto">
+                      To create or manage ads later, go to your profile and open the Ad Plans tab.
                     </p>
                   </div>
                 )}

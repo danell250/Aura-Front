@@ -9,6 +9,7 @@ interface SerendipityModalProps {
   onMessage: (userId: string) => void;
   onRefresh: () => void;
   onConnect: (user: User) => void;
+   onSkip: (userId: string) => void;
   matches: SerendipityMatch[];
   isLoading: boolean;
 }
@@ -20,6 +21,7 @@ const SerendipityModal: React.FC<SerendipityModalProps> = ({
   onMessage,
   onRefresh,
   onConnect,
+  onSkip,
   matches,
   isLoading
 }) => {
@@ -54,6 +56,9 @@ const SerendipityModal: React.FC<SerendipityModalProps> = ({
 
   const handleSkip = () => {
     if (!hasMatches) return;
+    if (activeMatch) {
+      onSkip((activeMatch.user as User).id);
+    }
     const nextIndex = activeIndex + 1;
     if (nextIndex >= matches.length) {
       onClose();

@@ -55,24 +55,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'coverImage') => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    console.log('File selected:', file.name, file.type, file.size);
-    
+
     // Set uploading state
     setUploadingField(field);
     
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       alert('File size must be less than 10MB');
       setUploadingField(null);
       return;
     }
     
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/ogg'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Invalid file type. Please upload an image or video file.');
+      alert('Invalid file type. Allowed: JPG, PNG, WEBP, MP4');
       setUploadingField(null);
       return;
     }
@@ -153,14 +149,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
   };
 
   const renderPreview = (url: string, type: 'image' | 'video' | undefined, fallback: string, className: string, isAvatar: boolean = false) => {
-    console.log('Rendering preview:', { url, type, fallback, className, isAvatar });
     if (!url) return <div className={`${className} bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl`}>{fallback}</div>;
     
     const isVideo = type === 'video' || url.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
     const objectClass = isAvatar ? 'object-contain bg-slate-50 dark:bg-slate-800' : 'object-cover';
-    
-    console.log('Is video:', isVideo, 'Object class:', objectClass);
-    
+
     if (isVideo) {
       return (
         <video 
@@ -173,7 +166,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
           playsInline 
           preload="auto"
           onError={(e) => console.error('Video error:', e)}
-          onLoad={() => console.log('Video loaded successfully')}
         />
       );
     }
@@ -185,7 +177,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
         alt="Preview" 
         loading="eager"
         onError={(e) => console.error('Image error:', e)}
-        onLoad={() => console.log('Image loaded successfully')}
       />
     );
   };

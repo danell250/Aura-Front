@@ -32,28 +32,54 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
           key={item.id}
           className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
         >
-          <div className="relative aspect-video bg-black/5 dark:bg-black/40">
+          <div className="p-3 space-y-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+            <input
+              type="text"
+              placeholder="Add headline..."
+              value={item.headline}
+              onChange={(e) => onChangeHeadline(item.id, e.target.value)}
+              maxLength={100}
+              className="w-full text-sm font-semibold bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-white placeholder-gray-400 transition-all"
+            />
+            <input
+              type="text"
+              placeholder="Add caption..."
+              value={item.caption}
+              onChange={(e) => onChangeCaption(item.id, e.target.value)}
+              maxLength={200}
+              className="w-full text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-700 dark:text-gray-300 placeholder-gray-400 transition-all"
+            />
+          </div>
+          <div className="relative aspect-video bg-gray-100 dark:bg-gray-900">
             {item.type === 'video' ? (
               <video
                 src={item.previewUrl}
-                className="w-full h-full object-contain"
-                controls
+                className="w-full h-full object-cover"
+                muted
+                loop
+                autoPlay
+                playsInline
               />
             ) : (
               <img
                 src={item.previewUrl}
-                className="w-full h-full object-contain"
-                alt=""
+                className="w-full h-full object-cover"
+                alt={`Upload ${index + 1}`}
               />
             )}
 
-            <div className="absolute left-2 top-2 px-2 py-1 rounded-full bg-black/60 text-white text-[11px] font-medium">
-              {index + 1} / {total}
+            <div className="absolute left-2 top-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-xs font-semibold backdrop-blur-sm">
+              {index + 1}/{total}
+            </div>
+
+            <div className="absolute left-2 bottom-2 px-2 py-0.5 rounded-md bg-black/70 text-white text-xs font-medium backdrop-blur-sm uppercase">
+              {item.type}
             </div>
 
             <button
               onClick={() => onRemove(item.id)}
-              className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-red-600 transition-colors backdrop-blur-sm"
+              className="absolute top-2 right-2 p-1.5 bg-red-500/90 text-white rounded-full hover:bg-red-600 transition-all duration-200 shadow-lg hover:scale-110 active:scale-95"
+              title="Remove"
             >
               <svg
                 className="w-4 h-4"
@@ -70,22 +96,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
               </svg>
             </button>
           </div>
-          <div className="p-3 space-y-2 bg-white dark:bg-gray-900">
-            <input
-              type="text"
-              placeholder="Headline (optional)"
-              value={item.headline}
-              onChange={(e) => onChangeHeadline(item.id, e.target.value)}
-              className="w-full text-sm font-semibold bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none px-1 py-1 text-gray-900 dark:text-white placeholder-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Caption (optional)"
-              value={item.caption}
-              onChange={(e) => onChangeCaption(item.id, e.target.value)}
-              className="w-full text-sm text-gray-600 dark:text-gray-400 bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none px-1 py-1 placeholder-gray-400"
-            />
-          </div>
         </div>
       ))}
     </div>
@@ -93,4 +103,3 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
 };
 
 export default MediaUploader;
-

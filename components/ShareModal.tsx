@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { BACKEND_URL } from '../constants';
 
 interface ShareModalProps {
   content: string;
@@ -14,16 +13,9 @@ interface ShareModalProps {
 
 const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onClose, currentUser, onAuraShare, originalPost }) => {
   const [copied, setCopied] = useState(false);
-  const baseUrl = 'https://auraradiance.vercel.app';
-  const shareUrl = url.startsWith('http') ? url : `${baseUrl}/${url}`;
-  
-  // Use backend URL for social media crawlers to get dynamic meta tags
-  const backendRoot = BACKEND_URL.replace(/\/api\/?$/, '');
-  const isPost = url.includes('/p/') || url.startsWith('p/');
-  const postId = isPost ? url.split('/').pop() : null;
-  const socialShareUrl = isPost && postId 
-    ? `${backendRoot}/share/p/${postId}`
-    : shareUrl;
+  const baseUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin || 'https://auraradiance.vercel.app';
+  const shareUrl = url.startsWith('http') ? url : `${baseUrl.replace(/\/+$/, '')}/${url.replace(/^\/+/, '')}`;
+  const socialShareUrl = shareUrl;
 
   const shareTitle = title || 'Check out this post on Aura';
   const shareText = `${content}\n\n${shareUrl}`;

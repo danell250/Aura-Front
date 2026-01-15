@@ -23,29 +23,39 @@ const Logo: React.FC<LogoProps> = ({ className = '', showText = true, size = 'md
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center gap-3 ${className}`}>
       <div className={`${sizes[size]} relative`}>
-        <svg viewBox="0 0 100 100" className="w-full h-full">
-          <defs>
-            <linearGradient id="auraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 1 }} />
-              <stop offset="100%" style={{ stopColor: '#059669', stopOpacity: 1 }} />
-            </linearGradient>
-          </defs>
-          <circle cx="50" cy="50" r="48" fill="url(#auraGradient)" />
-          <path 
-            d="M50 25C36.2 25 25 36.2 25 50C25 63.8 36.2 75 50 75C63.8 75 75 63.8 75 50C75 45.4 72.2 40.8 68.5 36.2C65.7 31.6 61.1 25 50 25ZM50 67.5C40.3 67.5 32.5 59.7 32.5 50C32.5 40.3 40.3 32.5 50 32.5C59.7 32.5 67.5 40.3 67.5 50C67.5 59.7 59.7 67.5 50 67.5Z" 
-            fill="white" 
-            opacity="0.9"
-          />
-          <circle cx="50" cy="50" r="3.5" fill="white" />
-        </svg>
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-700 shadow-[0_18px_45px_rgba(16,185,129,0.65)]" />
+        <div className="absolute inset-[3px] rounded-[1.3rem] bg-slate-950 flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/10 via-teal-400/5 to-transparent" />
+          <svg viewBox="0 0 100 100" className="w-[70%] h-[70%] relative">
+            <defs>
+              <linearGradient id="auraMark" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#6ee7b7" />
+                <stop offset="50%" stopColor="#34d399" />
+                <stop offset="100%" stopColor="#22c55e" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="30" fill="none" stroke="url(#auraMark)" strokeWidth="7" strokeLinecap="round" strokeDasharray="160 60" />
+            <circle cx="50" cy="50" r="18" fill="none" stroke="url(#auraMark)" strokeWidth="5" strokeLinecap="round" strokeDasharray="60 120" opacity="0.85" />
+            <circle cx="50" cy="34" r="4" fill="#a7f3d0" />
+            <circle cx="66" cy="56" r="3.2" fill="#6ee7b7" />
+          </svg>
+        </div>
       </div>
       {showText && (
-        <div className="text-left">
-          <h1 className={`${textSizes[size]} font-bold tracking-tight text-slate-900 dark:text-white leading-none`}>
-            Aura
-          </h1>
+        <div className="text-left leading-tight">
+          <div className="flex items-baseline gap-2">
+            <span className={`${textSizes[size]} font-black tracking-tight text-slate-900 dark:text-white`}>
+              Aura
+            </span>
+            <span className="text-[9px] uppercase tracking-[0.32em] text-emerald-500/90">
+              Social
+            </span>
+          </div>
+          <p className="mt-1 text-[9px] font-medium tracking-[0.22em] uppercase text-slate-400 dark:text-slate-500">
+            Connect & Radiate
+          </p>
         </div>
       )}
     </div>

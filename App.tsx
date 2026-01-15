@@ -78,6 +78,7 @@ const App: React.FC = () => {
   const [ads, setAds] = useState<Ad[]>([]);
   const [birthdayAnnouncements, setBirthdayAnnouncements] = useState<BirthdayAnnouncement[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeEnergy, setActiveEnergy] = useState<EnergyType | 'all'>('all');
@@ -199,6 +200,8 @@ const App: React.FC = () => {
   const handleUnauthorized = useCallback(() => {
     setIsAuthenticated(false);
     setCurrentUser(CURRENT_USER);
+    setNotifications([]);
+    setUnreadNotificationCount(0);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('aura_credits');
     localStorage.removeItem('aura_auth_token');
@@ -245,6 +248,7 @@ const App: React.FC = () => {
     try {
       const result = await NotificationService.getNotifications(currentUser.id);
       if (result.success && result.data) {
+        setUnreadNotificationCount(result.unreadCount ?? result.data.filter((n: Notification) => !n.isRead).length);
         setNotifications(prev => {
           const previousIds = prev.map(n => n.id);
           const previousSet = new Set(previousIds);
@@ -956,6 +960,17 @@ const App: React.FC = () => {
   };
 
   const handleComment = useCallback(async (postId: string, text: string, parentId?: string) => {
+    const handleMatches: string[] = text.match(/@\w+/g) || [];
+    const uniqueHandles = Array.from(new Set(handleMatches.map(h => h.toLowerCase())));
+    const potentialTaggedUsers = allUsers.filter(u => u.handle && uniqueHandles.includes(u.handle.toLowerCase()));
+    const permissionResults = await Promise.all(
+      potentialTaggedUsers.map(async (user) => {
+        const canTag = await PrivacyService.canTagUser(user.id);
+        return canTag ? user.id : null;
+      })
+    );
+    const taggedUserIds = permissionResults.filter((id): id is string => id !== null);
+
     const optimisticComment: Comment = {
       id: `c-${Date.now()}`,
       author: currentUser,
@@ -963,7 +978,8 @@ const App: React.FC = () => {
       timestamp: Date.now(),
       parentId,
       reactions: {},
-      userReactions: []
+      userReactions: [],
+      taggedUserIds
     };
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p;
@@ -972,7 +988,7 @@ const App: React.FC = () => {
     }));
 
     try {
-      const result = await CommentService.createComment(postId, text, currentUser.id, parentId);
+      const result = await CommentService.createComment(postId, text, currentUser.id, parentId, taggedUserIds);
       if (result.success && result.data) {
         const created = result.data;
         setPosts(prev => prev.map(p => {
@@ -1298,7 +1314,11 @@ const App: React.FC = () => {
   }, [navigateToView]);
 
   const handleReadNotification = useCallback(async (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, isRead: true } : n);
+      setUnreadNotificationCount(updated.filter(n => !n.isRead).length);
+      return updated;
+    });
     try {
       const result = await NotificationService.markAsRead(id);
       if (!result.success) {
@@ -1311,7 +1331,11 @@ const App: React.FC = () => {
 
   const handleMarkAllNotificationsRead = useCallback(async () => {
     if (!currentUser?.id) return;
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, isRead: true }));
+      setUnreadNotificationCount(0);
+      return updated;
+    });
     try {
       const result = await NotificationService.markAllAsRead(currentUser.id);
       if (!result.success) {
@@ -1345,12 +1369,14 @@ const App: React.FC = () => {
         notification.type === 'time_capsule_unlocked') &&
       notification.postId
     ) {
-      const post = posts.find(p => p.id === notification.postId);
-      if (post) {
-        navigateToView({ type: 'profile', targetId: post.author.id });
-      } else {
-        navigateToView({ type: 'feed' });
-      }
+      const postId = notification.postId;
+      navigateToView({ type: 'feed' });
+      setTimeout(() => {
+        const el = document.getElementById(`post-${postId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 200);
       return;
     }
 
@@ -1363,7 +1389,7 @@ const App: React.FC = () => {
     }
 
     navigateToView({ type: 'feed' });
-  }, [navigateToView, posts]);
+  }, [navigateToView]);
 
   const handleRefreshSerendipity = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -1557,6 +1583,7 @@ const App: React.FC = () => {
       onNavigateNotification={handleNavigateNotification}
       unreadMessageCount={unreadMessageCount}
       messagePulse={messagePulse}
+      unreadNotificationCount={unreadNotificationCount}
       onSearchTag={setSearchQuery}
     >
       {view.type === 'feed' && (

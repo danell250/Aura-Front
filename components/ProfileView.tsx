@@ -45,7 +45,7 @@ interface ProfileViewProps {
 const ProfileView: React.FC<ProfileViewProps> = ({
    user, posts, ads, adRefreshTick, currentUser, allUsers, onBack, onReact, onComment, onLoadComments, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager, onCancelAd, onUpdateAd
 }) => {
-  const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'adplans'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'blocked' | 'adplans'>('posts');
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [adSubscriptions, setAdSubscriptions] = useState<AdSubscription[]>([]);
   const [loadingSubscriptions, setLoadingSubscriptions] = useState(false);
@@ -55,6 +55,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const [reportNotes, setReportNotes] = useState('');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState<boolean>(!!currentUser.blockedUsers?.includes(user.id));
+  const [blockedList, setBlockedList] = useState<string[]>(currentUser.blockedUsers || []);
+  const [unblockLoadingId, setUnblockLoadingId] = useState<string | null>(null);
   const isSelf = currentUser.id === user.id;
   const isAcquaintance = currentUser.acquaintances?.includes(user.id);
   const isRequested = currentUser.sentAcquaintanceRequests?.includes(user.id);
@@ -70,6 +72,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   useEffect(() => {
     setIsBlocked(!!currentUser.blockedUsers?.includes(user.id));
   }, [currentUser.blockedUsers, user.id]);
+
+  useEffect(() => {
+    if (isSelf) {
+      setBlockedList(currentUser.blockedUsers || []);
+    }
+  }, [isSelf, currentUser.blockedUsers]);
 
   useEffect(() => {
     if (isSelf) {
@@ -127,6 +135,25 @@ const ProfileView: React.FC<ProfileViewProps> = ({
       setActionMessage('Failed to block user');
     } finally {
       setBlockLoading(false);
+      setTimeout(() => setActionMessage(null), 3000);
+    }
+  };
+  
+  const handleUnblock = async (targetUserId: string) => {
+    if (!isSelf || unblockLoadingId) return;
+    setUnblockLoadingId(targetUserId);
+    try {
+      const result = await UserService.unblockUser(currentUser.id, targetUserId);
+      if (result.success) {
+        setBlockedList(prev => prev.filter(id => id !== targetUserId));
+        setActionMessage('User unblocked');
+      } else {
+        setActionMessage(result.error || 'Failed to unblock user');
+      }
+    } catch {
+      setActionMessage('Failed to unblock user');
+    } finally {
+      setUnblockLoadingId(null);
       setTimeout(() => setActionMessage(null), 3000);
     }
   };
@@ -324,7 +351,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
           </div>
 
-          {/* Navigation Tabs */}
           <div className="border-t border-slate-200 dark:border-slate-700">
             <div className="flex px-8">
               <button
@@ -347,6 +373,18 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               >
                 About
               </button>
+              {isSelf && (
+                <button
+                  onClick={() => setActiveTab('blocked')}
+                  className={`py-4 px-6 text-sm font-medium transition-all relative ${
+                    activeTab === 'blocked'
+                      ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+                >
+                  Blocked
+                </button>
+              )}
               {isSelf && (
                 <button
                   onClick={() => setActiveTab('adplans')}
@@ -527,6 +565,59 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       </div>
                     )}
                   </>
+                )}
+              </div>
+            </div>
+          ) : activeTab === 'blocked' && isSelf ? (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Blocked users</h3>
+                {blockedList.length === 0 ? (
+                  <p className="text-slate-600 dark:text-slate-400 text-sm">
+                    You have not blocked anyone.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {blockedList.map(id => {
+                      const blockedUser = allUsers.find(u => u.id === id);
+                      if (!blockedUser) return null;
+                      const isLoading = unblockLoadingId === id;
+                      return (
+                        <div key={id} className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                              <Avatar
+                                src={blockedUser.avatar}
+                                type={blockedUser.avatarType}
+                                name={blockedUser.name}
+                                size="custom"
+                                className="w-full h-full rounded-full"
+                              />
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                {blockedUser.name}
+                              </div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400">
+                                {blockedUser.handle}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleUnblock(id)}
+                            disabled={isLoading}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium shadow-md transition-all ${
+                              isLoading
+                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-wait'
+                                : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
+                            }`}
+                          >
+                            {isLoading ? 'Unblocking...' : 'Unblock'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             </div>

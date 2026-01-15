@@ -179,6 +179,25 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
           placeholder={placeholder}
           className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-10 py-2 focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500/30 transition-all text-sm font-medium outline-none" 
         />
+        {searchQuery && !isLoading && (
+          <button
+            type="button"
+            onClick={() => {
+              onSearchChange('');
+              setResults([]);
+              setIsOpen(false);
+              setSelectedIndex(-1);
+              if (inputRef.current) {
+                inputRef.current.focus();
+              }
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
         {isLoading && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             <div className="animate-spin w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full"></div>

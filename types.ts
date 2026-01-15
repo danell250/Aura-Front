@@ -64,6 +64,7 @@ export interface Comment {
   parentId?: string;
   reactions?: Record<string, number>;
   userReactions?: string[];
+  taggedUserIds?: string[];
 }
 
 export enum EnergyType {

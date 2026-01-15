@@ -45,6 +45,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   const [reportNotes, setReportNotes] = useState('');
   const [reportMsg, setReportMsg] = useState<string | null>(null);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [pdfPages, setPdfPages] = useState<Record<string, number>>({});
 
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
@@ -103,19 +104,54 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
     const isDocument = type === 'document' || lowerUrl.match(/\.(pdf|doc|docx)$/i) !== null;
     if (isDocument) {
       if (lowerUrl.endsWith('.pdf')) {
+        const currentPage = pdfPages[url] ?? 1;
+        const baseUrl = url.split('#')[0];
+        const viewerUrl = `${baseUrl}#page=${currentPage}`;
+
         return (
           <div key={url} className="w-full flex flex-col">
-            <iframe
-              src={url}
-              className="w-full h-[600px] border-none bg-white"
-              title="Document viewer"
-            />
+            <div className="relative w-full">
+              <iframe
+                src={viewerUrl}
+                className="w-full h-[600px] border-none bg-white"
+                title="Document viewer"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setPdfPages(prev => {
+                    const current = prev[url] ?? 1;
+                    const next = Math.max(1, current - 1);
+                    return { ...prev, [url]: next };
+                  });
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-slate-900 focus:outline-none"
+              >
+                <span className="text-lg">&#8592;</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPdfPages(prev => {
+                    const current = prev[url] ?? 1;
+                    const next = current + 1;
+                    return { ...prev, [url]: next };
+                  });
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-slate-900 focus:outline-none"
+              >
+                <span className="text-lg">&#8594;</span>
+              </button>
+            </div>
             <div className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-slate-300">
                   PDF
                 </div>
-                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Document</span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Document</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Page {currentPage}</span>
+                </div>
               </div>
               <a
                 href={url}
@@ -488,13 +524,6 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
               <span className="px-2 py-1 bg-blue-500 text-white text-[8px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Just posted</span>
             )}
             <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">{new Date(post.timestamp).toLocaleDateString()}</span>
-            <button
-              onClick={() => setReportOpen(true)}
-              className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
-              title="Report Post"
-            >
-              <span className="text-sm">🚩</span>
-            </button>
             {post.author.id === currentUser.id && (
               <button 
                 onClick={() => onDeletePost && onDeletePost(post.id)} 
@@ -727,8 +756,15 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
       
       {reportOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50"></div>
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => {
+              setReportOpen(false);
+              setReportReason('Harassment');
+              setReportNotes('');
+            }}
+          ></div>
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Report Post</h3>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
@@ -756,7 +792,11 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
             </div>
             <div className="mt-6 flex gap-3">
               <button
-                onClick={() => setReportOpen(false)}
+                onClick={() => {
+                  setReportOpen(false);
+                  setReportReason('Harassment');
+                  setReportNotes('');
+                }}
                 className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-lg text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
               >
                 Cancel

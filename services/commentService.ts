@@ -21,7 +21,7 @@ export class CommentService {
     }
   }
 
-  static async createComment(postId: string, text: string, authorId: string, parentId?: string): Promise<{ success: boolean; data?: Comment; error?: string }>{
+  static async createComment(postId: string, text: string, authorId: string, parentId?: string, taggedUserIds?: string[]): Promise<{ success: boolean; data?: Comment; error?: string }>{
     try {
       const token = localStorage.getItem('aura_auth_token') || '';
       const resp = await fetch(`${BACKEND_URL}/posts/${postId}/comments`, {
@@ -31,7 +31,7 @@ export class CommentService {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         credentials: 'include',
-        body: JSON.stringify({ text, authorId, parentId })
+        body: JSON.stringify({ text, authorId, parentId, taggedUserIds })
       });
       const json = await resp.json().catch(() => ({} as any));
       if (resp.ok && json?.success && json?.data) return { success: true, data: json.data };

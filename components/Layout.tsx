@@ -40,6 +40,7 @@ interface LayoutProps {
   onNavigateNotification?: (notification: Notification) => void;
   unreadMessageCount?: number;
   messagePulse?: boolean;
+  unreadNotificationCount?: number;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -47,9 +48,9 @@ const Layout: React.FC<LayoutProps> = ({
   onGoHome, onViewProfile, onViewChat, onViewFriends,
   onViewSettings, onViewPrivacy, onStartCampaign, onOpenCreditStore, ads, posts, users, notifications,
   activeView, isDarkMode, onToggleDarkMode, onSearchResult, onSearchTag, onOpenMessaging,
-  onReadNotification, onMarkAllNotificationsRead, onAcceptAcquaintance, onRejectAcquaintance, onNavigateNotification, unreadMessageCount = 0, messagePulse = false
+  onReadNotification, onMarkAllNotificationsRead, onAcceptAcquaintance, onRejectAcquaintance, onNavigateNotification, unreadMessageCount = 0, messagePulse = false, unreadNotificationCount
 }) => {
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = typeof unreadNotificationCount === 'number' ? unreadNotificationCount : notifications.filter(n => !n.isRead).length;
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [showUnreadBadge, setShowUnreadBadge] = useState(unreadCount > 0);
 

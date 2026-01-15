@@ -1,10 +1,10 @@
 export const uploadService = {
   uploadFile: async (file: File): Promise<{ url: string; filename: string; mimetype: string }> => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'application/pdf'];
     const maxSizeBytes = 10 * 1024 * 1024;
 
     if (!allowedTypes.includes(file.type)) {
-      throw new Error('Invalid file type. Allowed: JPG, PNG, WEBP, MP4');
+      throw new Error('Invalid file type. Allowed: JPG, PNG, WEBP, MP4, PDF');
     }
 
     if (file.size > maxSizeBytes) {

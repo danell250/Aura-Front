@@ -262,6 +262,27 @@ export class UserService {
     }
   }
 
+  static async unblockUser(userId: string, targetUserId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${userId}/unblock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ targetUserId })
+      });
+      if (response.ok) {
+        return { success: true };
+      } else {
+        const errorData = await response.json();
+        return { success: false, error: errorData.message || 'Failed to unblock user' };
+      }
+    } catch (error) {
+      console.error('Error unblocking user:', error);
+      return { success: false, error: 'Network error' };
+    }
+  }
+
   // Report user
   static async reportUser(userId: string, targetUserId: string, reason: string, notes?: string): Promise<{ success: boolean; error?: string }> {
     try {

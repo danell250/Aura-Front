@@ -762,7 +762,10 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
             {/* Header */}
             <div className="p-8 sm:px-14 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white/50 dark:bg-slate-900/50 backdrop-blur-3xl h-32 relative z-10">
               <div className="flex items-center gap-8">
-                <div className="relative group/avatar">
+                <div 
+                  className="relative group/avatar cursor-pointer"
+                  onClick={() => onViewProfile?.(activeContact.id)}
+                >
                   {activeContact.email && activeContact.email.toLowerCase() === AURA_ADMIN_EMAIL ? (
                     <div className="w-16 h-16 rounded-[1.75rem] overflow-hidden bg-white flex items-center justify-center shadow-2xl border-4 border-white dark:border-slate-800 transition-all group-hover/avatar:scale-105">
                       <Logo size="md" showText={false} />

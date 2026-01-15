@@ -77,8 +77,8 @@ const Layout: React.FC<LayoutProps> = ({
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FDFDFD] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-      <header className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800 px-6 h-16 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="min-h-screen flex flex-col bg-[#FDFDFD] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden">
+      <header className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800 px-4 sm:px-6 h-16 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         <div className="flex items-center space-x-3 cursor-pointer" onClick={onGoHome}>
           <Logo showText={false} size="sm" />
           <h1 className="text-lg font-bold text-slate-900 dark:text-white hidden sm:block tracking-tight">{APP_NAME}</h1>
@@ -193,8 +193,30 @@ const Layout: React.FC<LayoutProps> = ({
         />
       </div>
 
-      <div className="flex-1 max-w-[1400px] w-full mx-auto px-4 py-8 flex gap-8">
-        <aside className="hidden lg:flex flex-col w-64 space-y-6 sticky top-28 self-start max-h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar pb-10">
+      <div className="flex-1 max-w-[1400px] w-full mx-auto px-3 sm:px-4 py-6 sm:py-8 flex flex-col lg:flex-row gap-6 lg:gap-8">
+        <aside className="hidden lg:flex flex-col w-64 space-y-6 sticky top-24 self-start max-h-[calc(100vh-7rem)] overflow-y-auto no-scrollbar pb-10">
+          <button
+            onClick={() => onViewProfile(currentUser.id)}
+            className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-emerald-400/60 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-all cursor-pointer shadow-sm"
+          >
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shrink-0">
+              <Avatar
+                src={currentUser.avatar}
+                type={currentUser.avatarType}
+                name={currentUser.name}
+                size="custom"
+                className="w-full h-full"
+              />
+            </div>
+            <div className="flex flex-col items-start min-w-0">
+              <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                {currentUser.name}
+              </span>
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                View Profile
+              </span>
+            </div>
+          </button>
           <nav className="space-y-2">
             <NavItem label="Home Feed" onClick={onGoHome} active={activeView === 'feed'} />
             <NavItem label="Credit Hub" onClick={onOpenCreditStore} active={activeView === 'credits'} isAction />
@@ -203,12 +225,11 @@ const Layout: React.FC<LayoutProps> = ({
             <NavItem label="Privacy & Data" onClick={onViewPrivacy} active={activeView === 'data_aura'} />
           </nav>
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-2">
-            <NavItem label="Settings" onClick={onViewSettings} active={activeView === 'settings'} />
             <NavItem label="Log Out" onClick={onLogout} />
           </div>
         </aside>
 
-        <main className="flex-1 min-w-0 max-w-3xl mx-auto lg:mx-0">{children}</main>
+        <main className="flex-1 min-w-0 max-w-full lg:max-w-3xl mx-auto lg:mx-0 w-full">{children}</main>
 
         <aside className="hidden xl:flex flex-col w-80 space-y-6 sticky top-28 self-start max-h-[calc(100vh-8rem)] sidebar-scroll">
           <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">

@@ -173,10 +173,10 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-xl">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-4xl h-[80vh] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/90 backdrop-blur-xl">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-4xl h-[90vh] sm:h-[80vh] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row overflow-hidden">
         {/* User list sidebar */}
-        <div className="w-1/3 border-r border-slate-200 dark:border-slate-800 flex flex-col">
+        <div className="w-full sm:w-1/3 border-b sm:border-b-0 sm:border-r border-slate-200 dark:border-slate-800 flex flex-col">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
               <span>💬</span> Messages
@@ -355,7 +355,7 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
         </div>
 
         {/* Chat area */}
-        <div className="w-2/3 flex flex-col">
+        <div className="w-full sm:w-2/3 flex flex-col">
           {selectedUser ? (
             <>
               {/* Chat header */}

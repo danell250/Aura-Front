@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BACKEND_URL } from '../constants';
 
 interface ShareModalProps {
   content: string;
@@ -15,6 +16,15 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onC
   const [copied, setCopied] = useState(false);
   const baseUrl = 'https://auraradiance.vercel.app';
   const shareUrl = url.startsWith('http') ? url : `${baseUrl}/${url}`;
+  
+  // Use backend URL for social media crawlers to get dynamic meta tags
+  const backendRoot = BACKEND_URL.replace(/\/api\/?$/, '');
+  const isPost = url.includes('/p/') || url.startsWith('p/');
+  const postId = isPost ? url.split('/').pop() : null;
+  const socialShareUrl = isPost && postId 
+    ? `${backendRoot}/share/p/${postId}`
+    : shareUrl;
+
   const shareTitle = title || 'Check out this post on Aura';
   const shareText = `${content}\n\n${shareUrl}`;
 
@@ -75,19 +85,19 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onC
       name: 'X', 
       icon: '𝕏', 
       color: 'bg-black text-white',
-      link: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareTitle}\n${content}\n${shareUrl}`)}`
+      link: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareTitle}\n${content}`)}&url=${encodeURIComponent(socialShareUrl)}`
     },
     { 
       name: 'LinkedIn', 
       icon: 'in', 
       color: 'bg-[#0077b5] text-white',
-      link: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}&summary=${encodeURIComponent(content)}${image ? `&source=${encodeURIComponent(image)}` : ''}`
+      link: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(socialShareUrl)}`
     },
     { 
       name: 'Facebook', 
       icon: 'f', 
       color: 'bg-[#1877f2] text-white',
-      link: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(`${shareTitle}\n${content}`)}${image ? `&picture=${encodeURIComponent(image)}` : ''}`
+      link: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(socialShareUrl)}&quote=${encodeURIComponent(`${shareTitle}\n${content}`)}`
     },
     { 
       name: 'Instagram', 
@@ -100,13 +110,13 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onC
       name: 'Threads', 
       icon: '🧵', 
       color: 'bg-black text-white',
-      link: `https://www.threads.net/intent/post?text=${encodeURIComponent(`${shareTitle}\n${content}\n${shareUrl}`)}`
+      link: `https://www.threads.net/intent/post?text=${encodeURIComponent(`${shareTitle}\n${content}\n${socialShareUrl}`)}`
     },
     { 
       name: 'Reddit', 
       icon: '🤖', 
       color: 'bg-[#ff4500] text-white',
-      link: `https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}${image ? `&image=${encodeURIComponent(image)}` : ''}`
+      link: `https://reddit.com/submit?url=${encodeURIComponent(socialShareUrl)}&title=${encodeURIComponent(shareTitle)}${image ? `&image=${encodeURIComponent(image)}` : ''}`
     }
   ];
 

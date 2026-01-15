@@ -36,10 +36,10 @@ export interface SerendipityMatch {
 }
 
 export function getTrustLevel(score: number): TrustLevel {
-  if (score >= 80) return 'verified';
-  if (score >= 60) return 'trusted';
-  if (score >= 40) return 'neutral';
-  if (score >= 20) return 'caution';
+  if (score >= 85) return 'verified';
+  if (score >= 65) return 'trusted';
+  if (score >= 45) return 'neutral';
+  if (score >= 25) return 'caution';
   return 'unverified';
 }
 

@@ -1338,17 +1338,15 @@ const App: React.FC = () => {
     [navigateToView]
   );
 
-  const processedFeedItems = useMemo(() => {
-    console.log("🔍 Processing feed items:", { 
-      totalPosts: posts.length, 
-      totalAds: ads.length, 
-      activeAds: ads.filter(a => a.status === 'active').length,
-      view: view.type,
-      searchQuery,
-      activeEnergy,
-      activeMediaType
-    });
+  const handleSerendipityConnect = useCallback(
+    (user: User) => {
+      handleAddAcquaintance(user);
+      navigateToView({ type: 'profile', targetId: user.id });
+    },
+    [handleAddAcquaintance, navigateToView]
+  );
 
+  const processedFeedItems = useMemo(() => {
     // Apply filters first
     const filteredPosts = posts.filter(p => {
       const matchesSearch = p.content.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -1360,7 +1358,6 @@ const App: React.FC = () => {
 
     // Sort: Paid Ads at top, then Boosted posts, then by Timestamp
     const activeAds = ads.filter(a => a.status === 'active');
-    console.log("📢 Active ads to display:", activeAds.length, activeAds);
     
     // Sort posts: Newest first by time, then boosted status
     const sortedPosts = [...filteredPosts].sort((a, b) => {
@@ -1386,7 +1383,6 @@ const App: React.FC = () => {
       for(let i=0; i < topAdsCount; i++) {
         combined.push(activeAds[i]);
       }
-      console.log("✅ Added", topAdsCount, "ads to top of feed");
     }
 
     // 3. Posts with interleaved ads
@@ -1408,7 +1404,6 @@ const App: React.FC = () => {
       }
     }
 
-    console.log("📊 Final combined feed items:", combined.length, "items");
     return combined;
   }, [posts, ads, birthdayAnnouncements, view, searchQuery, activeEnergy, activeMediaType]);
 
@@ -1644,6 +1639,7 @@ const App: React.FC = () => {
         onNavigateToProfile={handleNavigateFromSerendipity}
         onMessage={handleSerendipityMessage}
         onRefresh={handleRefreshSerendipity}
+        onConnect={handleSerendipityConnect}
         matches={serendipityMatches}
         isLoading={isSerendipityLoading}
       />

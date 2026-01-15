@@ -561,7 +561,6 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
           ctaLink: form.ctaLink
         });
         if (ok) {
-          console.log("✅ Ad updated successfully");
           setEditingAd(null);
           setStep(1);
           setSelectedPkg(null);
@@ -601,12 +600,9 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
       subscriptionId: selectedSubscription?.id
     };
 
-    console.log("📢 Creating final ad:", finalAd);
-    console.log("🔄 Calling onAdCreated...");
     try {
       const ok = await onAdCreated(finalAd);
       if (ok) {
-        console.log("✅ Ad created successfully, closing modal");
         onClose();
       } else {
         console.warn("❌ Ad creation failed, keeping modal open");

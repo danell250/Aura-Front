@@ -285,9 +285,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Username (@)</label>
             <input
               required
-              className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 focus:border-emerald-400 transition-all font-bold text-sm text-slate-900 dark:text-white"
+              readOnly
+              className="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 focus:border-emerald-400 transition-all font-bold text-sm text-slate-900 dark:text-white cursor-not-allowed"
               value={form.handle}
-              onChange={e => setForm({...form, handle: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Email</label>
+            <input
+              type="email"
+              readOnly
+              className="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 font-bold text-sm text-slate-900 dark:text-white cursor-not-allowed"
+              value={currentUser.email || ''}
             />
           </div>
           <div>

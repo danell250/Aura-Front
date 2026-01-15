@@ -8,6 +8,7 @@ interface SerendipityModalProps {
   onNavigateToProfile: (userId: string) => void;
   onMessage: (userId: string) => void;
   onRefresh: () => void;
+  onConnect: (user: User) => void;
   matches: SerendipityMatch[];
   isLoading: boolean;
 }
@@ -18,6 +19,7 @@ const SerendipityModal: React.FC<SerendipityModalProps> = ({
   onNavigateToProfile,
   onMessage,
   onRefresh,
+  onConnect,
   matches,
   isLoading
 }) => {
@@ -62,6 +64,7 @@ const SerendipityModal: React.FC<SerendipityModalProps> = ({
 
   const handleConnect = () => {
     if (!activeMatch) return;
+    onConnect(activeMatch.user as User);
     onNavigateToProfile(activeMatch.user.id);
     onClose();
   };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface SocialConnectModalProps {
   provider: string;
@@ -20,6 +20,16 @@ const SocialConnectModal: React.FC<SocialConnectModalProps> = ({ provider, initi
     acceptedTerms: false
   });
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +53,12 @@ const SocialConnectModal: React.FC<SocialConnectModalProps> = ({ provider, initi
   const labelClasses = "text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 block ml-1";
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-xl animate-in fade-in duration-300">
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-xl animate-in fade-in duration-300"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
       <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[3.5rem] p-10 shadow-2xl border border-slate-200 dark:border-slate-800 relative">
         <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight text-center mb-2">Connect with {provider}</h2>
         <p className="text-[10px] font-black uppercase text-emerald-600 tracking-[0.2em] text-center mb-8">Confirm your node details</p>

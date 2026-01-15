@@ -72,6 +72,17 @@ const SearchModal: React.FC<SearchModalProps> = ({
     return () => clearTimeout(timeoutId);
   }, [query, posts, users, ads, filters]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const handleResultClick = (result: SearchResult) => {
     onSelectResult(result);
     onClose();
@@ -130,7 +141,12 @@ const SearchModal: React.FC<SearchModalProps> = ({
   ];
 
   return (
-    <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-12 p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+    <div
+      className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-12 p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-300">
         {/* Header */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-900">

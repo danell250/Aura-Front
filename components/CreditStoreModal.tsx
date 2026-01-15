@@ -46,6 +46,16 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
     checkNetwork();
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const retryPayPal = useCallback(() => {
     console.log("[Aura] Retrying PayPal connection...");
     setRenderError(null);
@@ -223,7 +233,12 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
   }, [step, sdkReady, selectedBundle, onPurchase, onClose]);
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-xl animate-in fade-in duration-300">
+    <div
+      className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-xl animate-in fade-in duration-300"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-[3.5rem] p-10 shadow-2xl border border-slate-200 dark:border-slate-800 relative max-h-[90vh] overflow-y-auto no-scrollbar">
         <div className="flex justify-between items-center mb-10">
           <div>

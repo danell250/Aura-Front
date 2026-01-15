@@ -1,15 +1,17 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../types';
+import { COUNTRIES, INDUSTRIES } from '../constants';
 import { uploadService } from '../services/upload';
 
 interface SettingsModalProps {
   currentUser: User;
   onUpdate: (updates: Partial<User>) => void;
   onClose: () => void;
+  requireCompletion?: boolean;
 }
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, onClose }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, onClose, requireCompletion = false }) => {
   const [form, setForm] = useState({
     firstName: currentUser.firstName,
     lastName: currentUser.lastName,
@@ -20,7 +22,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
     coverImage: currentUser.coverImage || '',
     coverType: currentUser.coverType || 'image',
     isPrivate: currentUser.isPrivate || false,
-    dob: currentUser.dob || ''
+    dob: currentUser.dob || '',
+    country: currentUser.country || '',
+    industry: currentUser.industry || ''
   });
 
   const getZodiacSign = (dateString: string) => {
@@ -186,16 +190,33 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
     );
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !requireCompletion) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, requireCompletion]);
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xl animate-in fade-in duration-300">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xl animate-in fade-in duration-300"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !requireCompletion) onClose();
+      }}
+    >
       <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl border border-slate-200/50 dark:border-slate-800 max-h-[90vh] overflow-y-auto no-scrollbar">
         <div className="flex justify-between items-center mb-10">
           <h2 className="text-xl font-black uppercase tracking-widest text-slate-900 dark:text-white">Edit Profile</h2>
-          <button onClick={onClose} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-full hover:bg-rose-500 hover:text-white transition-all">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          {!requireCompletion && (
+            <button onClick={onClose} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-full hover:bg-rose-500 hover:text-white transition-all">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -273,14 +294,44 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Birthday</label>
             <input
               type="date"
+              required
               className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 focus:border-emerald-400 transition-all font-bold text-sm text-slate-900 dark:text-white"
               value={form.dob}
               onChange={e => setForm({...form, dob: e.target.value})}
             />
           </div>
           <div>
+            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Country</label>
+            <select
+              required
+              className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 focus:border-emerald-400 transition-all font-bold text-sm text-slate-900 dark:text-white"
+              value={form.country}
+              onChange={e => setForm({ ...form, country: e.target.value })}
+            >
+              <option value="">Select your country</option>
+              {COUNTRIES.map(country => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Industry</label>
+            <select
+              required
+              className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 focus:border-emerald-400 transition-all font-bold text-sm text-slate-900 dark:text-white"
+              value={form.industry}
+              onChange={e => setForm({ ...form, industry: e.target.value })}
+            >
+              <option value="">Select your industry</option>
+              {INDUSTRIES.map(industry => (
+                <option key={industry} value={industry}>{industry}</option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Biography</label>
             <textarea
+              required
               className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 focus:border-emerald-400 transition-all font-bold text-sm h-32 resize-none text-slate-900 dark:text-white"
               value={form.bio}
               onChange={e => setForm({...form, bio: e.target.value})}

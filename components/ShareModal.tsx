@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ShareModalProps {
   content: string;
@@ -17,6 +17,16 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onC
   const shareUrl = url.startsWith('http') ? url : `${baseUrl}/${url}`;
   const shareTitle = title || 'Check out this post on Aura';
   const shareText = `${content}\n\n${shareUrl}`;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(shareText);
@@ -101,7 +111,12 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onC
   ];
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xl animate-in fade-in duration-300">
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xl animate-in fade-in duration-300"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-10 shadow-2xl border border-white/50 dark:border-slate-800">
         <div className="flex justify-between items-center mb-10">
           <h2 className="text-xl font-black uppercase tracking-widest text-slate-900 dark:text-white">Radiate Signal</h2>

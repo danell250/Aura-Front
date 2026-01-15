@@ -39,6 +39,15 @@ const USERS_KEY = 'aura_all_users';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aura-back-s1bw.onrender.com/api';
 const AURA_SUPPORT_EMAIL = 'aurasocialradiate@gmail.com';
 
+const isProfileComplete = (user: User | null | undefined) => {
+  if (!user) return false;
+  const hasDob = !!user.dob;
+  const hasBio = !!user.bio && user.bio.trim().length > 0;
+  const hasIndustry = !!user.industry && user.industry.trim().length > 0;
+  const hasCountry = !!user.country && user.country.trim().length > 0;
+  return hasDob && hasBio && hasIndustry && hasCountry;
+};
+
 interface BirthdayAnnouncement {
   id: string;
   user: User;
@@ -70,6 +79,7 @@ const App: React.FC = () => {
   const [isSerendipityOpen, setIsSerendipityOpen] = useState(false);
   const [serendipityMatches, setSerendipityMatches] = useState<SerendipityMatch[]>([]);
   const [isSerendipityLoading, setIsSerendipityLoading] = useState(false);
+  const [isProfileCompletionRequired, setIsProfileCompletionRequired] = useState(false);
   
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy', targetId?: string}>({ type: 'feed' });
 
@@ -134,6 +144,15 @@ const App: React.FC = () => {
     if (nextView.type === 'chat' && nextView.targetId) return `/chat/${nextView.targetId}`;
     if (nextView.type === 'chat') return '/chat';
     return '/feed';
+  }, []);
+
+  const ensureProfileCompletion = useCallback((user: User) => {
+    if (!isProfileComplete(user)) {
+      setIsProfileCompletionRequired(true);
+      setIsSettingsOpen(true);
+    } else {
+      setIsProfileCompletionRequired(false);
+    }
   }, []);
 
   const navigateToView = useCallback((nextView: { type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy'; targetId?: string }) => {
@@ -343,6 +362,7 @@ const App: React.FC = () => {
 
             wasAuthenticated = true;
             console.log('[App] User authenticated via OAuth token (fetched from backend):', user.id);
+            ensureProfileCompletion(user);
             navigateToView({ type: 'feed' });
           } else {
             console.error('[App] Failed to fetch user with OAuth token:', result.error);
@@ -364,6 +384,7 @@ const App: React.FC = () => {
           setCurrentUser(refreshedUser);
           setIsAuthenticated(true);
           wasAuthenticated = true;
+          ensureProfileCompletion(refreshedUser);
         } catch (e) {
           localStorage.removeItem(STORAGE_KEY);
         }
@@ -488,6 +509,7 @@ const App: React.FC = () => {
       setIsAuthenticated(true);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(existingUser));
       syncBirthdays(allUsers);
+      ensureProfileCompletion(existingUser);
       navigateToView({ type: 'feed' });
       return;
     }
@@ -514,6 +536,7 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
     localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
     syncBirthdays(updatedUsers);
+    ensureProfileCompletion(newUser);
     navigateToView({ type: 'feed' });
   };
 
@@ -523,6 +546,9 @@ const App: React.FC = () => {
     setCurrentUser(updatedUser);
     
     setAllUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    if (isProfileComplete(updatedUser)) {
+      setIsProfileCompletionRequired(false);
+    }
   };
 
   const handlePost = async (
@@ -1579,7 +1605,14 @@ const App: React.FC = () => {
         />
       )}
       {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => navigateToView({ type: 'feed' })} onPurchaseGlow={handlePurchaseGlow} onClearData={() => {}} onViewProfile={(id) => navigateToView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
-      {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
+      {isSettingsOpen && (
+        <SettingsModal
+          currentUser={currentUser}
+          onClose={() => setIsSettingsOpen(false)}
+          onUpdate={handleUpdateProfile}
+          requireCompletion={isProfileCompletionRequired}
+        />
+      )}
       {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={handleAdCreated} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onAdUpdated={async (adId, updates) => {
         try {
           const token = localStorage.getItem('aura_auth_token') || '';

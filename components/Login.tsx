@@ -305,29 +305,23 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
               </div>
 
               <div className="mt-12 text-center pt-8 border-t border-slate-100 dark:border-slate-800">
-                <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-4">Don't have an account yet?</p>
-                <button onClick={() => { }} className="text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest hover:underline underline-offset-8 transition-all">Sign up</button>
-
-                {/* Terms & Conditions and Privacy Policy */}
-                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
-                  <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
-                    By logging in, you agree to Aura's{' '}
-                    <a
-                      href="/terms"
-                      className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-4 transition-colors"
-                    >
-                      Terms & Conditions
-                    </a>
-                    {' '}and{' '}
-                    <a
-                      href="/privacy"
-                      className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-4 transition-colors"
-                    >
-                      Privacy Policy
-                    </a>
-                    .
-                  </p>
-                </div>
+                <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
+                  By logging in, you agree to Aura's{' '}
+                  <a
+                    href="/terms"
+                    className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-4 transition-colors"
+                  >
+                    Terms & Conditions
+                  </a>
+                  {' '}and{' '}
+                  <a
+                    href="/privacy"
+                    className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-4 transition-colors"
+                  >
+                    Privacy Policy
+                  </a>
+                  .
+                </p>
               </div>
             </div>
           )}

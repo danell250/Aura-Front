@@ -363,6 +363,24 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               >
                 Timeline
               </button>
+              {isSelf && (
+                <button
+                  onClick={() => setActiveTab('blocked')}
+                  className={`py-4 px-6 text-sm font-medium transition-all relative flex items-center gap-2 ${
+                    activeTab === 'blocked'
+                      ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+                >
+                  <span>🚫</span>
+                  <span>Blocked</span>
+                  {blockedList.length > 0 && (
+                    <span className="ml-1 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full text-xs font-bold">
+                      {blockedList.length}
+                    </span>
+                  )}
+              </button>
+              )}
               <button
                 onClick={() => setActiveTab('about')}
                 className={`py-4 px-6 text-sm font-medium transition-all relative ${
@@ -373,18 +391,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               >
                 About
               </button>
-              {isSelf && (
-                <button
-                  onClick={() => setActiveTab('blocked')}
-                  className={`py-4 px-6 text-sm font-medium transition-all relative ${
-                    activeTab === 'blocked'
-                      ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                  }`}
-                >
-                  Blocked
-                </button>
-              )}
               {isSelf && (
                 <button
                   onClick={() => setActiveTab('adplans')}
@@ -603,17 +609,25 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                               </div>
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleUnblock(id)}
-                            disabled={isLoading}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium shadow-md transition-all ${
-                              isLoading
-                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-wait'
-                                : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
-                            }`}
-                          >
-                            {isLoading ? 'Unblocking...' : 'Unblock'}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => onViewProfile(blockedUser.id)}
+                              className="px-3 py-2 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                            >
+                              View profile
+                            </button>
+                            <button
+                              onClick={() => handleUnblock(id)}
+                              disabled={isLoading}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium shadow-md transition-all ${
+                                isLoading
+                                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-wait'
+                                  : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
+                              }`}
+                            >
+                              {isLoading ? 'Unblocking...' : 'Unblock'}
+                            </button>
+                          </div>
                         </div>
                       );
                     })}

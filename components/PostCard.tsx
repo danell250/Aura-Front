@@ -44,6 +44,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   const [reportReason, setReportReason] = useState<'Harassment' | 'Spam' | 'Misinformation' | 'HateSpeech' | 'Other'>('Harassment');
   const [reportNotes, setReportNotes] = useState('');
   const [reportMsg, setReportMsg] = useState<string | null>(null);
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
@@ -568,7 +569,61 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
           </span>
         </div>
 
-        {displayMediaUrl && (
+        {post.mediaItems && post.mediaItems.length > 0 ? (
+          <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner min-h-[100px] flex flex-col items-center justify-center relative group/carousel">
+              <div className="w-full relative">
+                  {renderMedia(post.mediaItems[currentMediaIndex].url, post.mediaItems[currentMediaIndex].type, "w-full h-auto max-h-[600px] object-contain")}
+                  
+                  {/* Navigation Buttons */}
+                  {post.mediaItems.length > 1 && (
+                      <>
+                          {currentMediaIndex > 0 && (
+                              <button 
+                                  onClick={(e) => { e.stopPropagation(); setCurrentMediaIndex(prev => prev - 1); }}
+                                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-all opacity-0 group-hover/carousel:opacity-100 z-10"
+                              >
+                                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                              </button>
+                          )}
+                          {currentMediaIndex < post.mediaItems.length - 1 && (
+                              <button 
+                                  onClick={(e) => { e.stopPropagation(); setCurrentMediaIndex(prev => prev + 1); }}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-all opacity-0 group-hover/carousel:opacity-100 z-10"
+                              >
+                                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                              </button>
+                          )}
+                          
+                          {/* Dots */}
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                              {post.mediaItems.map((_, idx) => (
+                                  <div 
+                                      key={idx} 
+                                      className={`w-1.5 h-1.5 rounded-full transition-all shadow-sm ${idx === currentMediaIndex ? 'bg-white w-3' : 'bg-white/50'}`} 
+                                  />
+                              ))}
+                          </div>
+                      </>
+                  )}
+              </div>
+              
+              {/* Caption & Headline */}
+              {(post.mediaItems[currentMediaIndex].headline || post.mediaItems[currentMediaIndex].caption) && (
+                  <div className="w-full p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+                      {post.mediaItems[currentMediaIndex].headline && (
+                          <h4 className="font-bold text-slate-900 dark:text-white mb-1">
+                              {post.mediaItems[currentMediaIndex].headline}
+                          </h4>
+                      )}
+                      {post.mediaItems[currentMediaIndex].caption && (
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                              {post.mediaItems[currentMediaIndex].caption}
+                          </p>
+                      )}
+                  </div>
+              )}
+          </div>
+        ) : displayMediaUrl && (
           <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner min-h-[100px] flex items-center justify-center">
             {renderMedia(displayMediaUrl, post.mediaType, "w-full h-auto max-h-[600px] object-cover")}
           </div>

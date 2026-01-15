@@ -20,7 +20,7 @@ import TermsAndConditions from './components/TermsAndConditions';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import SerendipityModal from './components/SerendipityModal';
 import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from './constants';
-import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
+import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle, MediaItem } from './types';
 import { UserService } from './services/userService';
 import { AdService } from './services/adService';
 import { PostService } from './services/postService';
@@ -30,14 +30,13 @@ import { SearchResult } from './services/searchService';
 import { MessageService } from './services/messageService';
 import { soundService } from './services/soundService';
 import { getSerendipityMatches, SerendipityMatch, trackSerendipitySkip, recalculateTrustForUser } from './services/trustService';
+import { getApiBaseUrl } from './constants';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
 const ADS_KEY = 'aura_ads_data';
 const USERS_KEY = 'aura_all_users';
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL
-  ? `${import.meta.env.VITE_BACKEND_URL}/api`
-  : '/api';
+const API_BASE_URL = getApiBaseUrl();
 const AURA_SUPPORT_EMAIL = 'aurasocialradiate@gmail.com';
 
 const isProfileComplete = (user: User | null | undefined) => {
@@ -599,7 +598,8 @@ const App: React.FC = () => {
     mediaType?: any,
     taggedUserIds?: string[],
     documentName?: string,
-    energy?: EnergyType
+    energy?: EnergyType,
+    mediaItems?: MediaItem[]
   ) => {
     const optimisticPost: Post = {
       id: `p-${Date.now()}`,
@@ -607,6 +607,7 @@ const App: React.FC = () => {
       content,
       mediaUrl,
       mediaType,
+      mediaItems,
       energy: energy || EnergyType.NEUTRAL,
       radiance: 0,
       timestamp: Date.now(),
@@ -630,6 +631,7 @@ const App: React.FC = () => {
           content,
           mediaUrl,
           mediaType,
+          mediaItems,
           energy,
           authorId: currentUser.id,
           taggedUserIds
@@ -1397,19 +1399,38 @@ const App: React.FC = () => {
   );
 
   const processedFeedItems = useMemo(() => {
-    // Apply filters first
+    const searchLower = searchQuery.toLowerCase();
+    const hashtagTerm = searchLower.startsWith('#') ? searchLower.slice(1) : searchLower;
+
     const filteredPosts = posts.filter(p => {
-      const matchesSearch = p.content.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           p.author.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const contentMatches = p.content.toLowerCase().includes(searchLower) || 
+                             p.author.name.toLowerCase().includes(searchLower);
+      const hashtagMatches = hashtagTerm && p.hashtags
+        ? p.hashtags.some(tag => tag.toLowerCase().includes(hashtagTerm))
+        : false;
+      const matchesSearch = contentMatches || hashtagMatches;
       const matchesEnergy = activeEnergy === 'all' || p.energy === activeEnergy;
       const matchesMedia = activeMediaType === 'all' || p.mediaType === activeMediaType;
       return matchesSearch && matchesEnergy && matchesMedia;
     });
 
-    // Sort: Paid Ads at top, then Boosted posts, then by Timestamp
-    const activeAds = ads.filter(a => a.status === 'active');
+    const activeAds = ads.filter(a => {
+      if (a.status !== 'active') return false;
+
+      if (!searchLower) return true;
+
+      const textMatches =
+        (a.headline || '').toLowerCase().includes(searchLower) ||
+        (a.description || '').toLowerCase().includes(searchLower) ||
+        (a.ownerName || '').toLowerCase().includes(searchLower);
+
+      const hashtagMatches = hashtagTerm && a.hashtags
+        ? a.hashtags.some(tag => tag.toLowerCase().includes(hashtagTerm))
+        : false;
+
+      return textMatches || hashtagMatches;
+    });
     
-    // Sort posts: Newest first by time, then boosted status
     const sortedPosts = [...filteredPosts].sort((a, b) => {
         if (b.timestamp !== a.timestamp) {
           return b.timestamp - a.timestamp;

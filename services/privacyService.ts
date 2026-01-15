@@ -1,4 +1,6 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : '/api';
+import { getApiBaseUrl } from '../constants';
+
+const BACKEND_URL = getApiBaseUrl();
 
 export interface PrivacySettings {
   showInSearch: boolean;

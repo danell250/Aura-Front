@@ -1,4 +1,4 @@
-import { BACKEND_URL } from '../constants';
+import { BACKEND_URL, getApiBaseUrl } from '../constants';
 
 // Centralized fetch utility with credentials for CORS
 export const fetchWithCredentials = async (url: string, options: RequestInit = {}) => {
@@ -18,7 +18,8 @@ export const fetchWithCredentials = async (url: string, options: RequestInit = {
   });
 };
 
-// Backend API fetch utility
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
-  return fetchWithCredentials(`${BACKEND_URL}${endpoint}`, options);
+  return fetchWithCredentials(`${getApiBaseUrl()}${endpoint}`, options);
 };
+
+export const getApiBaseUrlClient = () => getApiBaseUrl();

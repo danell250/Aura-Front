@@ -73,12 +73,20 @@ export enum EnergyType {
   NEUTRAL = '🪐 Neutral'
 }
 
+export interface MediaItem {
+  url: string;
+  type: 'image' | 'video';
+  caption?: string;
+  headline?: string;
+}
+
 export interface Post {
   id: string;
   author: User;
   content: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'document';
+  mediaItems?: MediaItem[];
   energy: EnergyType;
   radiance: number; 
   timestamp: number;

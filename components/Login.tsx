@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { APP_NAME } from '../constants';
+import { APP_NAME, getApiBaseUrl } from '../constants';
 import { User } from '../types';
 import Logo from './Logo';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL
-  ? `${import.meta.env.VITE_BACKEND_URL}/api`
-  : '/api';
+const API_BASE_URL = getApiBaseUrl();
 
 const loginWithEmailAndPassword = async (identifier: string, password: string) => {
   try {

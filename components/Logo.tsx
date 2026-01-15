@@ -55,7 +55,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', showText = true, size = 'md
       {showText && (
         <div className="text-left leading-tight">
           <div className="flex items-baseline gap-2">
-            <span className={`${textSizes[size]} font-black tracking-tight text-slate-900 dark:text-white`}>
+            <span className={`${textSizes[size]} font-black tracking-tight text-emerald-500/90`}>
               Aura
             </span>
             <span className="text-[9px] uppercase tracking-[0.32em] text-emerald-500/90">

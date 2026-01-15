@@ -1,7 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL
-  ? `${import.meta.env.VITE_BACKEND_URL}/api`
-  : '/api';
-const BACKEND_URL = `${API_BASE_URL}/gemini`;
+import { getApiBaseUrl } from '../constants';
+
+const BACKEND_URL = `${getApiBaseUrl()}/gemini`;
 
 export const geminiService = {
   async generatePostInspiration(topic: string) {

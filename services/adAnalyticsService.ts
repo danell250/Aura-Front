@@ -1,6 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL
-  ? `${import.meta.env.VITE_BACKEND_URL}/api`
-  : '/api';
+import { getApiBaseUrl } from '../constants';
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface AdAnalytics {
   adId: string;

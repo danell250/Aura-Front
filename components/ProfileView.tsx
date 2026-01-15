@@ -227,7 +227,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium ${trustBadge.colorClass}`}>
                         <span className={trustBadge.textClass}>
                           <span className="mr-1">{trustBadge.icon}</span>
-                          <span>{formatTrustSummary(user)}</span>
+                          <span>{trustBadge.label}</span>
                         </span>
                       </div>
                     )}

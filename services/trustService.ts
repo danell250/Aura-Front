@@ -1,8 +1,7 @@
 import { User } from '../types';
+import { getApiBaseUrl } from '../constants';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL
-  ? `${import.meta.env.VITE_BACKEND_URL}/api`
-  : '/api';
+const API_BASE_URL = getApiBaseUrl();
 
 export type TrustLevel = 'verified' | 'trusted' | 'neutral' | 'caution' | 'unverified';
 

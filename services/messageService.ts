@@ -1,7 +1,7 @@
 import { Message } from '../types';
-import { BACKEND_URL } from '../constants';
+import { getApiBaseUrl } from '../constants';
 
-const API_BASE_URL = BACKEND_URL;
+const API_BASE_URL = getApiBaseUrl();
 
 export class MessageService {
   // Get conversations for a user

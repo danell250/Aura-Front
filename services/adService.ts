@@ -1,8 +1,7 @@
 import { Ad } from '../types';
+import { getApiBaseUrl } from '../constants';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL
-  ? `${import.meta.env.VITE_BACKEND_URL}/api`
-  : '/api';
+const API_BASE_URL = getApiBaseUrl();
 
 export class AdService {
   /**
@@ -62,6 +61,33 @@ export class AdService {
     } catch (error) {
       console.error('❌ Error fetching ads:', error);
       return { success: false, error: 'Failed to fetch ads' };
+    }
+  }
+
+  static async getAdsByHashtag(hashtag: string): Promise<{ success: boolean; ads?: Ad[]; error?: string }> {
+    try {
+      const tag = hashtag.startsWith('#') ? hashtag.slice(1) : hashtag;
+      const response = await fetch(`${API_BASE_URL}/ads?hashtags=${encodeURIComponent(tag)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('aura_auth_token')}`
+        },
+        credentials: 'include' as RequestCredentials
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && Array.isArray(result.data)) {
+          return { success: true, ads: result.data };
+        }
+      }
+
+      const errorResult = await response.json();
+      return { success: false, error: errorResult.error || 'Failed to fetch ads by hashtag' };
+    } catch (error) {
+      console.error('❌ Error fetching ads by hashtag:', error);
+      return { success: false, error: 'Failed to fetch ads by hashtag' };
     }
   }
 

@@ -452,15 +452,19 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
                     </span>
                   </>
                 )}
-                <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0"></span>
-                <span
-                  className={`inline-flex items-center px-1.5 py-0.5 rounded-full border text-[8px] font-semibold ${authorTrustBadge.colorClass}`}
-                >
-                  <span className={authorTrustBadge.textClass}>
-                    <span className="mr-0.5">{authorTrustBadge.icon}</span>
-                    <span>{authorTrustBadge.label}</span>
-                  </span>
-                </span>
+                {authorTrustBadge && (
+                  <>
+                    <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0"></span>
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded-full border text-[8px] font-semibold ${authorTrustBadge.colorClass}`}
+                    >
+                      <span className={authorTrustBadge.textClass}>
+                        <span className="mr-0.5">{authorTrustBadge.icon}</span>
+                        <span>{authorTrustBadge.label}</span>
+                      </span>
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>

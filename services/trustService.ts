@@ -48,7 +48,7 @@ export function getTrustBadgeConfig(score: number): {
   colorClass: string;
   textClass: string;
   icon: string;
-} {
+} | null {
   const level = getTrustLevel(score);
   switch (level) {
     case 'verified':
@@ -81,12 +81,7 @@ export function getTrustBadgeConfig(score: number): {
       };
     case 'unverified':
     default:
-      return {
-        label: 'Unverified',
-        colorClass: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-700',
-        textClass: 'text-rose-700 dark:text-rose-300',
-        icon: '❓'
-      };
+      return null;
   }
 }
 

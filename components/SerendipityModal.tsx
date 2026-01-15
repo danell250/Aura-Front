@@ -101,12 +101,14 @@ const SerendipityModal: React.FC<SerendipityModalProps> = ({
                 {compatibilityLabel}
               </span>
             </div>
-            <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-medium bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700">
-              <span className={trustBadge.textClass}>
-                <span className="mr-1">{trustBadge.icon}</span>
-                <span>{trustBadge.label}</span>
-              </span>
-            </div>
+            {trustBadge && (
+              <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-medium bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700">
+                <span className={trustBadge.textClass}>
+                  <span className="mr-1">{trustBadge.icon}</span>
+                  <span>{trustBadge.label}</span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

@@ -208,12 +208,14 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                     )}
                   </div>
                   <div className="flex items-center justify-center lg:justify-start mt-1 mb-2">
-                    <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium ${trustBadge.colorClass}`}>
-                      <span className={trustBadge.textClass}>
-                        <span className="mr-1">{trustBadge.icon}</span>
-                        <span>{formatTrustSummary(user)}</span>
-                      </span>
-                    </div>
+                    {trustBadge && (
+                      <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium ${trustBadge.colorClass}`}>
+                        <span className={trustBadge.textClass}>
+                          <span className="mr-1">{trustBadge.icon}</span>
+                          <span>{formatTrustSummary(user)}</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Action Buttons - Moved here from right side */}

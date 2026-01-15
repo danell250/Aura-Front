@@ -724,14 +724,16 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                         : 'Click to start conversation'}
                     </p>
                     <div className="mt-1">
-                      <span
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full border text-[8px] font-semibold ${trustBadge.colorClass}`}
-                      >
-                        <span className={trustBadge.textClass}>
-                          <span className="mr-0.5">{trustBadge.icon}</span>
-                          <span>{trustBadge.label}</span>
+                      {trustBadge && (
+                        <span
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded-full border text-[8px] font-semibold ${trustBadge.colorClass}`}
+                        >
+                          <span className={trustBadge.textClass}>
+                            <span className="mr-0.5">{trustBadge.icon}</span>
+                            <span>{trustBadge.label}</span>
+                          </span>
                         </span>
-                      </span>
+                      )}
                     </div>
                   </div>
                   {lastMsg && (

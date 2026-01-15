@@ -73,10 +73,10 @@ export function getTrustBadgeConfig(score: number): {
       };
     case 'caution':
       return {
-        label: 'Caution',
+        label: 'Unverified',
         colorClass: 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-700',
         textClass: 'text-orange-700 dark:text-orange-300',
-        icon: '⚠️'
+        icon: ''
       };
     case 'unverified':
     default:
@@ -126,7 +126,7 @@ export function formatTrustSummary(user: User): string {
     verified: 'Verified',
     trusted: 'Trusted',
     neutral: 'Neutral',
-    caution: 'Caution',
+    caution: 'Unverified',
     unverified: 'Unverified'
   };
   return `${labelMap[level]} • ${score}/100`;

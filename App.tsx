@@ -196,6 +196,14 @@ const App: React.FC = () => {
     return [supportUser, ...users];
   }, []);
 
+  const handleUnauthorized = useCallback(() => {
+    setIsAuthenticated(false);
+    setCurrentUser(CURRENT_USER);
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('aura_credits');
+    localStorage.removeItem('aura_auth_token');
+  }, []);
+
   const fetchCurrentUser = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
@@ -203,6 +211,10 @@ const App: React.FC = () => {
       let result;
       if (token) {
         result = await UserService.getMe(token);
+        if (!result.success || !result.user) {
+          handleUnauthorized();
+          return;
+        }
       } else {
         result = await UserService.getUserById(currentUser.id);
       }
@@ -215,7 +227,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch current user:', error);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, handleUnauthorized]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -326,6 +338,12 @@ const App: React.FC = () => {
         },
         credentials: 'include'
       });
+      if (response.status === 401) {
+        console.error('Unauthorized when loading birthday announcements, logging out');
+        setBirthdayAnnouncements([]);
+        handleUnauthorized();
+        return;
+      }
       if (!response.ok) {
         console.error('Failed to load birthday announcements');
         setBirthdayAnnouncements([]);
@@ -341,7 +359,7 @@ const App: React.FC = () => {
       console.error('Error syncing birthdays from backend:', error);
       setBirthdayAnnouncements([]);
     }
-  }, []);
+  }, [handleUnauthorized]);
 
   useEffect(() => {
     const savedUsers = localStorage.getItem(USERS_KEY);

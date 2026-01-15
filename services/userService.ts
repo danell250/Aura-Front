@@ -12,11 +12,15 @@ export class UserService {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        credentials: 'include'
       });
       if (response.ok) {
         const result = await response.json();
         return { success: true, user: result.user };
+      }
+      if (response.status === 401) {
+        return { success: false, error: 'Unauthorized' };
       }
       return { success: false, error: 'Failed to fetch user' };
     } catch (error) {

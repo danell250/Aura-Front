@@ -17,6 +17,7 @@
     "emoji-picker-react": "^4.16.1",
     "express": "^5.2.1",
     "firebase": "^12.7.0",
+    "fs-extra": "^11.3.3",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
@@ -26,10 +27,12 @@
     "react-dom": "^19.2.3",
     "react-pdf": "^10.3.0",
     "react-router-dom": "^7.12.0",
-    "usehooks-ts": "^3.1.1"
+    "usehooks-ts": "^3.1.1",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.18",
+    "@types/express": "^5.0.6",
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",

@@ -6,6 +6,7 @@ import { uploadService } from '../services/upload';
 import { soundService } from '../services/soundService';
 import Logo from './Logo';
 import { getTrustBadgeConfig } from '../services/trustService';
+import { getApiBaseUrl } from '../constants';
 
 interface ChatViewProps {
   currentUser: User;
@@ -15,6 +16,9 @@ interface ChatViewProps {
   initialContactId?: string;
   onViewProfile?: (userId: string) => void;
 }
+
+const API_BASE_URL = getApiBaseUrl();
+const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api$/, '');
 
 const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUsers, onBack, initialContactId, onViewProfile }) => {
   const AURA_ADMIN_EMAIL = 'aurasocialradiate@gmail.com';
@@ -503,6 +507,16 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
         minute: '2-digit'
       }).format(timestamp);
 
+      const rawMediaUrl = msg.mediaUrl || '';
+      const mediaUrl =
+        rawMediaUrl.startsWith('http://')
+          ? `https://${rawMediaUrl.slice('http://'.length)}`
+          : rawMediaUrl.startsWith('https://')
+          ? rawMediaUrl
+          : rawMediaUrl.startsWith('/uploads/')
+          ? `${BACKEND_ORIGIN}${rawMediaUrl}`
+          : rawMediaUrl;
+
       items.push(
         <div
           key={msg.id}
@@ -518,23 +532,23 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
             }`}
           >
             <div className="space-y-2.5">
-              {kind === 'image' && msg.mediaUrl && (
+              {kind === 'image' && mediaUrl && (
                 <a
-                  href={msg.mediaUrl}
+                  href={mediaUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="block overflow-hidden rounded-3xl border border-white/10"
                 >
                   <img
-                    src={msg.mediaUrl}
+                    src={mediaUrl}
                     alt={msg.text || 'Image'}
                     className="max-h-72 w-full object-cover"
                   />
                 </a>
               )}
-              {kind === 'file' && msg.mediaUrl && (
+              {kind === 'file' && mediaUrl && (
                 <a
-                  href={msg.mediaUrl}
+                  href={mediaUrl}
                   target="_blank"
                   rel="noreferrer"
                   className={`inline-flex items-center gap-3 px-4 py-2 rounded-2xl text-sm font-bold ${

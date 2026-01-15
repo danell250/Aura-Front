@@ -632,8 +632,9 @@ const App: React.FC = () => {
     energy?: EnergyType,
     mediaItems?: MediaItem[]
   ) => {
+    const optimisticId = `temp-${Date.now()}`;
     const optimisticPost: Post = {
-      id: `p-${Date.now()}`,
+      id: optimisticId,
       author: currentUser,
       content,
       mediaUrl,
@@ -673,12 +674,23 @@ const App: React.FC = () => {
       if (response.ok && result && result.success && result.data) {
         const createdPost: Post = result.data;
         setPosts(prev => {
-          const withoutOptimistic = prev.filter(p => p.id !== optimisticPost.id);
+          const withoutOptimistic = prev.filter(p => p.id !== optimisticId);
           return [createdPost, ...withoutOptimistic];
         });
+        return;
       }
+
+      setPosts(prev => prev.filter(p => p.id !== optimisticId));
+
+      const message =
+        (result && result.message) ||
+        (response.status === 401 ? 'You must be signed in to post.' : 'Failed to create post.');
+      console.error('Failed to create post in backend:', response.status, result);
+      alert(message);
     } catch (error) {
       console.error('Failed to create post in backend:', error);
+      setPosts(prev => prev.filter(p => p.id !== optimisticId));
+      alert('Failed to create post. Please check your connection and try again.');
     }
   };
 

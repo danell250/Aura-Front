@@ -248,6 +248,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
 
   useEffect(() => {
     if (!onSyncPost) return;
+    if (post.id.startsWith('temp-')) return;
     let intervalId: number | undefined;
     const pollPost = async () => {
       try {
@@ -267,6 +268,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   }, [post.id, onSyncPost]);
 
   useEffect(() => {
+    if (post.id.startsWith('temp-')) return;
     PostService.incrementPostViews(post.id).catch(() => {});
   }, [post.id]);
 

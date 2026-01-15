@@ -49,39 +49,15 @@ export function getTrustBadgeConfig(score: number): {
   icon: string;
 } | null {
   const level = getTrustLevel(score);
-  switch (level) {
-    case 'verified':
-      return {
-        label: 'Verified',
-        colorClass: 'bg-emerald-100 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700',
-        textClass: 'text-emerald-700 dark:text-emerald-300',
-        icon: '✅'
-      };
-    case 'trusted':
-      return {
-        label: 'Trusted',
-        colorClass: 'bg-sky-100 dark:bg-sky-950/40 border-sky-300 dark:border-sky-700',
-        textClass: 'text-sky-700 dark:text-sky-300',
-        icon: '🛡️'
-      };
-    case 'neutral':
-      return {
-        label: 'Neutral',
-        colorClass: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700',
-        textClass: 'text-amber-700 dark:text-amber-300',
-        icon: '⚖️'
-      };
-    case 'caution':
-      return {
-        label: 'Unverified',
-        colorClass: 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-700',
-        textClass: 'text-orange-700 dark:text-orange-300',
-        icon: ''
-      };
-    case 'unverified':
-    default:
-      return null;
+  if (level !== 'verified') {
+    return null;
   }
+  return {
+    label: 'Verified',
+    colorClass: 'bg-emerald-100 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700',
+    textClass: 'text-emerald-700 dark:text-emerald-300',
+    icon: '✅'
+  };
 }
 
 export async function recalculateTrustForUser(userId: string): Promise<TrustBreakdown | null> {
@@ -126,8 +102,8 @@ export function formatTrustSummary(user: User): string {
     verified: 'Verified',
     trusted: 'Trusted',
     neutral: 'Neutral',
-    caution: 'Unverified',
-    unverified: 'Unverified'
+    caution: 'Caution',
+    unverified: 'Not verified'
   };
   return `${labelMap[level]} • ${score}/100`;
 }

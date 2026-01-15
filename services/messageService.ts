@@ -120,10 +120,7 @@ export class MessageService {
   // Mark messages as read
   static async markAsRead(senderId: string, receiverId: string) {
     try {
-      const url = `${API_BASE_URL}/messages/mark-read?currentUserId=${encodeURIComponent(
-        receiverId
-      )}&senderId=${encodeURIComponent(senderId)}`;
-      const response = await fetch(url, {
+      const response = await fetch(`${API_BASE_URL}/messages/mark-read`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

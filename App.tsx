@@ -223,7 +223,6 @@ const App: React.FC = () => {
       }
       
       if (result.success && result.user) {
-        console.log('🔄 Fetched fresh user data:', result.user);
         setCurrentUser(result.user);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(result.user));
       }
@@ -378,7 +377,6 @@ const App: React.FC = () => {
 
     if (token) {
       // Handle OAuth callback with token by fetching real user from backend
-      console.log('[App] Processing OAuth token from URL');
       localStorage.setItem('aura_auth_token', token);
       (async () => {
         try {
@@ -395,7 +393,6 @@ const App: React.FC = () => {
             localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
 
             wasAuthenticated = true;
-            console.log('[App] User authenticated via OAuth token (fetched from backend):', user.id);
             ensureProfileCompletion(user);
             navigateToView({ type: 'feed' });
           } else {

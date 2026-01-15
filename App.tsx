@@ -341,14 +341,7 @@ const App: React.FC = () => {
         },
         credentials: 'include'
       });
-      if (response.status === 401) {
-        console.error('Unauthorized when loading birthday announcements, logging out');
-        setBirthdayAnnouncements([]);
-        handleUnauthorized();
-        return;
-      }
       if (!response.ok) {
-        console.error('Failed to load birthday announcements');
         setBirthdayAnnouncements([]);
         return;
       }
@@ -395,8 +388,6 @@ const App: React.FC = () => {
             wasAuthenticated = true;
             ensureProfileCompletion(user);
             navigateToView({ type: 'feed' });
-          } else {
-            console.error('[App] Failed to fetch user with OAuth token:', result.error);
           }
         } catch (error) {
           console.error('[App] Error processing OAuth token:', error);

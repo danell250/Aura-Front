@@ -19,7 +19,7 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
       subtitle: "Send messages to your future self and friends",
       content: (
         <div className="text-center space-y-6">
-          <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl flex items-center justify-center mx-auto shadow-2xl">
+          <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-2xl">
             <span className="text-4xl">⏰</span>
           </div>
           <div className="space-y-4">
@@ -27,8 +27,8 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
               Time Capsules let you create posts that unlock at a future date you choose. 
               Perfect for setting goals, preserving memories, or creating shared experiences with friends.
             </p>
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-2xl p-4">
-              <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">
+            <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-2xl p-4">
+              <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">
                 💡 Imagine posting "Future me in 2027, hope you achieved your startup dream!" 
                 and having it unlock exactly when you planned.
               </p>
@@ -43,9 +43,9 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
       content: (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 border-2 border-purple-200 dark:border-purple-800">
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 border-2 border-emerald-200 dark:border-emerald-800">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
                   <span className="text-2xl">👤</span>
                 </div>
                 <div>
@@ -55,23 +55,23 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
               </div>
               <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
                 <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                   Future goal tracking
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                   Personal reflections
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                   Memory preservation
                 </li>
               </ul>
             </div>
             
-            <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 border-2 border-pink-200 dark:border-pink-800">
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 border-2 border-emerald-200 dark:border-emerald-800">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/30 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
                   <span className="text-2xl">👥</span>
                 </div>
                 <div>
@@ -81,15 +81,15 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
               </div>
               <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
                 <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-pink-500 rounded-full"></span>
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                   Reunion planning
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-pink-500 rounded-full"></span>
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                   Shared memories
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-pink-500 rounded-full"></span>
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                   Group challenges
                 </li>
               </ul>
@@ -105,7 +105,7 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
         <div className="space-y-6">
           <div className="space-y-4">
             <div className="flex items-start gap-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                 1
               </div>
               <div>
@@ -117,7 +117,7 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
             </div>
             
             <div className="flex items-start gap-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                 2
               </div>
               <div>
@@ -129,7 +129,7 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
             </div>
             
             <div className="flex items-start gap-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                 3
               </div>
               <div>
@@ -141,7 +141,7 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
             </div>
             
             <div className="flex items-start gap-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                 4
               </div>
               <div>
@@ -247,7 +247,7 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
       subtitle: "Create your first time capsule now",
       content: (
         <div className="text-center space-y-6">
-          <div className="w-24 h-24 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 rounded-3xl flex items-center justify-center mx-auto shadow-2xl animate-pulse">
+          <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 via-emerald-400 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-2xl animate-pulse">
             <span className="text-4xl">🚀</span>
           </div>
           <div className="space-y-4">
@@ -255,9 +255,9 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
               You're all set! Time Capsules add a magical dimension to your social experience. 
               Start with something simple - maybe a message to yourself one year from now.
             </p>
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-2xl p-6">
-              <h3 className="font-bold text-purple-700 dark:text-purple-300 mb-2">Pro Tip</h3>
-              <p className="text-sm text-purple-600 dark:text-purple-400">
+            <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-2xl p-6">
+              <h3 className="font-bold text-emerald-700 dark:text-emerald-300 mb-2">Pro Tip</h3>
+              <p className="text-sm text-emerald-700 dark:text-emerald-400">
                 The most meaningful time capsules are specific and personal. Instead of "Hope I'm happy," 
                 try "I hope I finally learned to play guitar and can play 'Wonderwall' for the kids."
               </p>
@@ -294,7 +294,7 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 p-6 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-600 p-6 text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
@@ -374,7 +374,7 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
               </button>
               <button
                 onClick={nextStep}
-                className="px-8 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-bold text-sm uppercase tracking-wider hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg"
+                className="px-8 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-bold text-sm uppercase tracking-wider hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg"
               >
                 {currentStep === steps.length - 1 ? 'Get Started' : 'Next'}
               </button>

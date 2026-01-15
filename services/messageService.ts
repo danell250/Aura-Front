@@ -120,14 +120,18 @@ export class MessageService {
   // Mark messages as read
   static async markAsRead(senderId: string, receiverId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/mark-read`, {
+      const url = `${API_BASE_URL}/messages/mark-read?currentUserId=${encodeURIComponent(
+        receiverId
+      )}&senderId=${encodeURIComponent(senderId)}`;
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           senderId,
-          receiverId
+          receiverId,
+          currentUserId: receiverId
         }),
       });
       const data = await response.json();

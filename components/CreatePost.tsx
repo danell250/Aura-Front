@@ -151,31 +151,31 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
     let finalMediaType = mediaPreview?.type;
     let finalMediaItems: MediaItem[] | undefined = undefined;
 
-    // Handle multi-media upload
     if (selectedMediaItems.length > 0) {
       setIsProcessingMedia(true);
       setUploadProgress(0);
+      let progressInterval: number | undefined;
+
       try {
-        // Simulate progress
-        const progressInterval = setInterval(() => {
-           setUploadProgress(prev => Math.min(prev + 10, 90));
+        progressInterval = window.setInterval(() => {
+          setUploadProgress(prev => Math.min(prev + 10, 90));
         }, 200);
 
-        const uploadedItems = await Promise.all(selectedMediaItems.map(async (item) => {
-          const result = await uploadService.uploadFile(item.file);
-          return {
-            url: result.url,
-            type: item.type,
-            caption: item.caption,
-            headline: item.headline
-          };
-        }));
-        
-        clearInterval(progressInterval);
+        const uploadedItems = await Promise.all(
+          selectedMediaItems.map(async (item) => {
+            const result = await uploadService.uploadFile(item.file);
+            return {
+              url: result.url,
+              type: item.type,
+              caption: item.caption,
+              headline: item.headline
+            };
+          })
+        );
+
         setUploadProgress(100);
         finalMediaItems = uploadedItems;
-        
-        // Use the first item as the main media for backward compatibility
+
         if (uploadedItems.length > 0) {
           finalMediaUrl = uploadedItems[0].url;
           finalMediaType = uploadedItems[0].type;
@@ -183,10 +183,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
       } catch (error) {
         console.error("Upload failed", error);
         alert("Failed to upload media files.");
-        setIsProcessingMedia(false);
         return;
+      } finally {
+        if (progressInterval !== undefined) {
+          clearInterval(progressInterval);
+        }
+        setIsProcessingMedia(false);
       }
-      setIsProcessingMedia(false);
     }
 
     const handleMatches: string[] = content.match(/@\w+/g) || [];
@@ -199,9 +202,17 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
       })
     );
     const taggedUserIds = permissionResults.filter((id): id is string => id !== null);
-    
-    onPost(content, finalMediaUrl, finalMediaType, taggedUserIds, mediaPreview?.name, selectedEnergy, finalMediaItems);
-    
+
+    onPost(
+      content,
+      finalMediaUrl,
+      finalMediaType,
+      taggedUserIds,
+      mediaPreview?.name,
+      selectedEnergy,
+      finalMediaItems
+    );
+
     setContent('');
     setMediaPreview(null);
     setSelectedMediaItems([]);

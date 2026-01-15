@@ -226,6 +226,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
       },
       onCancel: () => {
         console.log('PayPal payment cancelled');
+        setRenderError('Payment was cancelled. No credits were charged.');
       }
     });
 

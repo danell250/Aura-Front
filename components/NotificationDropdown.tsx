@@ -17,15 +17,15 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    // Mark as read first
+    console.log('[Notification] Clicked notification:', notification.type, notification);
     if (!notification.isRead) {
       onRead(notification.id);
     }
     
-    // Navigate to the relevant content if it's not a connection request
     if (notification.type !== 'acquaintance_request' && notification.type !== 'connection_request' && onNavigate) {
+      console.log('[NotificationDropdown] Calling onNavigate with notification:', notification);
       onNavigate(notification);
-      onClose(); // Close the dropdown after navigation
+      onClose();
     }
   };
 
@@ -98,6 +98,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
                         onRead(notif.id);
                       }
                       if (onNavigate) {
+                        console.log('[NotificationDropdown] Name click navigation for:', notif.type, notif);
                         onNavigate(notif);
                       }
                       onClose();

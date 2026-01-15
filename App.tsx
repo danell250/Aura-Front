@@ -1356,6 +1356,8 @@ const App: React.FC = () => {
   }, [currentUser?.id]);
 
   const handleNavigateNotification = useCallback((notification: Notification) => {
+    console.log('[Feed] Navigation handler called with notification:', notification);
+
     if (
       notification.type === 'profile_view' ||
       notification.type === 'connection_request' ||
@@ -1363,6 +1365,7 @@ const App: React.FC = () => {
       notification.type === 'acquaintance_accepted'
     ) {
       const targetId = notification.fromUser?.id;
+      console.log('[Feed] Navigating to profile from notification:', notification.type, targetId);
       if (targetId) {
         navigateToView({ type: 'profile', targetId });
       }
@@ -1379,6 +1382,7 @@ const App: React.FC = () => {
       notification.postId
     ) {
       const postId = notification.postId;
+      console.log('[Feed] Navigating to post from notification:', notification.type, postId);
       navigateToView({ type: 'feed' });
       setTimeout(() => {
         const el = document.getElementById(`post-${postId}`);
@@ -1391,12 +1395,14 @@ const App: React.FC = () => {
 
     if (notification.type === 'message') {
       const targetId = notification.fromUser?.id;
+      console.log('[Feed] Navigating to chat from notification:', targetId);
       if (targetId) {
         navigateToView({ type: 'chat', targetId });
       }
       return;
     }
 
+    console.log('[Feed] Falling back to feed for notification:', notification.type);
     navigateToView({ type: 'feed' });
   }, [navigateToView]);
 

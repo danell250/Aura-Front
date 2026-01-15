@@ -22,7 +22,6 @@ import SerendipityModal from './components/SerendipityModal';
 import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
 import { UserService } from './services/userService';
-import { geminiService } from './services/gemini';
 import { AdService } from './services/adService';
 import { PostService } from './services/postService';
 import { NotificationService } from './services/notificationService';
@@ -301,35 +300,33 @@ const App: React.FC = () => {
     };
   }, [isAuthenticated, currentUser?.id, fetchUnreadMessages]);
 
-  const syncBirthdays = useCallback(async (users: User[]) => {
-    const today = new Date();
-    const mmToday = today.getMonth();
-    const ddToday = today.getDate();
-    const acquaintances = users.filter(u => currentUser.acquaintances?.includes(u.id));
-    const birthdayPeeps = acquaintances.filter(u => {
-      if (!u.dob) return false;
-      const d = new Date(u.dob);
-      return d.getMonth() === mmToday && d.getDate() === ddToday;
-    });
-    
-    // Check if it's currentUser's birthday too
-    if (currentUser.dob) {
-      const d = new Date(currentUser.dob);
-      if (d.getMonth() === mmToday && d.getDate() === ddToday) {
-        birthdayPeeps.push(currentUser);
-      }
-    }
-
-    const announcements: BirthdayAnnouncement[] = [];
-    for (const person of birthdayPeeps) {
-      const quirkyWish = await geminiService.generateQuirkyBirthdayWish(person.firstName, person.bio);
-      announcements.push({
-        id: `bday-${person.id}-${today.getFullYear()}`,
-        user: person, wish: quirkyWish, reactions: {}, userReactions: []
+  const syncBirthdays = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const response = await fetch(`${API_BASE_URL}/birthdays/today`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        credentials: 'include'
       });
+      if (!response.ok) {
+        console.error('Failed to load birthday announcements');
+        setBirthdayAnnouncements([]);
+        return;
+      }
+      const result = await response.json();
+      if (result.success && Array.isArray(result.data)) {
+        setBirthdayAnnouncements(result.data);
+      } else {
+        setBirthdayAnnouncements([]);
+      }
+    } catch (error) {
+      console.error('Error syncing birthdays from backend:', error);
+      setBirthdayAnnouncements([]);
     }
-    setBirthdayAnnouncements(announcements);
-  }, [currentUser.acquaintances]);
+  }, []);
 
   useEffect(() => {
     const savedUsers = localStorage.getItem(USERS_KEY);
@@ -397,6 +394,9 @@ const App: React.FC = () => {
     setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
     const savedAds = localStorage.getItem(ADS_KEY);
     setAds(savedAds ? JSON.parse(savedAds) : INITIAL_ADS);
+    if (wasAuthenticated) {
+      syncBirthdays();
+    }
 
     if (localStorage.getItem('aura_theme') === 'dark') {
       setIsDarkMode(true);
@@ -406,7 +406,7 @@ const App: React.FC = () => {
     setTimeout(() => {
       setLoading(false);
     }, 1000);
-  }, [syncViewFromLocation, navigateToView]);
+  }, [syncViewFromLocation, navigateToView, syncBirthdays]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -420,9 +420,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      syncBirthdays(allUsers);
+      syncBirthdays();
     }
-  }, [isAuthenticated, allUsers, syncBirthdays]);
+  }, [isAuthenticated, syncBirthdays]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -508,7 +508,7 @@ const App: React.FC = () => {
       setCurrentUser(existingUser);
       setIsAuthenticated(true);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(existingUser));
-      syncBirthdays(allUsers);
+      syncBirthdays();
       ensureProfileCompletion(existingUser);
       navigateToView({ type: 'feed' });
       return;
@@ -535,7 +535,7 @@ const App: React.FC = () => {
     setIsAuthenticated(true);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
     localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-    syncBirthdays(updatedUsers);
+    syncBirthdays();
     ensureProfileCompletion(newUser);
     navigateToView({ type: 'feed' });
   };

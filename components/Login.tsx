@@ -185,13 +185,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
           <div className="relative flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <Logo size="sm" />
-              <span className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-300/90">
-                Creator Growth Console
-              </span>
             </div>
-            <span className="px-3 py-1 rounded-full bg-white/5 border border-emerald-400/30 text-[10px] font-black uppercase tracking-[0.25em] text-emerald-100">
-              Live Preview
-            </span>
           </div>
 
           <div className="relative mb-4">

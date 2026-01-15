@@ -7,6 +7,7 @@ import { geminiService } from '../services/gemini';
 import Logo from './Logo';
 import { BACKEND_URL } from '../constants';
 import { apiFetch } from '../utils/api';
+import { UserService } from '../services/userService';
 
 interface DataAuraViewProps {
   currentUser: User;
@@ -49,6 +50,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [profileViewIds, setProfileViewIds] = useState<string[]>(currentUser.profileViews || []);
 
   useEffect(() => {
     const getInsight = async () => {
@@ -58,6 +60,7 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
     };
     getInsight();
     loadPrivacySettings();
+    loadProfileViews();
   }, [currentUser, posts]);
 
   const loadPrivacySettings = async () => {
@@ -87,6 +90,20 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
         emailNotifications: true,
         pushNotifications: true
       });
+    }
+  };
+
+  const loadProfileViews = async () => {
+    try {
+      const result = await UserService.getUserById(currentUser.id);
+      if (result.success && result.user) {
+        setProfileViewIds(result.user.profileViews || []);
+      } else {
+        setProfileViewIds(currentUser.profileViews || []);
+      }
+    } catch (error) {
+      console.error('Failed to load profile views:', error);
+      setProfileViewIds(currentUser.profileViews || []);
     }
   };
 
@@ -306,7 +323,7 @@ ${data.dataTypes.join('\n')}`);
     }
   };
 
-  const observers = (currentUser.profileViews || [])
+  const observers = (profileViewIds || [])
     .map(id => allUsers.find(u => u.id === id))
     .filter((u): u is User => u !== undefined);
 

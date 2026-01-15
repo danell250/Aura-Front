@@ -5,6 +5,7 @@ import { MessageService } from '../services/messageService';
 import { uploadService } from '../services/upload';
 import { soundService } from '../services/soundService';
 import Logo from './Logo';
+import { getTrustBadgeConfig } from '../services/trustService';
 
 interface ChatViewProps {
   currentUser: User;
@@ -657,6 +658,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
             filteredContacts.map(user => {
               const lastMsg = getLastMessage(user.id);
               const isAcquaintance = acquaintances.some(acq => acq.id === user.id);
+              const trustBadge = getTrustBadgeConfig(user.trustScore ?? 0);
               
               const handleSelect = () => {
                 if (activeContact?.id === user.id) return;
@@ -721,6 +723,16 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                         ? 'Connected • Ready to message'
                         : 'Click to start conversation'}
                     </p>
+                    <div className="mt-1">
+                      <span
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full border text-[8px] font-semibold ${trustBadge.colorClass}`}
+                      >
+                        <span className={trustBadge.textClass}>
+                          <span className="mr-0.5">{trustBadge.icon}</span>
+                          <span>{trustBadge.label}</span>
+                        </span>
+                      </span>
+                    </div>
                   </div>
                   {lastMsg && (
                     <span

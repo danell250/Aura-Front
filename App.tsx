@@ -18,6 +18,7 @@ import FeedFilters from './components/FeedFilters';
 import Logo from './components/Logo';
 import TermsAndConditions from './components/TermsAndConditions';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import SerendipityModal from './components/SerendipityModal';
 import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle } from './types';
 import { UserService } from './services/userService';
@@ -29,6 +30,7 @@ import { CommentService } from './services/commentService';
 import { SearchResult } from './services/searchService';
 import { MessageService } from './services/messageService';
 import { soundService } from './services/soundService';
+import { getSerendipityMatches, SerendipityMatch } from './services/trustService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -65,6 +67,9 @@ const App: React.FC = () => {
   const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [messagePulse, setMessagePulse] = useState(false);
+  const [isSerendipityOpen, setIsSerendipityOpen] = useState(false);
+  const [serendipityMatches, setSerendipityMatches] = useState<SerendipityMatch[]>([]);
+  const [isSerendipityLoading, setIsSerendipityLoading] = useState(false);
   
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy', targetId?: string}>({ type: 'feed' });
 
@@ -674,6 +679,66 @@ const App: React.FC = () => {
     setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, trustScore: Math.min(100, u.trustScore + 10) } : u));
   }, [currentUser, fetchCurrentUser]);
 
+  const handlePurchaseGlow = useCallback(async (glow: 'emerald' | 'cyan' | 'amber') => {
+    const glowCosts: Record<'emerald' | 'cyan' | 'amber', number> = {
+      emerald: 100,
+      cyan: 250,
+      amber: 500
+    };
+
+    const cost = glowCosts[glow];
+    const currentCredits = currentUser.auraCredits || 0;
+    const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
+
+    if (!isSpecialUser && currentCredits < cost) {
+      setIsCreditStoreOpen(true);
+      return;
+    }
+
+    if (!isSpecialUser) {
+      try {
+        const token = localStorage.getItem('aura_auth_token');
+        const response = await fetch(`${API_BASE_URL}/users/${currentUser.id}/spend-credits`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            credits: cost,
+            reason: `Purchased ${glow} glow`
+          })
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          console.error('Failed to spend credits for glow:', result.error);
+          await fetchCurrentUser();
+          return;
+        }
+      } catch (error) {
+        console.error('Error spending credits for glow:', error);
+        await fetchCurrentUser();
+        return;
+      }
+    }
+
+    try {
+      const updateResult = await UserService.updateUser(currentUser.id, { activeGlow: glow });
+      if (updateResult.success && updateResult.user) {
+        setCurrentUser(updateResult.user);
+        setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? updateResult.user as User : u)));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updateResult.user));
+      } else {
+        console.error('Failed to update glow on user:', updateResult.error);
+        await fetchCurrentUser();
+      }
+    } catch (error) {
+      console.error('Error updating glow on user:', error);
+      await fetchCurrentUser();
+    }
+  }, [currentUser, fetchCurrentUser]);
+
   const handleTimeCapsule = useCallback(async (data: any) => {
     const now = Date.now();
     const unlockDate = data.unlockDate;
@@ -862,6 +927,33 @@ const App: React.FC = () => {
 
   const handleReact = useCallback(async (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => {
     if (targetType === 'post') {
+      let previousPost: Post | undefined;
+
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        previousPost = p;
+
+        const reactions = { ...p.reactions };
+        const userReactions = [...(p.userReactions || [])];
+        const hasReacted = userReactions.includes(reaction);
+
+        if (hasReacted) {
+          const nextCount = (reactions[reaction] || 0) - 1;
+          if (nextCount <= 0) {
+            delete reactions[reaction];
+          } else {
+            reactions[reaction] = nextCount;
+          }
+          const nextUserReactions = userReactions.filter(r => r !== reaction);
+          return { ...p, reactions, userReactions: nextUserReactions };
+        } else {
+          const nextCount = (reactions[reaction] || 0) + 1;
+          reactions[reaction] = nextCount;
+          const nextUserReactions = userReactions.includes(reaction) ? userReactions : [...userReactions, reaction];
+          return { ...p, reactions, userReactions: nextUserReactions };
+        }
+      }));
+
       try {
         const token = localStorage.getItem('aura_auth_token') || '';
         const response = await fetch(`${API_BASE_URL}/posts/${postId}/react`, {
@@ -877,15 +969,54 @@ const App: React.FC = () => {
           const updatedPost: Post = result.data;
           setPosts(prev => prev.map(p => p.id === postId ? updatedPost : p));
         } else {
+          if (previousPost) {
+            setPosts(prev => prev.map(p => p.id === postId ? previousPost! : p));
+          }
           console.error('Failed to react to post:', result?.error);
         }
       } catch (error) {
+        if (previousPost) {
+          setPosts(prev => prev.map(p => p.id === postId ? previousPost! : p));
+        }
         console.error('Error reacting to post:', error);
       }
       return;
     }
 
     if (targetType === 'comment' && commentId) {
+      let previousComments: Comment[] | undefined;
+
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        previousComments = p.comments;
+
+        const comments = p.comments.map(c => {
+          if (c.id !== commentId) return c;
+
+          const reactions = { ...(c.reactions || {}) };
+          const userReactions = [...(c.userReactions || [])];
+          const hasReacted = userReactions.includes(reaction);
+
+          if (hasReacted) {
+            const nextCount = (reactions[reaction] || 0) - 1;
+            if (nextCount <= 0) {
+              delete reactions[reaction];
+            } else {
+              reactions[reaction] = nextCount;
+            }
+            const nextUserReactions = userReactions.filter(r => r !== reaction);
+            return { ...c, reactions, userReactions: nextUserReactions };
+          } else {
+            const nextCount = (reactions[reaction] || 0) + 1;
+            reactions[reaction] = nextCount;
+            const nextUserReactions = userReactions.includes(reaction) ? userReactions : [...userReactions, reaction];
+            return { ...c, reactions, userReactions: nextUserReactions };
+          }
+        });
+
+        return { ...p, comments };
+      }));
+
       try {
         const result = await CommentService.reactToComment(commentId, reaction, currentUser.id);
         if (result.success && result.data) {
@@ -896,9 +1027,21 @@ const App: React.FC = () => {
             return { ...p, comments };
           }));
         } else {
+          if (previousComments) {
+            setPosts(prev => prev.map(p => {
+              if (p.id !== postId) return p;
+              return { ...p, comments: previousComments! };
+            }));
+          }
           console.error('Failed to react to comment:', result.error);
         }
       } catch (error) {
+        if (previousComments) {
+          setPosts(prev => prev.map(p => {
+            if (p.id !== postId) return p;
+            return { ...p, comments: previousComments! };
+          }));
+        }
         console.error('Error reacting to comment:', error);
       }
     }
@@ -1134,6 +1277,41 @@ const App: React.FC = () => {
     navigateToView({ type: 'feed' });
   }, [navigateToView, posts]);
 
+  const handleRefreshSerendipity = useCallback(async () => {
+    if (!currentUser?.id) return;
+    setIsSerendipityLoading(true);
+    try {
+      const matches = await getSerendipityMatches(currentUser.id, 20);
+      setSerendipityMatches(matches);
+    } catch (error) {
+      console.error('Failed to load Serendipity matches:', error);
+      setSerendipityMatches([]);
+    } finally {
+      setIsSerendipityLoading(false);
+    }
+  }, [currentUser?.id]);
+
+  const handleOpenSerendipity = useCallback(() => {
+    if (!currentUser?.id) return;
+    setIsSerendipityOpen(true);
+    handleRefreshSerendipity();
+  }, [currentUser?.id, handleRefreshSerendipity]);
+
+  const handleNavigateFromSerendipity = useCallback(
+    (userId: string) => {
+      navigateToView({ type: 'profile', targetId: userId });
+    },
+    [navigateToView]
+  );
+
+  const handleSerendipityMessage = useCallback(
+    (userId: string) => {
+      setIsSerendipityOpen(false);
+      navigateToView({ type: 'chat', targetId: userId });
+    },
+    [navigateToView]
+  );
+
   const processedFeedItems = useMemo(() => {
     console.log("🔍 Processing feed items:", { 
       totalPosts: posts.length, 
@@ -1329,6 +1507,7 @@ const App: React.FC = () => {
           onEditProfile={() => setIsSettingsOpen(true)}
           onDeletePost={handleDeletePost}
           onDeleteComment={handleDeleteComment}
+          onSerendipityMode={handleOpenSerendipity}
           onOpenMessaging={(userId) => navigateToView({ type: 'chat', targetId: userId || '' })}
           onCancelAd={async (id) => {
             // Optimistic update
@@ -1399,7 +1578,7 @@ const App: React.FC = () => {
           onBack={() => navigateToView({ type: 'feed' })} 
         />
       )}
-      {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => navigateToView({ type: 'feed' })} onPurchaseGlow={(glow) => handleUpdateProfile({ activeGlow: glow })} onClearData={() => {}} onViewProfile={(id) => navigateToView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
+      {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => navigateToView({ type: 'feed' })} onPurchaseGlow={handlePurchaseGlow} onClearData={() => {}} onViewProfile={(id) => navigateToView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
       {isSettingsOpen && <SettingsModal currentUser={currentUser} onClose={() => setIsSettingsOpen(false)} onUpdate={handleUpdateProfile} />}
       {isAdManagerOpen && <AdManager currentUser={currentUser} ads={ads} onAdCreated={handleAdCreated} onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))} onAdUpdated={async (adId, updates) => {
         try {
@@ -1426,6 +1605,15 @@ const App: React.FC = () => {
       }} onClose={() => { setIsAdManagerOpen(false); setAdSubsRefreshTick(prev => prev + 1); }} />}
       {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} bundles={CREDIT_BUNDLES} onPurchase={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
       {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} onClose={() => setSharingContent(null)} />}
+      <SerendipityModal
+        isOpen={isSerendipityOpen}
+        onClose={() => setIsSerendipityOpen(false)}
+        onNavigateToProfile={handleNavigateFromSerendipity}
+        onMessage={handleSerendipityMessage}
+        onRefresh={handleRefreshSerendipity}
+        matches={serendipityMatches}
+        isLoading={isSerendipityLoading}
+      />
     </Layout>
   );
 };

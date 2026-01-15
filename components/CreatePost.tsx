@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { User, EnergyType } from '../types';
 import { uploadService } from '../services/upload';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
@@ -7,6 +7,7 @@ import Logo from './Logo';
 import TimeCapsuleModal, { TimeCapsuleData } from './TimeCapsuleModal';
 import TimeCapsuleTutorial from './TimeCapsuleTutorial';
 import { Avatar } from './MediaDisplay';
+import { PrivacyService } from '../services/privacyService';
 
 interface CreatePostProps {
   onPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video' | 'document', taggedUserIds?: string[], documentName?: string, energy?: EnergyType) => void;
@@ -44,6 +45,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
   const [selectedEnergy, setSelectedEnergy] = useState<EnergyType>(EnergyType.NEUTRAL);
   const [showTimeCapsuleModal, setShowTimeCapsuleModal] = useState(false);
   const [showTimeCapsuleTutorial, setShowTimeCapsuleTutorial] = useState(false);
+  const acquaintances = useMemo(
+    () => allUsers.filter(u => (currentUser.acquaintances || []).includes(u.id)),
+    [allUsers, currentUser]
+  );
+  const [isMentioning, setIsMentioning] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionSuggestions, setMentionSuggestions] = useState<User[]>([]);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -61,10 +69,81 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSubmit = () => {
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const cursor = e.target.selectionStart || value.length;
+    setContent(value);
+    setCursorPosition(cursor);
+
+    const textBeforeCursor = value.slice(0, cursor);
+    const mentionMatch = textBeforeCursor.match(/(^|\s)@([a-zA-Z0-9_]*)$/);
+
+    if (mentionMatch) {
+      const query = mentionMatch[2] || '';
+      const lower = query.toLowerCase();
+      const suggestions = acquaintances
+        .filter(user => {
+          const handle = user.handle?.toLowerCase() || '';
+          const name = user.name?.toLowerCase() || '';
+          const first = user.firstName?.toLowerCase() || '';
+          const last = user.lastName?.toLowerCase() || '';
+          if (!lower) return true;
+          return handle.includes(lower) || name.includes(lower) || first.includes(lower) || last.includes(lower);
+        })
+        .slice(0, 8);
+
+      setMentionQuery(query);
+      setMentionSuggestions(suggestions);
+      setIsMentioning(suggestions.length > 0);
+    } else {
+      setMentionQuery('');
+      setMentionSuggestions([]);
+      setIsMentioning(false);
+    }
+  };
+
+  const handleSelectMention = (user: User) => {
+    if (!textareaRef.current) return;
+    const value = content;
+    const caret = cursorPosition;
+    const textBeforeCursor = value.slice(0, caret);
+    const atIndex = textBeforeCursor.lastIndexOf('@');
+    if (atIndex === -1) return;
+
+    const prefix = value.slice(0, atIndex);
+    const suffix = value.slice(caret);
+    const fallbackHandle = `@${user.firstName.toLowerCase()}${user.lastName ? user.lastName.toLowerCase() : ''}`;
+    const handleText = user.handle || fallbackHandle;
+    const newContent = prefix + handleText + ' ' + suffix;
+    const newCursor = (prefix + handleText + ' ').length;
+
+    setContent(newContent);
+    setCursorPosition(newCursor);
+    setIsMentioning(false);
+    setMentionQuery('');
+    setMentionSuggestions([]);
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.selectionStart = newCursor;
+        textareaRef.current.selectionEnd = newCursor;
+      }
+    }, 0);
+  };
+
+  const handleSubmit = async () => {
     if ((!content.trim() && !mediaPreview) || isProcessingMedia) return;
-    const handles: string[] = content.match(/@\w+/g) || [];
-    const taggedUserIds = allUsers.filter(u => handles.includes(u.handle)).map(u => u.id);
+    const handleMatches: string[] = content.match(/@\w+/g) || [];
+    const uniqueHandles = Array.from(new Set(handleMatches.map(h => h.toLowerCase())));
+    const potentialTaggedUsers = allUsers.filter(u => u.handle && uniqueHandles.includes(u.handle.toLowerCase()));
+    const permissionResults = await Promise.all(
+      potentialTaggedUsers.map(async (user) => {
+        const canTag = await PrivacyService.canTagUser(user.id);
+        return canTag ? user.id : null;
+      })
+    );
+    const taggedUserIds = permissionResults.filter((id): id is string => id !== null);
     onPost(content, mediaPreview?.url, mediaPreview?.type, taggedUserIds, mediaPreview?.name, selectedEnergy);
     setContent('');
     setMediaPreview(null);
@@ -175,7 +254,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
                 <textarea
                   ref={textareaRef}
                   value={content}
-                  onChange={(e) => { setContent(e.target.value); setCursorPosition(e.target.selectionStart || 0); }}
+                  onChange={handleContentChange}
                   placeholder={`What's on your mind, ${currentUser.firstName}?`}
                   className="w-full border-0 bg-transparent focus:ring-0 text-lg placeholder-gray-400 dark:placeholder-gray-500 resize-none min-h-[120px] outline-none py-3 text-gray-900 dark:text-gray-100 transition-all duration-200"
                   style={{ fieldSizing: 'content' }}
@@ -184,6 +263,35 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
                 {content.length > 0 && (
                   <div className="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-gray-500 font-medium">
                     {content.length}/2000
+                  </div>
+                )}
+                {isMentioning && mentionSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20">
+                    {mentionSuggestions.map(user => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSelectMention(user);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
+                      >
+                        <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                          <Avatar
+                            src={user.avatar}
+                            type={user.avatarType}
+                            name={user.firstName}
+                            size="custom"
+                            className="w-full h-full"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-gray-900 dark:text-gray-100 font-medium truncate">{user.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.handle}</div>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -210,6 +318,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="mt-3 px-1">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">
+            Tagging respects privacy. Some @mentioned users may not be tagged if their privacy settings prevent it.
+          </p>
         </div>
 
         {mediaPreview && (

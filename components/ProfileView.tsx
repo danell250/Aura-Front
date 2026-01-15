@@ -6,8 +6,10 @@ import OnlineStatus from './OnlineStatus';
 import PrivacySettings from './PrivacySettings';
 import AdPlansDashboard from './AdPlansDashboard';
 import { PrivacyService } from '../services/privacyService';
+import { UserService } from '../services/userService';
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
 import { AD_PACKAGES } from '../constants';
+import { getTrustBadgeConfig, formatTrustSummary } from '../services/trustService';
 
 interface ProfileViewProps {
    user: User;
@@ -47,20 +49,28 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [adSubscriptions, setAdSubscriptions] = useState<AdSubscription[]>([]);
   const [loadingSubscriptions, setLoadingSubscriptions] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<'Harassment' | 'Spam' | 'FakeAccount' | 'Other'>('Harassment');
+  const [reportNotes, setReportNotes] = useState('');
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [isBlocked, setIsBlocked] = useState<boolean>(!!currentUser.blockedUsers?.includes(user.id));
   const isSelf = currentUser.id === user.id;
   const isAcquaintance = currentUser.acquaintances?.includes(user.id);
   const isRequested = currentUser.sentAcquaintanceRequests?.includes(user.id);
+  const trustBadge = getTrustBadgeConfig(user.trustScore ?? 0);
 
-  // Record profile view when component mounts (if not viewing own profile)
   useEffect(() => {
     if (!isSelf) {
       PrivacyService.recordProfileView(user.id, currentUser.id);
-      // Track analytics event
       PrivacyService.trackPageView(currentUser.id, 'profile', { viewedUserId: user.id });
     }
   }, [user.id, currentUser.id, isSelf]);
 
-  // Load ad subscriptions for the user's own profile
+  useEffect(() => {
+    setIsBlocked(!!currentUser.blockedUsers?.includes(user.id));
+  }, [currentUser.blockedUsers, user.id]);
+
   useEffect(() => {
     if (isSelf) {
       loadAdSubscriptions();
@@ -83,27 +93,59 @@ const ProfileView: React.FC<ProfileViewProps> = ({
     }
   };
 
-  // Get package details for a subscription
   const getPackageDetails = (packageId: string) => {
     return AD_PACKAGES.find(pkg => pkg.id === packageId);
   };
 
   const handleLike = (postId: string) => {
     onLike(postId);
-    // Track interaction
     PrivacyService.trackInteraction(currentUser.id, 'like', 'post', { postId });
   };
   
   const handleComment = (postId: string, text: string, parentId?: string) => {
     onComment(postId, text, parentId);
-    // Track interaction
     PrivacyService.trackInteraction(currentUser.id, 'comment', 'post', { postId, hasParent: !!parentId });
   };
   
   const handleReact = (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => {
     onReact(postId, reaction, targetType, commentId);
-    // Track interaction
     PrivacyService.trackInteraction(currentUser.id, 'react', targetType, { postId, reaction, commentId });
+  };
+  
+  const handleBlock = async () => {
+    if (isBlocked || blockLoading) return;
+    setBlockLoading(true);
+    try {
+      const result = await UserService.blockUser(currentUser.id, user.id);
+      if (result.success) {
+        setIsBlocked(true);
+        setActionMessage('User blocked');
+      } else {
+        setActionMessage(result.error || 'Failed to block user');
+      }
+    } catch {
+      setActionMessage('Failed to block user');
+    } finally {
+      setBlockLoading(false);
+      setTimeout(() => setActionMessage(null), 3000);
+    }
+  };
+  
+  const submitReport = async () => {
+    try {
+      const result = await UserService.reportUser(currentUser.id, user.id, reportReason, reportNotes);
+      if (result.success) {
+        setActionMessage('Report submitted');
+        setReportOpen(false);
+        setReportNotes('');
+      } else {
+        setActionMessage(result.error || 'Failed to submit report');
+      }
+    } catch {
+      setActionMessage('Failed to submit report');
+    } finally {
+      setTimeout(() => setActionMessage(null), 3000);
+    }
   };
 
   return (
@@ -165,6 +207,14 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       </div>
                     )}
                   </div>
+                  <div className="flex items-center justify-center lg:justify-start mt-1 mb-2">
+                    <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium ${trustBadge.colorClass}`}>
+                      <span className={trustBadge.textClass}>
+                        <span className="mr-1">{trustBadge.icon}</span>
+                        <span>{formatTrustSummary(user)}</span>
+                      </span>
+                    </div>
+                  </div>
                   
                   {/* Action Buttons - Moved here from right side */}
                   <div className="flex flex-col gap-3 mb-6 max-w-sm mx-auto lg:mx-0 mt-4">
@@ -189,6 +239,25 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                         >
                           <span>✉️</span>
                           <span>Message</span>
+                        </button>
+                        <button
+                          onClick={handleBlock}
+                          disabled={!!isBlocked || blockLoading}
+                          className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
+                            isBlocked
+                              ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 cursor-not-allowed'
+                              : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg'
+                          }`}
+                        >
+                          <span>🚫</span>
+                          <span>{isBlocked ? 'Blocked' : blockLoading ? 'Blocking...' : 'Block'}</span>
+                        </button>
+                        <button
+                          onClick={() => setReportOpen(true)}
+                          className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-medium rounded-lg text-sm shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                          <span>🚩</span>
+                          <span>Report</span>
                         </button>
                       </>
                     ) : (
@@ -410,9 +479,63 @@ const ProfileView: React.FC<ProfileViewProps> = ({
           onClose={() => setShowPrivacySettings(false)}
           onSettingsUpdate={(settings) => {
             console.log('Privacy settings updated:', settings);
-            // You could update the user object here if needed
           }}
         />
+      )}
+      
+      {reportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50"></div>
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Report User</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {(['Harassment','Spam','FakeAccount','Other'] as const).map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setReportReason(r)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium border ${
+                      reportReason === r
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={reportNotes}
+                onChange={(e) => setReportNotes(e.target.value)}
+                placeholder="Additional details (optional)"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                rows={4}
+              />
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setReportOpen(false)}
+                className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-lg text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitReport}
+                className="flex-1 px-4 py-2.5 bg-emerald-600 text-white font-medium rounded-lg text-sm hover:bg-emerald-700 transition-all"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {actionMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm shadow-lg">
+            {actionMessage}
+          </div>
+        </div>
       )}
     </div>
   );

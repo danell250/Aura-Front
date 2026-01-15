@@ -5,6 +5,8 @@ import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import { geminiService } from '../services/gemini';
 import BoostModal from './BoostModal';
 import { Avatar, MediaDisplay } from './MediaDisplay';
+import { getTrustBadgeConfig } from '../services/trustService';
+import { PostService } from '../services/postService';
 
 interface PostCardProps {
   post: Post;
@@ -38,9 +40,14 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [activeCommentEmojiPicker, setActiveCommentEmojiPicker] = useState<string | null>(null);
   const [showBoostModal, setShowBoostModal] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<'Harassment' | 'Spam' | 'Misinformation' | 'HateSpeech' | 'Other'>('Harassment');
+  const [reportNotes, setReportNotes] = useState('');
+  const [reportMsg, setReportMsg] = useState<string | null>(null);
 
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
+  const authorTrustBadge = getTrustBadgeConfig(post.author.trustScore ?? 0);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -168,6 +175,23 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   const handleBoostConfirm = (credits: number) => {
     if (onBoost) {
       onBoost(post.id, credits);
+    }
+  };
+  
+  const submitReport = async () => {
+    try {
+      const resp = await PostService.reportPost(post.id, currentUser.id, reportReason, reportNotes);
+      if (resp.success) {
+        setReportMsg('Post reported');
+        setReportOpen(false);
+        setReportNotes('');
+      } else {
+        setReportMsg(resp.error || 'Failed to report post');
+      }
+    } catch {
+      setReportMsg('Failed to report post');
+    } finally {
+      setTimeout(() => setReportMsg(null), 3000);
     }
   };
 
@@ -428,6 +452,15 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
                     </span>
                   </>
                 )}
+                <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0"></span>
+                <span
+                  className={`inline-flex items-center px-1.5 py-0.5 rounded-full border text-[8px] font-semibold ${authorTrustBadge.colorClass}`}
+                >
+                  <span className={authorTrustBadge.textClass}>
+                    <span className="mr-0.5">{authorTrustBadge.icon}</span>
+                    <span>{authorTrustBadge.label}</span>
+                  </span>
+                </span>
               </div>
             </div>
           </div>
@@ -450,6 +483,13 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
               <span className="px-2 py-1 bg-blue-500 text-white text-[8px] font-bold uppercase rounded-full tracking-wider shadow-sm animate-pulse">Just posted</span>
             )}
             <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">{new Date(post.timestamp).toLocaleDateString()}</span>
+            <button
+              onClick={() => setReportOpen(true)}
+              className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
+              title="Report Post"
+            >
+              <span className="text-sm">🚩</span>
+            </button>
             {post.author.id === currentUser.id && (
               <button 
                 onClick={() => onDeletePost && onDeletePost(post.id)} 
@@ -579,6 +619,10 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                 <span className="text-xs font-bold uppercase tracking-wider">Share</span>
               </button>
+              <button onClick={() => setReportOpen(true)} className="p-2 text-slate-400 hover:text-rose-500 transition-all flex items-center gap-1">
+                <span className="w-5 h-5">🚩</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Report</span>
+              </button>
            </div>
         </div>
 
@@ -621,6 +665,61 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
         postAuthor={post.author.name}
         onOpenCreditStore={onOpenCreditStore}
       />
+      
+      {reportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50"></div>
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Report Post</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {(['Harassment','Spam','Misinformation','HateSpeech','Other'] as const).map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setReportReason(r)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium border ${
+                      reportReason === r
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={reportNotes}
+                onChange={(e) => setReportNotes(e.target.value)}
+                placeholder="Additional details (optional)"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                rows={4}
+              />
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setReportOpen(false)}
+                className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-lg text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitReport}
+                className="flex-1 px-4 py-2.5 bg-emerald-600 text-white font-medium rounded-lg text-sm hover:bg-emerald-700 transition-all"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {reportMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm shadow-lg">
+            {reportMsg}
+          </div>
+        </div>
+      )}
     </div>
   );
 });

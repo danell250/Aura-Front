@@ -51,6 +51,13 @@ const Layout: React.FC<LayoutProps> = ({
 }) => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [showUnreadBadge, setShowUnreadBadge] = useState(unreadCount > 0);
+
+  useEffect(() => {
+    if (unreadCount > 0) {
+      setShowUnreadBadge(true);
+    }
+  }, [unreadCount]);
 
   // Keyboard shortcut for search focus (Ctrl/Cmd + K)
   useEffect(() => {
@@ -139,10 +146,11 @@ const Layout: React.FC<LayoutProps> = ({
             <button 
               onClick={() => {
                 setIsNotificationsOpen(!isNotificationsOpen);
+                setShowUnreadBadge(false);
               }}
               className="p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg relative transition-colors"
             >
-              🔔 {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-emerald-500 text-[9px] text-white flex items-center justify-center rounded-full font-bold ring-2 ring-white dark:ring-slate-900">{unreadCount}</span>}
+              🔔 {showUnreadBadge && unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-emerald-500 text-[9px] text-white flex items-center justify-center rounded-full font-bold ring-2 ring-white dark:ring-slate-900">{unreadCount}</span>}
             </button>
             {isNotificationsOpen && (
               <NotificationDropdown 

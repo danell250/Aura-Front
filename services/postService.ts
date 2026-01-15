@@ -35,10 +35,36 @@ export class PostService {
       return { success: false, error: 'Failed to search posts' };
     }
   }
+  
+  /**
+   * Report a post
+   */
+  static async reportPost(postId: string, userId: string, reason: string, notes?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ reason, notes, userId }),
+        credentials: 'include' as RequestCredentials
+      });
+      const json = await response.json().catch(() => ({} as any));
+      if (response.ok && json?.success) {
+        return { success: true };
+      }
+      return { success: false, error: json?.message || 'Failed to report post' };
+    } catch (error: any) {
+      console.error('❌ Error reporting post:', error);
+      return { success: false, error: error?.message || 'Network error' };
+    }
+  }
 
   /**
    * Get all posts with privacy filtering
-   */
+  */
   static async getAllPosts(page = 1, limit = 20, userId?: string): Promise<{ success: boolean; posts?: Post[]; pagination?: any; error?: string }> {
     try {
       const params = new URLSearchParams();

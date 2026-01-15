@@ -16,12 +16,7 @@ interface CreditStoreModalProps {
 }
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj';
-
-const buildPayPalSdkUrlForCredits = (withTimestamp: boolean) => {
-  const base = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=capture&components=buttons`;
-  if (!withTimestamp) return base;
-  return `${base}&t=${Date.now()}`;
-};
+const PAYPAL_SDK_URL_FOR_CREDITS = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&components=buttons`;
 
 const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundles, onPurchase, onClose }) => {
   const [step, setStep] = useState<1 | 2>(1);
@@ -65,44 +60,14 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
   }, [onClose]);
 
   const retryPayPal = useCallback(() => {
-    console.log("[Aura] Retrying PayPal connection...");
+    console.log("[Aura] Retrying PayPal connection (buttons only)...");
     setRenderError(null);
-    setSdkReady(false);
-    
-    // Remove existing PayPal scripts
-    const existingScripts = document.querySelectorAll('script[src*="paypal.com/sdk/js"]');
-    existingScripts.forEach(script => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    });
-    
-    // Clear PayPal from window
-    if (window.paypal) {
-      delete window.paypal;
+
+    if (window.paypal && window.paypal.Buttons) {
+      setSdkReady(true);
+    } else {
+      setRenderError("Payment gateway is still not ready. Please refresh the page and try again.");
     }
-    
-    setTimeout(() => {
-      const script = document.createElement('script');
-      script.src = buildPayPalSdkUrlForCredits(true);
-      script.setAttribute('data-sdk-integration-source', 'button-factory');
-      script.async = true;
-      script.onload = () => {
-        console.log("[Aura] PayPal SDK reloaded successfully");
-        setTimeout(() => {
-          if (window.paypal && window.paypal.Buttons) {
-            setSdkReady(true);
-          } else {
-            setRenderError("Payment Gateway still not responding. Please refresh the page.");
-          }
-        }, 500);
-      };
-      script.onerror = () => {
-        console.error("[Aura] PayPal SDK retry failed");
-        setRenderError("Payment Gateway Connection Failed. Please check your internet connection.");
-      };
-      document.body.appendChild(script);
-    }, 1000);
   }, []);
 
   useEffect(() => {
@@ -143,7 +108,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
       try {
         console.log("[Aura] Loading PayPal SDK for credits...");
         paypalScript = document.createElement('script');
-        paypalScript.src = buildPayPalSdkUrlForCredits(false);
+        paypalScript.src = PAYPAL_SDK_URL_FOR_CREDITS;
         paypalScript.setAttribute('data-sdk-integration-source', 'button-factory');
         paypalScript.async = true;
         paypalScript.onload = () => {

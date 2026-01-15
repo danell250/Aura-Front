@@ -45,10 +45,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const isRenderingRef = useRef<boolean>(false);
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj';
-
-const buildPayPalSdkUrlForSubscriptions = () => {
-  return `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&vault=true&intent=subscription&components=buttons`;
-};
+const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&vault=true&intent=subscription&components=buttons`;
 
   const [form, setForm] = useState({ 
     headline: '', 
@@ -139,7 +136,7 @@ const buildPayPalSdkUrlForSubscriptions = () => {
 
       console.log("[Aura] Injecting Payment Neural Link...");
       paypalScript = document.createElement('script');
-      paypalScript.src = buildPayPalSdkUrlForSubscriptions();
+      paypalScript.src = PAYPAL_SDK_URL;
       paypalScript.setAttribute('data-sdk-integration-source', 'button-factory');
       paypalScript.async = true;
       paypalScript.onload = () => {
@@ -162,10 +159,6 @@ const buildPayPalSdkUrlForSubscriptions = () => {
 
     return () => { 
       isMounted = false;
-      // Clean up PayPal script on unmount
-      if (paypalScript && document.body.contains(paypalScript)) {
-        document.body.removeChild(paypalScript);
-      }
     };
   }, []);
 
@@ -192,47 +185,28 @@ const buildPayPalSdkUrlForSubscriptions = () => {
     }
   }, []);
   
-  // Function to reset PayPal state and retry
+  // Function to reset PayPal state and retry without reloading SDK
   const retryPayPal = useCallback(() => {
     setRenderError(null);
     setButtonsRendered(false);
-    setSdkReady(false);
-    setMountKey(prev => prev + 1); // Force container remount
-    
-    // Clean up existing PayPal instance
+    setMountKey(prev => prev + 1);
+
     if (activeInstanceRef.current) {
       try {
-        if (activeInstanceRef.current && typeof activeInstanceRef.current.close === 'function') {
+        if (typeof activeInstanceRef.current.close === 'function') {
           activeInstanceRef.current.close();
         }
       } catch (e) {
-        console.debug("[Aura] Previous PayPal instance closed", e);
+        console.debug("[Aura] Previous PayPal instance close error", e);
       }
       activeInstanceRef.current = null;
     }
-    
-    // Reload PayPal SDK
-    setTimeout(() => {
-      if (window.paypal && window.paypal.Buttons) {
-        setSdkReady(true);
-      } else {
-        const script = document.createElement('script');
-        script.src = buildPayPalSdkUrlForSubscriptions();
-        script.setAttribute('data-sdk-integration-source', 'button-factory');
-        script.async = true;
-        script.onload = () => {
-          setTimeout(() => {
-            if (window.paypal && window.paypal.Buttons) {
-              setSdkReady(true);
-            }
-          }, 300);
-        };
-        script.onerror = () => {
-          setRenderError("Failed to reload payment gateway.");
-        };
-        document.body.appendChild(script);
-      }
-    }, 100);
+
+    if (window.paypal && window.paypal.Buttons) {
+      setSdkReady(true);
+    } else {
+      setRenderError("Payment gateway is still not ready. Please refresh the page and try again.");
+    }
   }, []);
 
   useEffect(() => {

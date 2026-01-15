@@ -16,7 +16,7 @@ interface CreditStoreModalProps {
 }
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj';
-const PAYPAL_SDK_URL_FOR_CREDITS = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&components=buttons`;
+const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&vault=true&intent=subscription&components=buttons`;
 
 const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundles, onPurchase, onClose }) => {
   const [step, setStep] = useState<1 | 2>(1);
@@ -108,7 +108,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
       try {
         console.log("[Aura] Loading PayPal SDK for credits...");
         paypalScript = document.createElement('script');
-        paypalScript.src = PAYPAL_SDK_URL_FOR_CREDITS;
+        paypalScript.src = PAYPAL_SDK_URL;
         paypalScript.setAttribute('data-sdk-integration-source', 'button-factory');
         paypalScript.async = true;
         paypalScript.onload = () => {

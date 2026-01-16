@@ -202,7 +202,15 @@ const App: React.FC = () => {
   }, []);
 
   const ensureProfileCompletion = useCallback((user: User) => {
-    if (!isProfileComplete(user)) {
+    // Only enforce for new users (created within the last 24 hours)
+    // Existing users should not be forced to complete profile on every login
+    if (!user.createdAt) return;
+
+    const createdTime = new Date(user.createdAt).getTime();
+    const now = Date.now();
+    const isNewUser = (now - createdTime) < 24 * 60 * 60 * 1000; // 24 hours threshold
+
+    if (isNewUser && !isProfileComplete(user)) {
       setIsProfileCompletionRequired(true);
       setIsSettingsOpen(true);
     } else {

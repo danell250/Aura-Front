@@ -117,21 +117,36 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
     let paypalScript: HTMLScriptElement | null = null;
     
     const loadSdk = async () => {
-      // Check if PayPal SDK is already loaded
-      if (window.paypal && window.paypal.Buttons) {
-        if (isMounted) setSdkReady(true);
-        return;
-      }
-
-      // Check if script is already present but not ready
-      if (document.querySelector('script[src*="paypal.com/sdk/js"]')) {
-         const check = setInterval(() => {
+      // Check for existing PayPal script
+      const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]') as HTMLScriptElement;
+      
+      if (existingScript) {
+        // Check if the existing script has the required vault parameter
+        const hasVault = existingScript.src.includes('vault=true');
+        const hasSubscriptionIntent = existingScript.src.includes('intent=subscription');
+        
+        if (!hasVault || !hasSubscriptionIntent) {
+          console.log("[Aura] Existing PayPal SDK missing required parameters. Reloading...");
+          existingScript.remove();
+          if (window.paypal) {
+            // @ts-ignore
+            delete window.paypal;
+          }
+        } else {
+          // Script matches requirements, wait for it to be ready
           if (window.paypal && window.paypal.Buttons) {
             if (isMounted) setSdkReady(true);
-            clearInterval(check);
+            return;
           }
-        }, 500);
-        return;
+          
+          const check = setInterval(() => {
+            if (window.paypal && window.paypal.Buttons) {
+              if (isMounted) setSdkReady(true);
+              clearInterval(check);
+            }
+          }, 500);
+          return;
+        }
       }
 
       console.log("[Aura] Injecting Payment Neural Link...");

@@ -75,34 +75,39 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
     let paypalScript: HTMLScriptElement | null = null;
     
     const loadSdk = async () => {
-      // Check if PayPal SDK is already loaded
-      if (window.paypal && window.paypal.Buttons) {
-        console.log("[Aura] PayPal SDK already loaded");
-        if (isMounted) setSdkReady(true);
-        return;
-      }
+      // Check for existing PayPal script
+      const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]') as HTMLScriptElement;
 
-      // Check if script is already present but not ready
-      const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
       if (existingScript) {
-        console.log("[Aura] PayPal script exists, waiting for load...");
-         const check = setInterval(() => {
-          if (window.paypal && window.paypal.Buttons) {
-            console.log("[Aura] PayPal SDK ready after wait");
-            if (isMounted) setSdkReady(true);
+        // If existing script has intent=subscription, we need to reload it for one-time payments
+        // as intent=subscription might conflict with createOrder
+        if (existingScript.src.includes('intent=subscription')) {
+           console.log("[Aura] Existing PayPal SDK has subscription intent. Reloading for one-time payment...");
+           existingScript.remove();
+           if (window.paypal) {
+             // @ts-ignore
+             delete window.paypal;
+           }
+        } else {
+          console.log("[Aura] PayPal script exists, waiting for load...");
+           const check = setInterval(() => {
+            if (window.paypal && window.paypal.Buttons) {
+              console.log("[Aura] PayPal SDK ready after wait");
+              if (isMounted) setSdkReady(true);
+              clearInterval(check);
+            }
+          }, 500);
+          
+          // Timeout after 10 seconds
+          setTimeout(() => {
             clearInterval(check);
-          }
-        }, 500);
-        
-        // Timeout after 10 seconds
-        setTimeout(() => {
-          clearInterval(check);
-          if (isMounted && !window.paypal) {
-            console.error("[Aura] PayPal SDK timeout");
-            setRenderError("Payment Gateway Connection Timeout. Please refresh and try again.");
-          }
-        }, 10000);
-        return;
+            if (isMounted && !window.paypal) {
+              console.error("[Aura] PayPal SDK timeout");
+              setRenderError("Payment Gateway Connection Timeout. Please refresh and try again.");
+            }
+          }, 10000);
+          return;
+        }
       }
 
       try {

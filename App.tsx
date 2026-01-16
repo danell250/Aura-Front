@@ -33,6 +33,7 @@ import { getSerendipityMatches, SerendipityMatch, trackSerendipitySkip, recalcul
 import { getApiBaseUrl } from './constants';
 import { adSubscriptionService } from './services/adSubscriptionService';
 import { apiFetch } from './utils/api';
+import { refreshAccessToken } from './utils/tokenRefresh';
 import { PrivacyService } from './services/privacyService';
 
 const STORAGE_KEY = 'aura_user_session';

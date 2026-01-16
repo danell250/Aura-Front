@@ -1,22 +1,25 @@
 import { getApiBaseUrl } from '../constants';
 
-export const refreshAccessToken = async (): Promise<boolean> => {
+export const refreshAccessToken = async (): Promise<string | null> => {
   try {
     const response = await fetch(`${getApiBaseUrl()}/auth/refresh-token`, {
       method: 'POST',
-      credentials: 'include', // Important! Sends cookies
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' }
     });
 
+    if (!response.ok) {
+      return null;
+    }
+
     const data = await response.json();
-    
     if (data.success && data.accessToken) {
       localStorage.setItem('aura_auth_token', data.accessToken);
-      return true;
+      return data.accessToken;
     }
-    return false;
+    return null;
   } catch (error) {
     console.error('Token refresh failed:', error);
-    return false;
+    return null;
   }
 };

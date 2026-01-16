@@ -1,4 +1,5 @@
 import { BACKEND_URL, getApiBaseUrl } from '../constants';
+import { refreshAccessToken } from './tokenRefresh';
 
 // Helper to handle token refresh queue
 let isRefreshing = false;
@@ -11,28 +12,6 @@ const onRefreshed = (token: string) => {
 
 const addRefreshSubscriber = (cb: (token: string) => void) => {
   refreshSubscribers.push(cb);
-};
-
-export const refreshAccessToken = async (): Promise<string | null> => {
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/auth/refresh-token`, {
-      method: 'POST',
-      credentials: 'include', // Important: sends the refreshToken cookie
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success && data.accessToken) {
-        localStorage.setItem('aura_auth_token', data.accessToken);
-        return data.accessToken;
-      }
-    }
-    return null;
-  } catch (e) {
-    console.error('Token refresh failed:', e);
-    return null;
-  }
 };
 
 // Centralized fetch utility with credentials for CORS and Auto-Refresh

@@ -249,7 +249,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                 onClick={onOpenAdManager}
                 className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl uppercase tracking-widest transition-all"
               >
-                Manage Signals
+                Create / Manage
               </button>
             </div>
 

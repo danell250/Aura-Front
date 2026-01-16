@@ -182,7 +182,7 @@ const Layout: React.FC<LayoutProps> = ({
       </header>
 
       {/* Mobile Search Bar */}
-      <div className="md:hidden px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800">
+      <div className="md:hidden sticky top-16 z-40 px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800">
         <SearchDropdown
           posts={posts}
           users={users}

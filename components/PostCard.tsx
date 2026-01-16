@@ -616,6 +616,22 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
 
         {hasMediaItems && currentMediaUrl ? (
           <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner min-h-[100px] flex flex-col items-center justify-center relative group/carousel">
+            {(post.mediaItems[currentMediaIndex].headline ||
+              post.mediaItems[currentMediaIndex].caption) && (
+              <div className="w-full p-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+                {post.mediaItems[currentMediaIndex].headline && (
+                  <h4 className="font-bold text-slate-900 dark:text-white mb-1">
+                    {post.mediaItems[currentMediaIndex].headline}
+                  </h4>
+                )}
+                {post.mediaItems[currentMediaIndex].caption && (
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {post.mediaItems[currentMediaIndex].caption}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="w-full relative">
               {renderMedia(currentMediaUrl, currentMediaType, "w-full h-auto max-h-[600px] object-contain")}
 
@@ -667,22 +683,6 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
                 </>
               )}
             </div>
-
-            {(post.mediaItems[currentMediaIndex].headline ||
-              post.mediaItems[currentMediaIndex].caption) && (
-              <div className="w-full p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-                {post.mediaItems[currentMediaIndex].headline && (
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-1">
-                    {post.mediaItems[currentMediaIndex].headline}
-                  </h4>
-                )}
-                {post.mediaItems[currentMediaIndex].caption && (
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {post.mediaItems[currentMediaIndex].caption}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         ) : !hasMediaItems && currentMediaUrl ? (
           <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner min-h-[100px] flex items-center justify-center">

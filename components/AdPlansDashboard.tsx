@@ -87,8 +87,9 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
   const averageCTR = campaignPerformance 
     ? campaignPerformance.averageCTR 
     : (adPerformance.length > 0
-      ? Math.round((adPerformance.reduce((sum, m) => sum + (m.ctr || 0), 0) / adPerformance.length) * 100) / 100
+      ? (adPerformance.reduce((sum, m) => sum + (m.ctr || 0), 0) / adPerformance.length)
       : 0);
+  const formattedAverageCTR = Number(averageCTR || 0).toFixed(2);
   const totalEngagement = campaignPerformance ? campaignPerformance.totalEngagement : adPerformance.reduce((sum, m) => sum + (m.engagement || 0), 0);
 
   const nextExpiringAd = userAds

@@ -68,12 +68,42 @@ interface BirthdayAnnouncement {
 }
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User>(CURRENT_USER);
+  const [allUsers, setAllUsers] = useState<User[]>(MOCK_USERS);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [birthdayAnnouncements, setBirthdayAnnouncements] = useState<BirthdayAnnouncement[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeEnergy, setActiveEnergy] = useState<EnergyType | 'all'>('all');
+  const [activeMediaType, setActiveMediaType] = useState<'all' | 'image' | 'video' | 'document'>('all');
+  const [isMessageSoundEnabled, setIsMessageSoundEnabled] = useState(true);
+  const [isNotificationSoundEnabled, setIsNotificationSoundEnabled] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAdManagerOpen, setIsAdManagerOpen] = useState(false);
+  const [adSubsRefreshTick, setAdSubsRefreshTick] = useState(0);
+  const [isCreditStoreOpen, setIsCreditStoreOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [messagePulse, setMessagePulse] = useState(false);
+  const [isSerendipityOpen, setIsSerendipityOpen] = useState(false);
+  const [serendipityMatches, setSerendipityMatches] = useState<SerendipityMatch[]>([]);
+  const [isSerendipityLoading, setIsSerendipityLoading] = useState(false);
+  const [isProfileCompletionRequired, setIsProfileCompletionRequired] = useState(false);
+  
+  const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy', targetId?: string}>({ type: 'feed' });
+
   useEffect(() => {
     if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
       const httpsUrl = `https://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`;
       window.location.replace(httpsUrl);
     }
   }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const payment = params.get('payment');
@@ -107,34 +137,6 @@ const App: React.FC = () => {
       })();
     }
   }, [currentUser]);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User>(CURRENT_USER);
-  const [allUsers, setAllUsers] = useState<User[]>(MOCK_USERS);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [ads, setAds] = useState<Ad[]>([]);
-  const [birthdayAnnouncements, setBirthdayAnnouncements] = useState<BirthdayAnnouncement[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeEnergy, setActiveEnergy] = useState<EnergyType | 'all'>('all');
-  const [activeMediaType, setActiveMediaType] = useState<'all' | 'image' | 'video' | 'document'>('all');
-  const [isMessageSoundEnabled, setIsMessageSoundEnabled] = useState(true);
-  const [isNotificationSoundEnabled, setIsNotificationSoundEnabled] = useState(true);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isAdManagerOpen, setIsAdManagerOpen] = useState(false);
-  const [adSubsRefreshTick, setAdSubsRefreshTick] = useState(0);
-  const [isCreditStoreOpen, setIsCreditStoreOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
-  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
-  const [messagePulse, setMessagePulse] = useState(false);
-  const [isSerendipityOpen, setIsSerendipityOpen] = useState(false);
-  const [serendipityMatches, setSerendipityMatches] = useState<SerendipityMatch[]>([]);
-  const [isSerendipityLoading, setIsSerendipityLoading] = useState(false);
-  const [isProfileCompletionRequired, setIsProfileCompletionRequired] = useState(false);
-  
-  const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy', targetId?: string}>({ type: 'feed' });
 
   const syncViewFromLocation = useCallback(() => {
     const path = window.location.pathname || '/feed';

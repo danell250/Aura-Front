@@ -243,11 +243,14 @@ export class UserService {
   // Block user
   static async blockUser(userId: string, targetUserId: string): Promise<{ success: boolean; error?: string }> {
     try {
+      const token = localStorage.getItem('aura_auth_token') || '';
       const response = await fetch(`${API_BASE_URL}/users/${userId}/block`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
+        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({ targetUserId })
       });
       if (response.ok) {
@@ -264,11 +267,14 @@ export class UserService {
 
   static async unblockUser(userId: string, targetUserId: string): Promise<{ success: boolean; error?: string }> {
     try {
+      const token = localStorage.getItem('aura_auth_token') || '';
       const response = await fetch(`${API_BASE_URL}/users/${userId}/unblock`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
+        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({ targetUserId })
       });
       if (response.ok) {
@@ -286,11 +292,14 @@ export class UserService {
   // Report user
   static async reportUser(userId: string, targetUserId: string, reason: string, notes?: string): Promise<{ success: boolean; error?: string }> {
     try {
+      const token = localStorage.getItem('aura_auth_token') || '';
       const response = await fetch(`${API_BASE_URL}/users/${userId}/report`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
+        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({ targetUserId, reason, notes })
       });
       if (response.ok) {
@@ -308,11 +317,14 @@ export class UserService {
   // Remove acquaintance
   static async removeAcquaintance(userId: string, acquaintanceId: string): Promise<{ success: boolean; error?: string }> {
     try {
+      const token = localStorage.getItem('aura_auth_token') || '';
       const response = await fetch(`${API_BASE_URL}/users/${userId}/remove-acquaintance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
+        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({ acquaintanceId })
       });
 
@@ -407,11 +419,14 @@ export class UserService {
     payload: { credits: number; bundleName: string; transactionId?: string; paymentMethod?: string; orderId?: string }
   ): Promise<{ success: boolean; error?: string; data?: any }> {
     try {
+      const token = localStorage.getItem('aura_auth_token') || '';
       const response = await fetch(`${API_BASE_URL}/users/${userId}/purchase-credits`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
+        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({
           credits: payload.credits,
           bundleName: payload.bundleName,

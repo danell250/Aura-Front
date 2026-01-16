@@ -800,27 +800,18 @@ const App: React.FC = () => {
     setPosts(prev => [optimisticPost, ...prev]);
 
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/posts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          content,
-          mediaUrl,
-          mediaType,
-          mediaItems,
-          energy,
-          authorId: currentUser.id,
-          taggedUserIds
-        })
+      const result = await PostService.createPost({
+        content,
+        mediaUrl,
+        mediaType,
+        mediaItems,
+        energy,
+        authorId: currentUser.id,
+        taggedUserIds
       });
 
-      const result = await response.json().catch(() => null);
-      if (response.ok && result && result.success && result.data) {
-        const createdPost: Post = result.data;
+      if (result.success && result.post) {
+        const createdPost: Post = result.post;
         setPosts(prev => {
           const withoutOptimistic = prev.filter(p => p.id !== optimisticId);
           return [createdPost, ...withoutOptimistic];
@@ -829,12 +820,8 @@ const App: React.FC = () => {
       }
 
       setPosts(prev => prev.filter(p => p.id !== optimisticId));
-
-      const message =
-        (result && result.message) ||
-        (response.status === 401 ? 'You must be signed in to post.' : 'Failed to create post.');
-      console.error('Failed to create post in backend:', response.status, result);
-      alert(message);
+      console.error('Failed to create post in backend:', result.error);
+      alert(result.error || 'Failed to create post.');
     } catch (error) {
       console.error('Failed to create post in backend:', error);
       setPosts(prev => prev.filter(p => p.id !== optimisticId));

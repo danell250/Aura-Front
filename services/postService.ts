@@ -173,4 +173,35 @@ export class PostService {
       return { success: false, error: 'Failed to fetch post' };
     }
   }
+
+  /**
+   * Create a new post
+   */
+  static async createPost(postData: any): Promise<{ success: boolean; post?: Post; error?: string }> {
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const response = await fetch(`${API_BASE_URL}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(postData),
+        credentials: 'include' as RequestCredentials
+      });
+
+      const result = await response.json().catch(() => null);
+      if (response.ok && result && result.success && result.data) {
+        return { success: true, post: result.data };
+      }
+
+      return { 
+        success: false, 
+        error: (result && result.message) || (response.status === 401 ? 'You must be signed in to post.' : 'Failed to create post.') 
+      };
+    } catch (error: any) {
+      console.error('❌ Error creating post:', error);
+      return { success: false, error: error?.message || 'Failed to create post' };
+    }
+  }
 }

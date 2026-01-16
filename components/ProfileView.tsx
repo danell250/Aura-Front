@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Post, Ad, Comment } from '../types';
 import PostCard from './PostCard';
 import { MediaDisplay, Avatar } from './MediaDisplay';
@@ -10,6 +10,7 @@ import { UserService } from '../services/userService';
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
 import { AD_PACKAGES } from '../constants';
 import { getTrustBadgeConfig, formatTrustSummary } from '../services/trustService';
+import { uploadService } from '../services/upload';
 
 const getZodiacSign = (dateString: string) => {
   if (!dateString) return '';
@@ -75,13 +76,18 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const [reportReason, setReportReason] = useState<'Harassment' | 'Spam' | 'FakeAccount' | 'Other'>('Harassment');
   const [reportNotes, setReportNotes] = useState('');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [isBlocked, setIsBlocked] = useState<boolean>(!!currentUser.blockedUsers?.includes(user.id));
   const [blockedList, setBlockedList] = useState<string[]>(currentUser.blockedUsers || []);
   const isSelf = currentUser.id === user.id;
   const isAcquaintance = currentUser.acquaintances?.includes(user.id);
   const isRequested = currentUser.sentAcquaintanceRequests?.includes(user.id);
   const trustBadge = getTrustBadgeConfig(user.trustScore ?? 0);
   const zodiacSign = user.zodiacSign || (user.dob ? getZodiacSign(user.dob) : '');
+  const [localAvatar, setLocalAvatar] = useState<string>(user.avatar);
+  const [localAvatarType, setLocalAvatarType] = useState<'image' | 'video' | undefined>(user.avatarType);
+  const [localCover, setLocalCover] = useState<string | undefined>(user.coverImage);
+  const [localCoverType, setLocalCoverType] = useState<'image' | 'video' | undefined>(user.coverType);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isSelf) {
@@ -91,14 +97,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   }, [user.id, currentUser.id, isSelf]);
 
   useEffect(() => {
-    setIsBlocked(!!currentUser.blockedUsers?.includes(user.id));
-  }, [currentUser.blockedUsers, user.id]);
-
-  useEffect(() => {
     if (isSelf) {
       loadAdSubscriptions();
     }
   }, [isSelf, currentUser.id]);
+  useEffect(() => {
+    setLocalAvatar(user.avatar);
+    setLocalAvatarType(user.avatarType);
+    setLocalCover(user.coverImage);
+    setLocalCoverType(user.coverType);
+  }, [user.avatar, user.avatarType, user.coverImage, user.coverType]);
 
   const loadAdSubscriptions = async () => {
     setLoadingSubscriptions(true);
@@ -133,6 +141,47 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const handleReact = (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => {
     onReact(postId, reaction, targetType, commentId);
     PrivacyService.trackInteraction(currentUser.id, 'react', targetType, { postId, reaction, commentId });
+  };
+  const handleMediaFile = async (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'coverImage') => {
+    const file = e.target.files?.[0];
+    if (!file || !isSelf) return;
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('File size must be less than 10MB');
+      e.target.value = '';
+      return;
+    }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Allowed: JPG, PNG, WEBP, MP4');
+      e.target.value = '';
+      return;
+    }
+    try {
+      const result = await uploadService.uploadFile(file);
+      const isVideo = file.type.startsWith('video/') || /\.mp4$/i.test(file.name);
+      const typeProp = field === 'avatar' ? 'avatarType' : 'coverType';
+      const updates: Partial<User> = {
+        [field]: result.url,
+        [typeProp]: isVideo ? 'video' : 'image'
+      } as any;
+      const updateResp = await UserService.updateUser(currentUser.id, updates);
+      if (updateResp.success) {
+        if (field === 'avatar') {
+          setLocalAvatar(result.url);
+          setLocalAvatarType(isVideo ? 'video' : 'image');
+        } else {
+          setLocalCover(result.url);
+          setLocalCoverType(isVideo ? 'video' : 'image');
+        }
+      } else {
+        alert(updateResp.error || 'Failed to update profile media');
+      }
+    } catch (err) {
+      alert('Upload failed');
+    } finally {
+      e.target.value = '';
+    }
   };
   
   const handleBlock = async () => {
@@ -178,12 +227,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({
       <div className="max-w-4xl mx-auto">
         {/* Cover Section */}
         <div className="relative h-80 overflow-hidden">
-          <MediaDisplay 
-            url={user.coverImage} 
-            type={user.coverType} 
-            className="w-full h-full" 
-            fallback={<div className="w-full h-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-700"></div>}
-          />
+          <div className={`relative w-full h-full ${isSelf ? 'group cursor-pointer' : ''}`} onClick={() => { if (isSelf) coverInputRef.current?.click(); }}>
+            <MediaDisplay 
+              url={isSelf ? (localCover || '') : (user.coverImage || '')} 
+              type={isSelf ? localCoverType : user.coverType} 
+              className="w-full h-full" 
+              fallback={<div className="w-full h-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-700"></div>}
+            />
+            {isSelf && <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-black tracking-widest">Update Cover</div>}
+          </div>
+          <input type="file" ref={coverInputRef} hidden accept="image/*,video/*" onChange={(e) => handleMediaFile(e, 'coverImage')} />
           <div className="absolute inset-0 bg-black/20"></div>
           
           {/* Back Button */}
@@ -203,14 +256,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               {/* Left Section - Avatar & Info */}
               <div className="flex flex-col lg:flex-row gap-6 flex-1">
                 <div className="flex justify-center lg:justify-start">
-                  <div className={`w-32 h-32 rounded-2xl p-1 shadow-lg ${user.activeGlow !== 'none' ? 'ring-4 ring-emerald-400/30' : ''} bg-white dark:bg-slate-800`}>
+                  <div className={`relative w-32 h-32 rounded-2xl p-1 shadow-lg ${user.activeGlow !== 'none' ? 'ring-4 ring-emerald-400/30' : ''} bg-white dark:bg-slate-800 ${isSelf ? 'group cursor-pointer' : ''}`} onClick={() => { if (isSelf) avatarInputRef.current?.click(); }}>
                     <Avatar 
-                      src={user.avatar} 
-                      type={user.avatarType} 
+                      src={isSelf ? localAvatar : user.avatar} 
+                      type={isSelf ? localAvatarType : user.avatarType} 
                       name={user.name} 
                       size="custom"
                       className="w-full h-full rounded-xl"
                     />
+                    {isSelf && <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-black tracking-widest rounded-xl">Update Photo</div>}
+                    <input type="file" ref={avatarInputRef} hidden accept="image/*,video/*" onChange={(e) => handleMediaFile(e, 'avatar')} />
                   </div>
                 </div>
 
@@ -281,18 +336,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                         >
                           <span>✉️</span>
                           <span>Message</span>
-                        </button>
-                        <button
-                          onClick={handleBlock}
-                          disabled={!!isBlocked || blockLoading}
-                          className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
-                            isBlocked
-                              ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 cursor-not-allowed'
-                              : 'bg-red-600 text-white hover:bg-red-700 hover:shadow-lg'
-                          }`}
-                        >
-                          <span>🚫</span>
-                          <span>{isBlocked ? 'Blocked' : blockLoading ? 'Blocking...' : 'Block'}</span>
                         </button>
                         <button
                           onClick={() => setReportOpen(true)}

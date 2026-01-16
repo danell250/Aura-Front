@@ -45,7 +45,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const isRenderingRef = useRef<boolean>(false);
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj';
-const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&vault=true&intent=subscription&components=buttons`;
+const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&vault=true&intent=capture&components=buttons`;
 
   const [form, setForm] = useState({ 
     headline: '', 
@@ -121,11 +121,10 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
       const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]') as HTMLScriptElement;
       
       if (existingScript) {
-        // Check if the existing script has the required vault parameter
         const hasVault = existingScript.src.includes('vault=true');
-        const hasSubscriptionIntent = existingScript.src.includes('intent=subscription');
+        const hasCaptureIntent = existingScript.src.includes('intent=capture');
         
-        if (!hasVault || !hasSubscriptionIntent) {
+        if (!hasVault || !hasCaptureIntent) {
           console.log("[Aura] Existing PayPal SDK missing required parameters. Reloading...");
           existingScript.remove();
           if (window.paypal) {

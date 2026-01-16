@@ -11,16 +11,27 @@ import { getApiBaseUrl } from '../constants';
 interface ChatViewProps {
   currentUser: User;
   acquaintances: User[];
-  allUsers: User[]; // Add all users prop
+  allUsers: User[];
   onBack: () => void;
   initialContactId?: string;
   onViewProfile?: (userId: string) => void;
+  isMessageSoundEnabled?: boolean;
+  onToggleMessageSound?: (enabled: boolean) => void;
 }
 
 const API_BASE_URL = getApiBaseUrl();
 const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api$/, '');
 
-const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUsers, onBack, initialContactId, onViewProfile }) => {
+const ChatView: React.FC<ChatViewProps> = ({
+  currentUser,
+  acquaintances,
+  allUsers,
+  onBack,
+  initialContactId,
+  onViewProfile,
+  isMessageSoundEnabled = true,
+  onToggleMessageSound
+}) => {
   const AURA_ADMIN_EMAIL = 'aurasocialradiate@gmail.com';
   const [activeContact, setActiveContact] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -108,7 +119,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
               nextMessages.length > prev.length
             ) {
               const lastMessage = nextMessages[nextMessages.length - 1];
-              if (lastMessage.senderId !== currentUser.id) {
+              if (lastMessage.senderId !== currentUser.id && isMessageSoundEnabled) {
                 soundService.playMessage();
               }
             }
@@ -800,32 +811,39 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUser, acquaintances, allUser
                 </div>
               </div>
               <div className="flex gap-4 relative">
-                 <div ref={headerMenuRef}>
-                    <button 
-                      onClick={() => setShowHeaderMenu(!showHeaderMenu)}
-                      className={`w-12 h-12 flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-slate-900 dark:hover:bg-emerald-600 hover:text-white transition-all active:scale-90 border border-slate-100 dark:border-slate-700 shadow-sm ${showHeaderMenu ? 'bg-slate-900 text-white' : ''}`}
-                    >
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
-                    </button>
-                    {showHeaderMenu && (
-                      <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-2xl z-50 py-3 overflow-hidden animate-in fade-in zoom-in-95 origin-top-right">
-                        <button 
-                          onClick={handleArchive}
-                          className="w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-between"
-                        >
-                          {archivedIds.includes(activeContact.id) ? 'Restore Sync' : 'Archive Stream'}
-                          <span className="opacity-40">{archivedIds.includes(activeContact.id) ? '📤' : '📥'}</span>
-                        </button>
-                        <button 
-                          onClick={handleDeleteChat}
-                          className="w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all flex items-center justify-between"
-                        >
-                          Purge Logs
-                          <span className="opacity-40">🗑️</span>
-                        </button>
-                      </div>
-                    )}
-                 </div>
+                <div ref={headerMenuRef}>
+                  <button 
+                    onClick={() => setShowHeaderMenu(!showHeaderMenu)}
+                    className={`w-12 h-12 flex items-center justify-center bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-slate-900 dark:hover:bg-emerald-600 hover:text-white transition-all active:scale-90 border border-slate-100 dark:border-slate-700 shadow-sm ${showHeaderMenu ? 'bg-slate-900 text-white' : ''}`}
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
+                  </button>
+                  {showHeaderMenu && (
+                    <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-2xl z-50 py-3 overflow-hidden animate-in fade-in zoom-in-95 origin-top-right">
+                      <button 
+                        onClick={handleArchive}
+                        className="w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-between"
+                      >
+                        {archivedIds.includes(activeContact.id) ? 'Restore Sync' : 'Archive Stream'}
+                        <span className="opacity-40">{archivedIds.includes(activeContact.id) ? '📤' : '📥'}</span>
+                      </button>
+                      <button 
+                        onClick={handleDeleteChat}
+                        className="w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all flex items-center justify-between"
+                      >
+                        Purge Logs
+                        <span className="opacity-40">🗑️</span>
+                      </button>
+                      <button 
+                        onClick={() => onToggleMessageSound && onToggleMessageSound(!isMessageSoundEnabled)}
+                        className="w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-between"
+                      >
+                        {isMessageSoundEnabled ? 'Mute Neural Sync' : 'Unmute Neural Sync'}
+                        <span className="opacity-40">{isMessageSoundEnabled ? '🔇' : '🔊'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             

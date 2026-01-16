@@ -1887,7 +1887,17 @@ const App: React.FC = () => {
           onOpenAdManager={() => setIsAdManagerOpen(true)}
         />
       )}
-      {view.type === 'chat' && <ChatView currentUser={currentUser} allUsers={allUsers} acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} onBack={() => navigateToView({ type: 'feed' })} initialContactId={view.targetId} />}
+      {view.type === 'chat' && (
+        <ChatView 
+          currentUser={currentUser} 
+          allUsers={allUsers} 
+          acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} 
+          onBack={() => navigateToView({ type: 'feed' })} 
+          initialContactId={view.targetId}
+          isMessageSoundEnabled={isMessageSoundEnabled}
+          onToggleMessageSound={setIsMessageSoundEnabled}
+        />
+      )}
       {view.type === 'acquaintances' && (
         <AcquaintancesView 
           currentUser={currentUser} 

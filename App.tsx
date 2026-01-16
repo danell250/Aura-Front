@@ -33,6 +33,7 @@ import { getSerendipityMatches, SerendipityMatch, trackSerendipitySkip, recalcul
 import { getApiBaseUrl } from './constants';
 import { adSubscriptionService } from './services/adSubscriptionService';
 import { apiFetch } from './utils/api';
+import { PrivacyService } from './services/privacyService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -1883,6 +1884,7 @@ const App: React.FC = () => {
         <AcquaintancesView 
           currentUser={currentUser} 
           acquaintances={allUsers.filter(u => currentUser.acquaintances?.includes(u.id))} 
+          allUsers={allUsers}
           onViewProfile={(id) => navigateToView({ type: 'profile', targetId: id })} 
           onViewChat={(id) => navigateToView({ type: 'chat', targetId: id })} 
           onRemoveAcquaintance={handleRemoveAcquaintance} 

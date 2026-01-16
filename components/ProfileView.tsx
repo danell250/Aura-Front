@@ -185,12 +185,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   };
   
   const handleBlock = async () => {
-    if (isBlocked || blockLoading) return;
+    if (blockedList.includes(user.id) || blockLoading) return;
     setBlockLoading(true);
     try {
       const result = await UserService.blockUser(currentUser.id, user.id);
       if (result.success) {
-        setIsBlocked(true);
+        setBlockedList(prev => (prev.includes(user.id) ? prev : [...prev, user.id]));
         setActionMessage('User blocked');
       } else {
         setActionMessage(result.error || 'Failed to block user');
@@ -203,7 +203,24 @@ const ProfileView: React.FC<ProfileViewProps> = ({
     }
   };
   
-  const handleUnblock = async (_targetUserId: string) => {};
+  const handleUnblock = async () => {
+    if (!blockedList.includes(user.id) || blockLoading) return;
+    setBlockLoading(true);
+    try {
+      const result = await UserService.unblockUser(currentUser.id, user.id);
+      if (result.success) {
+        setBlockedList(prev => prev.filter(id => id !== user.id));
+        setActionMessage('User unblocked');
+      } else {
+        setActionMessage(result.error || 'Failed to unblock user');
+      }
+    } catch {
+      setActionMessage('Failed to unblock user');
+    } finally {
+      setBlockLoading(false);
+      setTimeout(() => setActionMessage(null), 3000);
+    }
+  };
   
   const submitReport = async () => {
     try {

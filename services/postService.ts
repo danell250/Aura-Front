@@ -147,7 +147,7 @@ export class PostService {
   /**
    * Create a new post
    */
-  static async createPost(postData: Partial<Post>): Promise<{ success: boolean; post?: Post; error?: string }> {
+  static async createPost(postData: Partial<Post> & { authorId: string }): Promise<{ success: boolean; post?: Post; error?: string }> {
     try {
       const response = await apiFetch('/posts', {
         method: 'POST',

@@ -7,6 +7,8 @@ interface MessagingSystemProps {
   allUsers: User[];
   isOpen: boolean;
   onClose: () => void;
+  isSoundEnabled?: boolean;
+  onToggleSound?: (enabled: boolean) => void;
   onSendMessage: (receiverId: string, text: string) => void;
   messages: Message[];
   unreadCounts: Record<string, number>;
@@ -21,6 +23,8 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   allUsers, 
   isOpen, 
   onClose, 
+  isSoundEnabled = true,
+  onToggleSound,
   onSendMessage, 
   messages, 
   unreadCounts,
@@ -182,6 +186,13 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
               <span>💬</span> Messages
             </h2>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => onToggleSound && onToggleSound(!isSoundEnabled)}
+                className={`p-2 rounded-lg transition-colors border ${isSoundEnabled ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'}`}
+                aria-label={isSoundEnabled ? 'Mute message sounds' : 'Unmute message sounds'}
+              >
+                {isSoundEnabled ? '🔊' : '🔈'}
+              </button>
               <button 
                 onClick={() => setShowSearch(!showSearch)}
                 className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"

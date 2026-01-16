@@ -83,6 +83,8 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeEnergy, setActiveEnergy] = useState<EnergyType | 'all'>('all');
   const [activeMediaType, setActiveMediaType] = useState<'all' | 'image' | 'video' | 'document'>('all');
+  const [isMessageSoundEnabled, setIsMessageSoundEnabled] = useState(true);
+  const [isNotificationSoundEnabled, setIsNotificationSoundEnabled] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAdManagerOpen, setIsAdManagerOpen] = useState(false);
   const [adSubsRefreshTick, setAdSubsRefreshTick] = useState(0);
@@ -242,6 +244,35 @@ const App: React.FC = () => {
   const messageInitRef = useRef(false);
   const prevUnreadCountRef = useRef(0);
 
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    try {
+      const raw = localStorage.getItem(`aura_sound_prefs_${currentUser.id}`);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { message?: boolean; notification?: boolean };
+        if (typeof parsed.message === 'boolean') {
+          setIsMessageSoundEnabled(parsed.message);
+        }
+        if (typeof parsed.notification === 'boolean') {
+          setIsNotificationSoundEnabled(parsed.notification);
+        }
+      }
+    } catch {
+    }
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const payload = {
+      message: isMessageSoundEnabled,
+      notification: isNotificationSoundEnabled
+    };
+    try {
+      localStorage.setItem(`aura_sound_prefs_${currentUser.id}`, JSON.stringify(payload));
+    } catch {
+    }
+  }, [currentUser?.id, isMessageSoundEnabled, isNotificationSoundEnabled]);
+
   const fetchNotifications = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
@@ -255,7 +286,7 @@ const App: React.FC = () => {
           const hasPrevious = prev.length > 0 || notificationInitRef.current;
           notificationInitRef.current = true;
           const hasNew = result.data.some((n: Notification) => !previousSet.has(n.id));
-          if (hasPrevious && hasNew) {
+          if (hasPrevious && hasNew && isNotificationSoundEnabled) {
             soundService.playNotification();
           }
           prevNotificationIdsRef.current = currentSet;
@@ -265,7 +296,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, isNotificationSoundEnabled]);
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.id) return;
@@ -299,7 +330,7 @@ const App: React.FC = () => {
           const next = totalUnread;
           const hasPrevious = messageInitRef.current;
           messageInitRef.current = true;
-          if (hasPrevious && next > previous) {
+          if (hasPrevious && next > previous && isMessageSoundEnabled) {
             soundService.playMessage();
           }
           prevUnreadCountRef.current = next;
@@ -310,7 +341,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch message conversations:', error);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, isMessageSoundEnabled]);
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.id) return;
@@ -329,6 +360,34 @@ const App: React.FC = () => {
       cancelled = true;
     };
   }, [isAuthenticated, currentUser?.id, fetchUnreadMessages]);
+
+  const totalUnread = unreadNotificationCount + unreadMessageCount;
+
+  useEffect(() => {
+    const baseTitle = 'Aura';
+    if (totalUnread > 0) {
+      document.title = `(${totalUnread}) ${baseTitle}`;
+    } else {
+      document.title = baseTitle;
+    }
+
+    const favicon = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
+    if (favicon) {
+      if (totalUnread > 0) {
+        favicon.href = '/favicon-notification.ico';
+      } else {
+        favicon.href = '/favicon.ico';
+      }
+    }
+
+    return () => {
+      document.title = baseTitle;
+      const resetFavicon = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
+      if (resetFavicon) {
+        resetFavicon.href = '/favicon.ico';
+      }
+    };
+  }, [totalUnread]);
 
   const syncBirthdays = useCallback(async () => {
     try {
@@ -494,6 +553,20 @@ const App: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to load posts from backend:', error);
+      }
+    })();
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    (async () => {
+      try {
+        const result = await AdService.getAllAds();
+        if (result.success && result.ads) {
+          setAds(result.ads);
+        }
+      } catch (error) {
+        console.error('Failed to load ads from backend:', error);
       }
     })();
   }, [isAuthenticated]);
@@ -694,9 +767,22 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeletePost = useCallback((postId: string) => {
+  const handleDeletePost = useCallback(async (postId: string) => {
+    const previousPosts = posts;
     setPosts(prev => prev.filter(p => p.id !== postId));
-  }, []);
+
+    try {
+      const result = await PostService.deletePost(postId);
+      if (!result.success) {
+        setPosts(previousPosts);
+        alert(result.error || 'Failed to delete post. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to delete post from backend:', error);
+      setPosts(previousPosts);
+      alert('Failed to delete post. Please check your connection and try again.');
+    }
+  }, [posts]);
 
   const handleDeleteComment = useCallback((postId: string, commentId: string) => {
     setPosts(prev => prev.map(p => {
@@ -1612,6 +1698,8 @@ const App: React.FC = () => {
       messagePulse={messagePulse}
       unreadNotificationCount={unreadNotificationCount}
       onSearchTag={setSearchQuery}
+      isNotificationSoundEnabled={isNotificationSoundEnabled}
+      onToggleNotificationSound={setIsNotificationSoundEnabled}
     >
       {view.type === 'feed' && (
         <div className="space-y-6">
@@ -1756,7 +1844,21 @@ const App: React.FC = () => {
           currentUser={currentUser}
           ads={ads}
           onAdCreated={handleAdCreated}
-          onAdCancelled={(id) => setAds(ads.filter(a => a.id !== id))}
+          onAdCancelled={async (id) => {
+            const previousAds = ads;
+            setAds(prev => prev.filter(a => a.id !== id));
+            try {
+              const result = await AdService.deleteAd(id);
+              if (!result.success) {
+                setAds(previousAds);
+                alert(result.error || 'Failed to delete ad. Please try again.');
+              }
+            } catch (error) {
+              console.error('Failed to delete ad from backend:', error);
+              setAds(previousAds);
+              alert('Failed to delete ad. Please check your connection and try again.');
+            }
+          }}
           onAdUpdated={async (adId, updates) => {
             try {
               const token = localStorage.getItem('aura_auth_token') || '';

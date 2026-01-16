@@ -96,6 +96,33 @@ export class PostService {
   }
 
   /**
+   * Delete a post by ID
+   */
+  static async deletePost(postId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const response = await fetch(`${API_BASE_URL}/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        credentials: 'include' as RequestCredentials
+      });
+
+      const json = await response.json().catch(() => ({} as any));
+      if (response.ok && json?.success) {
+        return { success: true };
+      }
+
+      return { success: false, error: json?.message || 'Failed to delete post' };
+    } catch (error: any) {
+      console.error('❌ Error deleting post:', error);
+      return { success: false, error: error?.message || 'Failed to delete post' };
+    }
+  }
+
+  /**
    * Increment view count for a post
    */
   static async incrementPostViews(postId: string): Promise<{ success: boolean; viewCount?: number; error?: string }> {

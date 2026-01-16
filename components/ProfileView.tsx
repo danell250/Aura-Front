@@ -66,7 +66,7 @@ interface ProfileViewProps {
 const ProfileView: React.FC<ProfileViewProps> = ({
    user, posts, ads, adRefreshTick, currentUser, allUsers, onBack, onReact, onComment, onLoadComments, onShare, onAddAcquaintance, onRemoveAcquaintance, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager, onCancelAd, onUpdateAd
 }) => {
-  const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'blocked' | 'adplans'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'adplans'>('posts');
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [adSubscriptions, setAdSubscriptions] = useState<AdSubscription[]>([]);
   const [loadingSubscriptions, setLoadingSubscriptions] = useState(false);
@@ -77,7 +77,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState<boolean>(!!currentUser.blockedUsers?.includes(user.id));
   const [blockedList, setBlockedList] = useState<string[]>(currentUser.blockedUsers || []);
-  const [unblockLoadingId, setUnblockLoadingId] = useState<string | null>(null);
   const isSelf = currentUser.id === user.id;
   const isAcquaintance = currentUser.acquaintances?.includes(user.id);
   const isRequested = currentUser.sentAcquaintanceRequests?.includes(user.id);
@@ -94,12 +93,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   useEffect(() => {
     setIsBlocked(!!currentUser.blockedUsers?.includes(user.id));
   }, [currentUser.blockedUsers, user.id]);
-
-  useEffect(() => {
-    if (isSelf) {
-      setBlockedList(currentUser.blockedUsers || []);
-    }
-  }, [isSelf, currentUser.blockedUsers]);
 
   useEffect(() => {
     if (isSelf) {
@@ -161,24 +154,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
     }
   };
   
-  const handleUnblock = async (targetUserId: string) => {
-    if (!isSelf || unblockLoadingId) return;
-    setUnblockLoadingId(targetUserId);
-    try {
-      const result = await UserService.unblockUser(currentUser.id, targetUserId);
-      if (result.success) {
-        setBlockedList(prev => prev.filter(id => id !== targetUserId));
-        setActionMessage('User unblocked');
-      } else {
-        setActionMessage(result.error || 'Failed to unblock user');
-      }
-    } catch {
-      setActionMessage('Failed to unblock user');
-    } finally {
-      setUnblockLoadingId(null);
-      setTimeout(() => setActionMessage(null), 3000);
-    }
-  };
+  const handleUnblock = async (_targetUserId: string) => {};
   
   const submitReport = async () => {
     try {

@@ -9,9 +9,11 @@ interface NotificationDropdownProps {
   onAccept?: (notification: Notification) => void;
   onReject?: (notification: Notification) => void;
   onNavigate?: (notification: Notification) => void;
+  isSoundEnabled?: boolean;
+  onToggleSound?: (enabled: boolean) => void;
 }
 
-const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notifications, onClose, onRead, onAccept, onReject, onNavigate }) => {
+const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notifications, onClose, onRead, onAccept, onReject, onNavigate, isSoundEnabled = true, onToggleSound }) => {
   const formatDate = (ts: number) => {
     return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric' }).format(ts);
   };
@@ -64,11 +66,20 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
     <div className="absolute right-0 mt-2 w-80 glass rounded-3xl border border-slate-200/50 shadow-2xl z-[60] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
       <div className="p-4 border-b border-slate-100 flex justify-between items-center">
         <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Notifications</h3>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onToggleSound && onToggleSound(!isSoundEnabled)}
+            className={`p-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-colors ${isSoundEnabled ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'}`}
+            aria-label={isSoundEnabled ? 'Mute notification sounds' : 'Unmute notification sounds'}
+          >
+            {isSoundEnabled ? 'Sound On' : 'Sound Off'}
+          </button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
       <div className="max-h-96 overflow-y-auto no-scrollbar">
         {notifications.length === 0 ? (

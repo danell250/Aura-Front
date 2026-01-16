@@ -12,7 +12,7 @@ import { Avatar } from './MediaDisplay';
 interface LayoutProps {
   children: React.ReactNode;
   searchQuery: string;
-  onSearchChange: (query: string) => void;
+  onSearchChange: (value: string) => void;
   onLogout: () => void;
   currentUser: User;
   onGoHome: () => void;
@@ -22,7 +22,7 @@ interface LayoutProps {
   onViewSettings: () => void;
   onViewPrivacy: () => void;
   onStartCampaign: () => void;
-  onOpenCreditStore?: () => void;
+  onOpenCreditStore: () => void;
   ads: Ad[];
   posts: Post[];
   users: User[];
@@ -41,6 +41,8 @@ interface LayoutProps {
   unreadMessageCount?: number;
   messagePulse?: boolean;
   unreadNotificationCount?: number;
+  isNotificationSoundEnabled?: boolean;
+  onToggleNotificationSound?: (enabled: boolean) => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -48,7 +50,7 @@ const Layout: React.FC<LayoutProps> = ({
   onGoHome, onViewProfile, onViewChat, onViewFriends,
   onViewSettings, onViewPrivacy, onStartCampaign, onOpenCreditStore, ads, posts, users, notifications,
   activeView, isDarkMode, onToggleDarkMode, onSearchResult, onSearchTag, onOpenMessaging,
-  onReadNotification, onMarkAllNotificationsRead, onAcceptAcquaintance, onRejectAcquaintance, onNavigateNotification, unreadMessageCount = 0, messagePulse = false, unreadNotificationCount
+  onReadNotification, onMarkAllNotificationsRead, onAcceptAcquaintance, onRejectAcquaintance, onNavigateNotification, unreadMessageCount = 0, messagePulse = false, unreadNotificationCount, isNotificationSoundEnabled = true, onToggleNotificationSound
 }) => {
   const unreadCount = typeof unreadNotificationCount === 'number' ? unreadNotificationCount : notifications.filter(n => !n.isRead).length;
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -161,6 +163,8 @@ const Layout: React.FC<LayoutProps> = ({
                 onAccept={onAcceptAcquaintance}
                 onReject={onRejectAcquaintance}
                 onNavigate={onNavigateNotification}
+                isSoundEnabled={isNotificationSoundEnabled}
+                onToggleSound={onToggleNotificationSound}
               />
             )}
           </div>

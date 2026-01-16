@@ -171,7 +171,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center px-4 sm:px-6 py-6 md:py-8 relative overflow-hidden transition-colors">
+    <div className="h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center px-4 sm:px-6 py-4 md:py-6 relative overflow-hidden transition-colors">
       <div className="absolute -top-40 right-[-10%] w-[60%] h-[60%] bg-emerald-500/30 blur-[140px] -z-10"></div>
       <div className="absolute bottom-[-30%] left-[-10%] w-[55%] h-[55%] bg-sky-500/25 blur-[140px] -z-10"></div>
       <div className="absolute inset-0 -z-10 opacity-60">
@@ -179,8 +179,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
         <div className="absolute bottom-10 right-1/4 w-64 h-64 bg-emerald-400/25 blur-[110px] rounded-full"></div>
       </div>
 
-      <div className="w-full max-w-6xl flex flex-col lg:flex-row items-stretch gap-8 lg:gap-12 animate-in fade-in zoom-in duration-700">
-        <div className="hidden lg:flex flex-col flex-[1.1] bg-slate-900/80 backdrop-blur-3xl text-white rounded-[2.75rem] p-8 xl:p-10 relative overflow-hidden border border-slate-700/80 shadow-[0_40px_120px_-24px_rgba(15,23,42,0.95)]">
+      <div className="w-full max-w-6xl flex flex-col lg:flex-row items-stretch gap-6 lg:gap-10 animate-in fade-in zoom-in duration-700">
+        <div className="hidden lg:flex flex-col flex-[1.1] bg-slate-900/80 backdrop-blur-3xl text-white rounded-[2.75rem] p-6 xl:p-8 relative overflow-hidden border border-slate-700/80 shadow-[0_40px_120px_-24px_rgba(15,23,42,0.95)]">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute -top-32 -right-24 w-80 h-80 bg-emerald-500/30 rounded-full blur-3xl" />
             <div className="absolute -bottom-40 -left-16 w-96 h-96 bg-purple-500/25 rounded-full blur-3xl" />
@@ -250,14 +250,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
             </div>
           </div>
         </div>
-
         <div className="w-full max-w-md mx-auto lg:max-w-none lg:flex-[0.9]">
           <div className="text-center mb-8 lg:mb-10 lg:hidden">
             <Logo size="lg" className="mb-4" />
           </div>
 
           <div className="p-[2px] rounded-[3rem] aura-bg-gradient transition-all duration-500 hover:shadow-[0_70px_140px_-26px_rgba(0,0,0,0.35)] hover:brightness-110 hover:-translate-y-1 will-change-transform">
-            <div className="bg-white/75 dark:bg-slate-900/75 backdrop-blur-3xl supports-[backdrop-filter]:backdrop-blur-3xl rounded-[3rem] shadow-[0_40px_100px_-24px_rgba(15,23,42,0.45)] dark:shadow-[0_40px_110px_-28px_rgba(0,0,0,0.9)] border border-white/60 dark:border-slate-700 p-8 md:p-10 relative overflow-hidden transition-all duration-500">
+            <div className="bg-white/75 dark:bg-slate-900/75 backdrop-blur-3xl supports-[backdrop-filter]:backdrop-blur-3xl rounded-[3rem] shadow-[0_40px_100px_-24px_rgba(15,23,42,0.45)] dark:shadow-[0_40px_110px_-28px_rgba(0,0,0,0.9)] border border-white/60 dark:border-slate-700 p-6 md:p-8 relative overflow-hidden transition-all duration-500">
               <div className="absolute top-0 left-0 w-full h-2 aura-bg-gradient"></div>
               <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-400/18 rounded-full blur-3xl pointer-events-none"></div>
               <div className="absolute -bottom-28 -left-24 w-72 h-72 bg-sky-400/18 rounded-full blur-3xl pointer-events-none"></div>
@@ -274,7 +273,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
 
           {mode === 'login_selection' && (
             <div className="animate-in fade-in slide-in-from-bottom-4">
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight text-center mb-10">Log in to {APP_NAME}</h2>
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight text-center mb-6">Log in to {APP_NAME}</h2>
 
               <button
                 onClick={() => setMode('login_manual')}
@@ -297,11 +296,21 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
                     <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
                     <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
                   </svg>
-                  {isProcessing ? 'Connecting...' : 'Login with Google'}
+                  {isProcessing ? 'Connecting...' : 'Continue with Google'}
+                </button>
+                <button
+                  onClick={() => (window.location.href = `${API_BASE_URL}/auth/github`)}
+                  disabled={isProcessing}
+                  className={socialButtonClasses}
+                >
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
+                    <path d="M12 .5A11.5 11.5 0 0 0 .5 12c0 5.08 3.29 9.38 7.86 10.9.58.1.8-.25.8-.56v-2.1c-3.2.7-3.88-1.38-3.88-1.38-.53-1.36-1.3-1.72-1.3-1.72-1.07-.73.08-.72.08-.72 1.18.08 1.8 1.22 1.8 1.22 1.05 1.8 2.75 1.28 3.42.98.1-.77.41-1.28.74-1.58-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.29 1.2-3.1-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.17 1.18.93-.26 1.93-.39 2.93-.39s2 .13 2.93.39c2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.75.11 3.04.75.81 1.2 1.84 1.2 3.1 0 4.41-2.7 5.38-5.27 5.67.42.36.79 1.08.79 2.18v3.24c0 .31.22.67.81.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5Z" />
+                  </svg>
+                  {isProcessing ? 'Connecting...' : 'Continue with GitHub'}
                 </button>
               </div>
 
-              <div className="mt-12 text-center pt-8 border-t border-slate-100 dark:border-slate-800">
+              <div className="mt-8 text-center pt-6 border-t border-slate-100 dark:border-slate-800">
                 <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
                   By logging in, you agree to Aura's{' '}
                   <a
@@ -325,7 +334,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
 
           {mode === 'login_manual' && (
             <form onSubmit={handleManualLogin} className="animate-in slide-in-from-right-8 duration-500">
-              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight text-center mb-8">Secure Login</h3>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight text-center mb-6">Secure Login</h3>
               <div className="space-y-5">
                 <div className="relative">
                   <label className={labelClasses}>Email or Username</label>
@@ -488,7 +497,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
         </div>
         </div>
 
-        <p className="text-center mt-12 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.5em] animate-pulse">{APP_NAME} © 2025</p>
+      <p className="absolute bottom-3 inset-x-0 text-center text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.5em] animate-pulse">{APP_NAME} © 2025</p>
       </div>
 
       </div>

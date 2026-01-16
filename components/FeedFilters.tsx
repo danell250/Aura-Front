@@ -113,6 +113,7 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
           <div className="flex flex-wrap gap-2">
             {energyFilters.slice(0, 2).map((filter) => (
               <QuickFilterChip
+                key={filter.key}
                 label={`${filter.icon} ${filter.label}`}
                 active={activeEnergy === filter.key}
                 onClick={() => onEnergyChange(filter.key as any)}
@@ -121,6 +122,7 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
             ))}
             {mediaFilters.slice(0, 3).map((filter) => (
               <QuickFilterChip
+                key={filter.key}
                 label={`${filter.icon} ${filter.label}`}
                 active={activeMediaType === filter.key}
                 onClick={() => onMediaTypeChange(filter.key as any)}

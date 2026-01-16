@@ -206,7 +206,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                 <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded-full">Rate</span>
               </div>
               <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-                {averageCTR}%
+                {formattedAverageCTR}%
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400">Average across signals</div>
             </div>
@@ -287,7 +287,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">Clicks</div>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
-                      <div className="text-sm font-bold text-slate-900 dark:text-white">{perf?.ctr ?? 0}%</div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">{Number(perf?.ctr || 0).toFixed(2)}%</div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">CTR</div>
                     </div>
                   </div>

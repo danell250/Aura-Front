@@ -1,13 +1,11 @@
 import { Message } from '../types';
-import { getApiBaseUrl } from '../constants';
-
-const API_BASE_URL = getApiBaseUrl();
+import { apiFetch } from '../utils/api';
 
 export class MessageService {
   // Get conversations for a user
   static async getConversations(userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/conversations?userId=${userId}`);
+      const response = await apiFetch(`/messages/conversations?userId=${userId}`);
       const data = await response.json();
       return data;
     } catch (error) {
@@ -19,8 +17,8 @@ export class MessageService {
   // Get messages between two users
   static async getMessages(currentUserId: string, otherUserId: string, page = 1, limit = 50) {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/messages/${otherUserId}?currentUserId=${currentUserId}&page=${page}&limit=${limit}`
+      const response = await apiFetch(
+        `/messages/${otherUserId}?currentUserId=${currentUserId}&page=${page}&limit=${limit}`
       );
       const data = await response.json();
       return data;
@@ -33,11 +31,8 @@ export class MessageService {
   // Send a new message
   static async sendMessage(senderId: string, receiverId: string, text: string, messageType = 'text', mediaUrl?: string, replyTo?: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/messages`, {
+      const response = await apiFetch('/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           senderId,
           receiverId,
@@ -58,11 +53,8 @@ export class MessageService {
   // Edit a message
   static async editMessage(messageId: string, text: string, userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
+      const response = await apiFetch(`/messages/${messageId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           text,
           userId
@@ -79,11 +71,8 @@ export class MessageService {
   // Delete a message
   static async deleteMessage(messageId: string, userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
+      const response = await apiFetch(`/messages/${messageId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           userId
         }),
@@ -99,14 +88,10 @@ export class MessageService {
   // Delete all messages in a conversation
   static async deleteConversation(userId: string, otherUserId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/conversation`, {
+      const response = await apiFetch(`/messages/conversation/${otherUserId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
-          userId,
-          otherUserId
+          userId
         }),
       });
       const data = await response.json();
@@ -120,11 +105,8 @@ export class MessageService {
   // Mark messages as read
   static async markAsRead(senderId: string, receiverId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/mark-read`, {
+      const response = await apiFetch('/messages/mark-read', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           senderId,
           receiverId,
@@ -141,11 +123,8 @@ export class MessageService {
 
   static async setArchiveState(userId: string, otherUserId: string, archived: boolean) {
     try {
-      const response = await fetch(`${API_BASE_URL}/messages/archive`, {
+      const response = await apiFetch('/messages/archive', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ userId, otherUserId, archived }),
       });
       const data = await response.json();

@@ -316,7 +316,6 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
               if (isComponentMounted) {
                 setPaymentVerified(true);
                 setIsPaying(false);
-                setTimeout(() => setStep(3), 800);
               }
             } catch (err) {
               console.error('Subscription processing error:', err);
@@ -389,7 +388,6 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                 if (isComponentMounted) {
                   setPaymentVerified(true);
                   setIsPaying(false);
-                  setTimeout(() => setStep(3), 800);
                 }
               } else {
                 throw new Error('Invalid payment data received');
@@ -762,10 +760,12 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                                   Expires: {new Date(subscription.endDate).toLocaleDateString()}
                                 </p>
                               )}
-                              {hasAvailableSlots && (
-                                <button 
+                              <div className="mt-3">
+                              {hasAvailableSlots ? (
+                                <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    console.log("🚀 Create Ad Now clicked for subscription:", subscription);
                                     setSelectedSubscription(subscription);
                                     const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === subscription.packageId);
                                     if (matchingPkg) {
@@ -774,11 +774,24 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                                       setStep(3);
                                     }
                                   }}
-                                  className="w-full mt-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase rounded text-[9px] tracking-widest transition-all"
+                                  className="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase rounded text-[9px] tracking-widest transition-all"
                                 >
                                   Create Ad Now
                                 </button>
+                              ) : (
+                                <div className="flex flex-col gap-2">
+                                  <button
+                                    disabled
+                                    className="w-full py-2 bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-black uppercase rounded text-[9px] tracking-widest cursor-not-allowed"
+                                  >
+                                    Limit Reached
+                                  </button>
+                                  <p className="text-[9px] text-center text-red-500 dark:text-red-400 font-bold uppercase tracking-wide">
+                                    You have reached the ad limit for this plan
+                                  </p>
+                                </div>
                               )}
+                            </div>
                             </div>
                           </div>
                         );
@@ -1001,9 +1014,14 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                         : 'Initializing Neural Broadcast Builder...'
                       }
                     </p>
-                    <p className="mt-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] max-w-xl mx-auto">
-                      To create or manage ads later, go to your profile and open the Ad Plans tab.
-                    </p>
+                    <div className="mt-8 p-6 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-800 rounded-2xl max-w-xl mx-auto shadow-sm">
+                      <p className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
+                        <span>ℹ️</span> Important Instructions
+                      </p>
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed">
+                        To manage your ads or create new ones later, please go to your <span className="text-emerald-600 dark:text-emerald-400 underline decoration-2 decoration-emerald-400/30">Profile</span> and select the <span className="text-emerald-600 dark:text-emerald-400 underline decoration-2 decoration-emerald-400/30">Ad Plans</span> tab.
+                      </p>
+                    </div>
                     <div className="mt-10 flex flex-col items-center gap-3">
                       <button
                         onClick={() => {

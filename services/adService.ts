@@ -1,7 +1,5 @@
 import { Ad } from '../types';
-import { getApiBaseUrl } from '../constants';
-
-const API_BASE_URL = getApiBaseUrl();
+import { apiFetch } from '../utils/api';
 
 export class AdService {
   /**
@@ -9,14 +7,9 @@ export class AdService {
    */
   static async createAd(adData: Omit<Ad, 'id' | 'timestamp' | 'reactions' | 'reactionUsers'>): Promise<{ success: boolean; ad?: Ad; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ads`, {
+      const response = await apiFetch('/ads', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('aura_auth_token')}`
-        },
-        body: JSON.stringify(adData),
-        credentials: 'include' as RequestCredentials
+        body: JSON.stringify(adData)
       });
 
       if (response.ok) {
@@ -40,13 +33,8 @@ export class AdService {
    */
   static async getAllAds(): Promise<{ success: boolean; ads?: Ad[]; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ads`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('aura_auth_token')}`
-        },
-        credentials: 'include' as RequestCredentials
+      const response = await apiFetch('/ads', {
+        method: 'GET'
       });
 
       if (response.ok) {
@@ -67,13 +55,8 @@ export class AdService {
   static async getAdsByHashtag(hashtag: string): Promise<{ success: boolean; ads?: Ad[]; error?: string }> {
     try {
       const tag = hashtag.startsWith('#') ? hashtag.slice(1) : hashtag;
-      const response = await fetch(`${API_BASE_URL}/ads?hashtags=${encodeURIComponent(tag)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('aura_auth_token')}`
-        },
-        credentials: 'include' as RequestCredentials
+      const response = await apiFetch(`/ads?hashtags=${encodeURIComponent(tag)}`, {
+        method: 'GET'
       });
 
       if (response.ok) {
@@ -96,13 +79,8 @@ export class AdService {
    */
   static async deleteAd(adId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ads/${adId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('aura_auth_token')}`
-        },
-        credentials: 'include' as RequestCredentials
+      const response = await apiFetch(`/ads/${adId}`, {
+        method: 'DELETE'
       });
 
       if (response.ok) {
@@ -125,14 +103,9 @@ export class AdService {
    */
   static async updateAd(adId: string, updates: Partial<Ad>): Promise<{ success: boolean; ad?: Ad; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ads/${adId}`, {
+      const response = await apiFetch(`/ads/${adId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('aura_auth_token')}`
-        },
-        body: JSON.stringify(updates),
-        credentials: 'include' as RequestCredentials
+        body: JSON.stringify(updates)
       });
 
       if (response.ok) {

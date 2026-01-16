@@ -1,19 +1,12 @@
 import { User } from '../types';
-import { getApiBaseUrl } from '../constants';
-
-const API_BASE_URL = getApiBaseUrl();
+import { apiFetch } from '../utils/api';
 
 export class UserService {
   // Get current user (prefers cookie-based auth, optional bearer token)
   static async getMe(token?: string | null): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/user`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        credentials: 'include'
+      const response = await apiFetch('/auth/user', {
+        method: 'GET'
       });
       if (response.ok) {
         const result = await response.json();
@@ -34,11 +27,8 @@ export class UserService {
     try {
       console.log('Saving user to MongoDB:', userData.id);
       
-      const response = await fetch(`${API_BASE_URL}/users`, {
+      const response = await apiFetch('/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(userData)
       });
 
@@ -60,11 +50,8 @@ export class UserService {
   // Search users by query
   static async searchUsers(query: string): Promise<{ success: boolean; users?: User[]; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await apiFetch(`/users/search?q=${encodeURIComponent(query)}`, {
+        method: 'GET'
       });
       if (response.ok) {
         const result = await response.json();
@@ -82,11 +69,8 @@ export class UserService {
   // Get user by ID from MongoDB backend
   static async getUserById(userId: string): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await apiFetch(`/users/${userId}`, {
+        method: 'GET'
       });
 
       if (response.ok) {
@@ -105,11 +89,8 @@ export class UserService {
   // Get all users from MongoDB backend
   static async getAllUsers(): Promise<{ success: boolean; users?: User[]; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/users`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await apiFetch('/users', {
+        method: 'GET'
       });
 
       if (response.ok) {
@@ -128,11 +109,8 @@ export class UserService {
   // Update user
   static async updateUser(userId: string, updates: Partial<User>): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      const response = await apiFetch(`/users/${userId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(updates)
       });
 
@@ -152,11 +130,8 @@ export class UserService {
   // Send connection request
   static async sendConnectionRequest(fromUserId: string, toUserId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${toUserId}/connect`, {
+      const response = await apiFetch(`/users/${toUserId}/connect`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ fromUserId })
       });
 
@@ -174,11 +149,8 @@ export class UserService {
 
   static async cancelConnectionRequest(fromUserId: string, toUserId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${fromUserId}/cancel-connection`, {
+      const response = await apiFetch(`/users/${fromUserId}/cancel-connection`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ targetUserId: toUserId })
       });
 
@@ -197,7 +169,8 @@ export class UserService {
   // Accept connection request
   static async acceptConnectionRequest(fromUserId: string, toUserId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${toUserId}/accept-connection`, {
+      const response = await apiFetch(`/users/${toUserId}/accept-connection`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -220,11 +193,8 @@ export class UserService {
   // Reject connection request
   static async rejectConnectionRequest(fromUserId: string, toUserId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${toUserId}/reject-connection`, {
+      const response = await apiFetch(`/users/${toUserId}/reject-connection`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ requesterId: fromUserId })
       });
 
@@ -243,14 +213,8 @@ export class UserService {
   // Block user
   static async blockUser(userId: string, targetUserId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/users/${userId}/block`, {
+      const response = await apiFetch(`/users/${userId}/block`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({ targetUserId })
       });
       if (response.ok) {
@@ -267,14 +231,8 @@ export class UserService {
 
   static async unblockUser(userId: string, targetUserId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/users/${userId}/unblock`, {
+      const response = await apiFetch(`/users/${userId}/unblock`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({ targetUserId })
       });
       if (response.ok) {
@@ -292,14 +250,8 @@ export class UserService {
   // Report user
   static async reportUser(userId: string, targetUserId: string, reason: string, notes?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/users/${userId}/report`, {
+      const response = await apiFetch(`/users/${userId}/report`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({ targetUserId, reason, notes })
       });
       if (response.ok) {
@@ -317,14 +269,8 @@ export class UserService {
   // Remove acquaintance
   static async removeAcquaintance(userId: string, acquaintanceId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/users/${userId}/remove-acquaintance`, {
+      const response = await apiFetch(`/users/${userId}/remove-acquaintance`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({ acquaintanceId })
       });
 
@@ -348,11 +294,8 @@ export class UserService {
       
       // Try MongoDB backend
       try {
-        const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(normalizedEmail)}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        const response = await apiFetch(`/users/search?q=${encodeURIComponent(normalizedEmail)}`, {
+          method: 'GET'
         });
         if (response.ok) {
           const result = await response.json();
@@ -388,11 +331,8 @@ export class UserService {
         
         // Try MongoDB backend
         try {
-          const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(normalizedHandle)}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+          const response = await apiFetch(`/users/search?q=${encodeURIComponent(normalizedHandle)}`, {
+            method: 'GET'
           });
           if (response.ok) {
             const result = await response.json();
@@ -419,14 +359,8 @@ export class UserService {
     payload: { credits: number; bundleName: string; transactionId?: string; paymentMethod?: string; orderId?: string }
   ): Promise<{ success: boolean; error?: string; data?: any }> {
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/users/${userId}/purchase-credits`, {
+      const response = await apiFetch(`/users/${userId}/purchase-credits`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        credentials: 'include' as RequestCredentials,
         body: JSON.stringify({
           credits: payload.credits,
           bundleName: payload.bundleName,
@@ -453,11 +387,8 @@ export class UserService {
     userId: string
   ): Promise<{ success: boolean; error?: string; data?: any[] }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/credits/history/${userId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      const response = await apiFetch(`/credits/history/${userId}`, {
+        method: 'GET'
       });
 
       if (response.ok) {

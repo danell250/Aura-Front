@@ -32,6 +32,7 @@ import { soundService } from './services/soundService';
 import { getSerendipityMatches, SerendipityMatch, trackSerendipitySkip, recalculateTrustForUser } from './services/trustService';
 import { getApiBaseUrl } from './constants';
 import { adSubscriptionService } from './services/adSubscriptionService';
+import { apiFetch } from './utils/api';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -449,14 +450,8 @@ const App: React.FC = () => {
 
   const syncBirthdays = useCallback(async () => {
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/birthdays/today`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        credentials: 'include'
+      const response = await apiFetch('/birthdays/today', {
+        method: 'GET'
       });
       if (!response.ok) {
         setBirthdayAnnouncements([]);
@@ -472,7 +467,7 @@ const App: React.FC = () => {
       console.error('Error syncing birthdays from backend:', error);
       setBirthdayAnnouncements([]);
     }
-  }, [handleUnauthorized]);
+  }, []);
 
   useEffect(() => {
     const savedUsers = localStorage.getItem(USERS_KEY);

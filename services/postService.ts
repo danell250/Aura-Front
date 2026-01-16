@@ -1,7 +1,5 @@
 import { Post } from '../types';
-import { getApiBaseUrl } from '../constants';
-
-const API_BASE_URL = getApiBaseUrl();
+import { apiFetch } from '../utils/api';
 
 export class PostService {
   /**
@@ -14,12 +12,8 @@ export class PostService {
       
       console.log('🔍 Searching posts with query:', normalizedQuery);
       
-      const response = await fetch(`${API_BASE_URL}/posts/search?q=${encodeURIComponent(normalizedQuery)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' as RequestCredentials
+      const response = await apiFetch(`/posts/search?q=${encodeURIComponent(normalizedQuery)}`, {
+        method: 'GET'
       });
       
       if (response.ok) {
@@ -42,15 +36,9 @@ export class PostService {
    */
   static async reportPost(postId: string, userId: string, reason: string, notes?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}/report`, {
+      const response = await apiFetch(`/posts/${postId}/report`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ reason, notes, userId }),
-        credentials: 'include' as RequestCredentials
+        body: JSON.stringify({ reason, notes, userId })
       });
       const json = await response.json().catch(() => ({} as any));
       if (response.ok && json?.success) {
@@ -73,12 +61,8 @@ export class PostService {
       params.append('limit', limit.toString());
       if (userId) params.append('userId', userId);
 
-      const response = await fetch(`${API_BASE_URL}/posts?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' as RequestCredentials
+      const response = await apiFetch(`/posts?${params.toString()}`, {
+        method: 'GET'
       });
       
       if (response.ok) {
@@ -100,25 +84,19 @@ export class PostService {
    */
   static async deletePost(postId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        credentials: 'include' as RequestCredentials
+      const response = await apiFetch(`/posts/${postId}`, {
+        method: 'DELETE'
       });
-
-      const json = await response.json().catch(() => ({} as any));
-      if (response.ok && json?.success) {
+      
+      if (response.ok) {
         return { success: true };
       }
-
-      return { success: false, error: json?.message || 'Failed to delete post' };
-    } catch (error: any) {
+      
+      const json = await response.json().catch(() => ({}));
+      return { success: false, error: json.message || 'Failed to delete post' };
+    } catch (error) {
       console.error('❌ Error deleting post:', error);
-      return { success: false, error: error?.message || 'Failed to delete post' };
+      return { success: false, error: 'Network error' };
     }
   }
 
@@ -127,12 +105,8 @@ export class PostService {
    */
   static async incrementPostViews(postId: string): Promise<{ success: boolean; viewCount?: number; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}/view`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' as RequestCredentials
+      const response = await apiFetch(`/posts/${postId}/view`, {
+        method: 'POST'
       });
 
       const result = await response.json().catch(() => null as any);
@@ -152,12 +126,8 @@ export class PostService {
    */
   static async getPostById(postId: string): Promise<{ success: boolean; post?: Post; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/posts/${postId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' as RequestCredentials
+      const response = await apiFetch(`/posts/${postId}`, {
+        method: 'GET'
       });
       
       if (response.ok) {
@@ -177,31 +147,25 @@ export class PostService {
   /**
    * Create a new post
    */
-  static async createPost(postData: any): Promise<{ success: boolean; post?: Post; error?: string }> {
+  static async createPost(postData: Partial<Post>): Promise<{ success: boolean; post?: Post; error?: string }> {
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/posts`, {
+      const response = await apiFetch('/posts', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(postData),
-        credentials: 'include' as RequestCredentials
+        body: JSON.stringify(postData)
       });
-
-      const result = await response.json().catch(() => null);
-      if (response.ok && result && result.success && result.data) {
-        return { success: true, post: result.data };
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          return { success: true, post: result.data };
+        }
       }
-
-      return { 
-        success: false, 
-        error: (result && result.message) || (response.status === 401 ? 'You must be signed in to post.' : 'Failed to create post.') 
-      };
-    } catch (error: any) {
+      
+      const json = await response.json().catch(() => ({}));
+      return { success: false, error: json.message || 'Failed to create post' };
+    } catch (error) {
       console.error('❌ Error creating post:', error);
-      return { success: false, error: error?.message || 'Failed to create post' };
+      return { success: false, error: 'Network error' };
     }
   }
 }

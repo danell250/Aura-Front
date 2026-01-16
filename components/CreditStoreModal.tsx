@@ -11,12 +11,12 @@ declare global {
 interface CreditStoreModalProps {
   currentUser: User;
   bundles: CreditBundle[];
-  onPurchase: (bundle: CreditBundle) => void;
+  onPurchase: (bundle: CreditBundle, orderId: string) => void;
   onClose: () => void;
 }
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj';
-const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&vault=true&intent=subscription&components=buttons`;
+const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
 
 const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundles, onPurchase, onClose }) => {
   const [step, setStep] = useState<1 | 2>(1);
@@ -172,8 +172,12 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
         setIsPaying(true);
         try {
           if (data.orderID && actions && actions.order) {
-            await actions.order.capture();
-            onPurchase(selectedBundle);
+            const details = await actions.order.capture();
+            const orderId = data.orderID || (details && details.id) || '';
+            if (!orderId) {
+              throw new Error('Missing PayPal order ID after capture');
+            }
+            onPurchase(selectedBundle, orderId);
             onClose();
           } else {
             throw new Error('Invalid payment data received');
@@ -263,10 +267,9 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
                   </button>
                   <button 
                     onClick={() => {
-                      // Fallback: simulate successful purchase for testing
                       if (selectedBundle && currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com') {
                         console.log("[Aura] Using fallback purchase for special user");
-                        onPurchase(selectedBundle);
+                        onPurchase(selectedBundle, 'dev-fallback');
                         onClose();
                       } else {
                         alert("Payment gateway is currently unavailable. Please try again later or contact support.");

@@ -19,7 +19,7 @@ import Logo from './components/Logo';
 import TermsAndConditions from './components/TermsAndConditions';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import SerendipityModal from './components/SerendipityModal';
-import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES } from './constants';
+import { INITIAL_POSTS, CURRENT_USER, INITIAL_ADS, MOCK_USERS, CREDIT_BUNDLES, AD_PACKAGES } from './constants';
 import { Post, User, Ad, Notification, EnergyType, Comment, CreditBundle, MediaItem } from './types';
 import { UserService } from './services/userService';
 import { AdService } from './services/adService';
@@ -31,6 +31,7 @@ import { MessageService } from './services/messageService';
 import { soundService } from './services/soundService';
 import { getSerendipityMatches, SerendipityMatch, trackSerendipitySkip, recalculateTrustForUser } from './services/trustService';
 import { getApiBaseUrl } from './constants';
+import { adSubscriptionService } from './services/adSubscriptionService';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
@@ -42,8 +43,10 @@ const AURA_SUPPORT_EMAIL = 'aurasocialradiate@gmail.com';
 const isProfileComplete = (user: User | null | undefined) => {
   if (!user) return false;
   const hasDob = !!user.dob;
-  const hasBio = !!user.bio && user.bio.trim().length > 0;
-  const hasIndustry = !!user.industry && user.industry.trim().length > 0;
+  const bio = (user.bio || '').trim();
+  const industry = (user.industry || '').trim();
+  const hasBio = bio.length > 0 && bio !== 'New to Aura';
+  const hasIndustry = industry.length > 0 && industry.toLowerCase() !== 'other';
   const hasCountry = !!user.country && user.country.trim().length > 0;
   const baseComplete = hasDob && hasBio && hasIndustry && hasCountry;
 
@@ -71,6 +74,39 @@ const App: React.FC = () => {
       window.location.replace(httpsUrl);
     }
   }, []);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    const pkg = params.get('pkg');
+    if (payment === 'success' && pkg === 'pkg-starter') {
+      if (!currentUser?.id) return;
+      const key = `ad_personal_pulse_${currentUser.id}`;
+      if (localStorage.getItem(key) === 'created') return;
+      const pkgConfig = AD_PACKAGES.find(p => p.id === 'pkg-starter');
+      const subscriptionData = {
+        userId: currentUser.id,
+        packageId: 'pkg-starter',
+        packageName: pkgConfig ? pkgConfig.name : 'Personal Pulse',
+        paypalSubscriptionId: undefined as string | undefined,
+        adLimit: pkgConfig ? pkgConfig.adLimit : 1,
+        durationDays: pkgConfig ? pkgConfig.durationDays : 14
+      };
+      (async () => {
+        try {
+          await adSubscriptionService.createSubscription(subscriptionData);
+          localStorage.setItem(key, 'created');
+        } catch (error) {
+          console.error('Error creating one-time ad subscription after payment:', error);
+        } finally {
+          params.delete('payment');
+          params.delete('pkg');
+          const newSearch = params.toString();
+          const newUrl = `${window.location.pathname}${newSearch ? `?${newSearch}` : ''}${window.location.hash}`;
+          window.history.replaceState(null, '', newUrl);
+        }
+      })();
+    }
+  }, [currentUser]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User>(CURRENT_USER);
   const [allUsers, setAllUsers] = useState<User[]>(MOCK_USERS);
@@ -1046,14 +1082,16 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handlePurchaseCredits = (bundle: CreditBundle) => {
+  const handlePurchaseCredits = (bundle: CreditBundle, orderId: string) => {
     (async () => {
       if (!currentUser?.id) return;
       try {
         const result = await UserService.purchaseCredits(currentUser.id, {
           credits: bundle.credits,
           bundleName: bundle.name,
-          paymentMethod: 'paypal'
+          paymentMethod: 'paypal',
+          transactionId: orderId,
+          orderId
         });
         if (!result.success) {
           console.error('Failed to purchase credits:', result.error);

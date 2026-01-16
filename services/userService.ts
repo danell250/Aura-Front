@@ -402,10 +402,9 @@ export class UserService {
     }
   }
 
-  // Purchase credits
   static async purchaseCredits(
     userId: string,
-    payload: { credits: number; bundleName: string; transactionId?: string; paymentMethod?: string }
+    payload: { credits: number; bundleName: string; transactionId?: string; paymentMethod?: string; orderId?: string }
   ): Promise<{ success: boolean; error?: string; data?: any }> {
     try {
       const response = await fetch(`${API_BASE_URL}/users/${userId}/purchase-credits`, {
@@ -417,7 +416,8 @@ export class UserService {
           credits: payload.credits,
           bundleName: payload.bundleName,
           transactionId: payload.transactionId,
-          paymentMethod: payload.paymentMethod || 'paypal'
+          paymentMethod: payload.paymentMethod || 'paypal',
+          orderId: payload.orderId
         })
       });
 
@@ -430,6 +430,30 @@ export class UserService {
       }
     } catch (error) {
       console.error('Error purchasing credits:', error);
+      return { success: false, error: 'Network error' };
+    }
+  }
+
+  static async getCreditHistory(
+    userId: string
+  ): Promise<{ success: boolean; error?: string; data?: any[] }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/credits/history/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, data: result.data || [] };
+      } else {
+        const errorData = await response.json();
+        return { success: false, error: errorData.message || 'Failed to fetch credit history' };
+      }
+    } catch (error) {
+      console.error('Error fetching credit history:', error);
       return { success: false, error: 'Network error' };
     }
   }

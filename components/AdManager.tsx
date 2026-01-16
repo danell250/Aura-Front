@@ -865,7 +865,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                         {selectedPkg?.id === 'pkg-starter' ? (
                           <div className="space-y-4">
                             <a 
-                              href={`https://www.paypal.com/ncp/payment/SMLPVSKBVZ8P6?return_url=${encodeURIComponent((import.meta.env.VITE_FRONTEND_URL || window.location.origin) + '/payment-success')}&cancel_url=${encodeURIComponent((import.meta.env.VITE_FRONTEND_URL || window.location.origin) + '/payment-cancelled')}`} 
+                              href={`https://www.paypal.com/ncp/payment/SMLPVSKBVZ8P6?return_url=${encodeURIComponent((import.meta.env.VITE_FRONTEND_URL || window.location.origin) + '/payment-success?pkg=pkg-starter')}&cancel_url=${encodeURIComponent((import.meta.env.VITE_FRONTEND_URL || window.location.origin) + '/payment-cancelled')}`} 
                               target="_blank" 
                               className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all text-center block"
                             >

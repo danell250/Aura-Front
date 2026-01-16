@@ -5,20 +5,17 @@ interface MediaUploaderItem {
   previewUrl: string;
   type: 'image' | 'video';
   caption: string;
-  headline: string;
 }
 
 interface MediaUploaderProps {
   items: MediaUploaderItem[];
   onRemove: (id: string) => void;
-  onChangeHeadline: (id: string, value: string) => void;
   onChangeCaption: (id: string, value: string) => void;
 }
 
 const MediaUploader: React.FC<MediaUploaderProps> = ({
   items,
   onRemove,
-  onChangeHeadline,
   onChangeCaption
 }) => {
   if (!items.length) return null;
@@ -33,14 +30,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
           className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
         >
           <div className="p-3 space-y-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-            <input
-              type="text"
-              placeholder="Add headline..."
-              value={item.headline}
-              onChange={(e) => onChangeHeadline(item.id, e.target.value)}
-              maxLength={100}
-              className="w-full text-sm font-semibold bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-white placeholder-gray-400 transition-all"
-            />
             <input
               type="text"
               placeholder="Add caption..."

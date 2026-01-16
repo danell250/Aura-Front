@@ -26,7 +26,6 @@ interface SelectedMedia {
   previewUrl: string;
   type: 'image' | 'video';
   caption: string;
-  headline: string;
 }
 
 const ActionButton = ({ icon, label, onClick, color, isSpecial }: any) => (
@@ -168,8 +167,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
             return {
               url: result.url,
               type: item.type,
-              caption: item.caption,
-              headline: item.headline
+              caption: item.caption
             };
           })
         );
@@ -223,12 +221,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
 
   const handleRemoveMedia = (id: string) => {
     setSelectedMediaItems(prev => prev.filter(item => item.id !== id));
-  };
-
-  const handleChangeHeadline = (id: string, value: string) => {
-    setSelectedMediaItems(prev =>
-      prev.map(item => (item.id === id ? { ...item, headline: value } : item))
-    );
   };
 
   const handleChangeCaption = (id: string, value: string) => {
@@ -289,8 +281,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
             file,
             previewUrl: URL.createObjectURL(file),
             type,
-            caption: '',
-            headline: ''
+            caption: ''
         });
     }
 
@@ -311,8 +302,26 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
 
 
   const handleTimeCapsuleSubmit = (data: TimeCapsuleData) => {
-    onTimeCapsule(data);
+    // If media is attached in the main input, include it in the time capsule
+    const capsuleData = {
+      ...data,
+      mediaUrl: data.mediaUrl || mediaPreview?.url,
+      mediaType: data.mediaType || mediaPreview?.type,
+    };
+    
+    // Also check for multiple items and take the first one if mediaPreview is not set
+    if (!capsuleData.mediaUrl && selectedMediaItems.length > 0) {
+        capsuleData.mediaUrl = selectedMediaItems[0].previewUrl || URL.createObjectURL(selectedMediaItems[0].file);
+        capsuleData.mediaType = selectedMediaItems[0].type;
+    }
+
+    onTimeCapsule(capsuleData);
     setShowTimeCapsuleModal(false);
+    
+    // Clear the main input after submitting time capsule
+    setContent('');
+    setMediaPreview(null);
+    setSelectedMediaItems([]);
   };
 
   const handleTimeCapsuleClick = () => {
@@ -486,7 +495,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
         <MediaUploader
           items={selectedMediaItems}
           onRemove={handleRemoveMedia}
-          onChangeHeadline={handleChangeHeadline}
           onChangeCaption={handleChangeCaption}
         />
 

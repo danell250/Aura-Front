@@ -500,6 +500,13 @@ const App: React.FC = () => {
         }
       }
 
+      // Try to refresh token on app load to handle expired access tokens
+      try {
+        await refreshAccessToken();
+      } catch (e) {
+        console.error('Initial token refresh attempt failed', e);
+      }
+
       try {
         const tokenFromStorage = localStorage.getItem('aura_auth_token');
         const result = await UserService.getMe(tokenFromStorage);

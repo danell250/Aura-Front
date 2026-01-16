@@ -9,6 +9,7 @@ import { getTrustBadgeConfig } from '../services/trustService';
 import { PostService } from '../services/postService';
 import PDFViewer from './PDFViewer';
 import { linkService } from '../services/linkService';
+import TimeCapsuleCard from './TimeCapsuleCard';
 
 interface PostCardProps {
   post: Post;
@@ -47,10 +48,25 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   const [reportNotes, setReportNotes] = useState('');
   const [reportMsg, setReportMsg] = useState<string | null>(null);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
 
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
   const authorTrustBadge = getTrustBadgeConfig(post.author.trustScore ?? 0);
+
+  if (post.isTimeCapsule) {
+    return (
+      <TimeCapsuleCard
+        post={post}
+        currentUser={currentUser}
+        onViewProfile={onViewProfile}
+        onLike={onLike}
+        onComment={onComment}
+        onShare={onShare}
+        onDeletePost={onDeletePost}
+      />
+    );
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -82,6 +98,37 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [post.mediaItems]);
+
+  useEffect(() => {
+    if (!post.isTimeCapsule || !post.unlockDate || post.isUnlocked) {
+      setTimeRemaining(null);
+      return;
+    }
+    const updateTime = () => {
+      const now = Date.now();
+      const unlockTime = post.unlockDate as number;
+      if (now >= unlockTime) {
+        setTimeRemaining(null);
+        return;
+      }
+      const diff = unlockTime - now;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h`);
+      } else if (hours > 0) {
+        setTimeRemaining(`${hours}h ${minutes}m`);
+      } else {
+        setTimeRemaining(`${minutes}m`);
+      }
+    };
+    updateTime();
+    const interval = window.setInterval(updateTime, 60000);
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [post.isTimeCapsule, post.unlockDate, post.isUnlocked]);
 
   const getEmbedUrl = (url: string) => {
     const ytMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([^&?/\s]+)/);
@@ -576,9 +623,17 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
                 "{post.timeCapsuleTitle}"
               </p>
             )}
-            <p className="text-xs text-purple-600 dark:text-purple-400">
-              This message is waiting to be revealed to {post.timeCapsuleType === 'group' ? 'the group' : 'you'} in the future.
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs text-purple-600 dark:text-purple-400">
+                This message is waiting to be revealed to {post.timeCapsuleType === 'group' ? 'the group' : 'you'} in the future.
+              </p>
+              {timeRemaining && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-900/40 text-[11px] font-semibold text-purple-700 dark:text-purple-200">
+                  <span>⏰</span>
+                  <span>{timeRemaining} remaining</span>
+                </span>
+              )}
+            </div>
           </div>
         )}
 

@@ -42,16 +42,16 @@ const TimeCapsuleCard: React.FC<TimeCapsuleCardProps> = ({
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
       if (days > 0) {
-        setTimeRemaining(`${days}d ${hours}h`);
+        setTimeRemaining(`${days}d ${hours}h ${minutes}m ${Math.floor((diff % (1000 * 60)) / 1000)}s`);
       } else if (hours > 0) {
-        setTimeRemaining(`${hours}h ${minutes}m`);
+        setTimeRemaining(`${hours}h ${minutes}m ${Math.floor((diff % (1000 * 60)) / 1000)}s`);
       } else {
-        setTimeRemaining(`${minutes}m`);
+        setTimeRemaining(`${minutes}m ${Math.floor((diff % (1000 * 60)) / 1000)}s`);
       }
     };
 
     updateTimeRemaining();
-    const interval = setInterval(updateTimeRemaining, 60000); // Update every minute
+    const interval = setInterval(updateTimeRemaining, 1000); // Update every second
 
     return () => clearInterval(interval);
   }, [post.unlockDate]);

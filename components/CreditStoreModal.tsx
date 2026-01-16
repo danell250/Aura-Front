@@ -145,6 +145,9 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
     if (step !== 2 || !sdkReady || !selectedBundle || !paypalRef.current) return;
     if (!window.paypal || !window.paypal.Buttons) return;
 
+    // Ensure we don't render if already rendered
+    if (paypalRef.current.children.length > 0) return;
+
     setRenderError(null);
 
     const buttons = window.paypal.Buttons({
@@ -155,6 +158,16 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
         label: 'pay'
       },
       createOrder: (data: any, actions: any) => {
+        console.log('[Aura] Creating PayPal order for bundle:', selectedBundle);
+        
+        if (!selectedBundle.numericPrice || isNaN(Number(selectedBundle.numericPrice))) {
+          console.error('[Aura] Invalid price for bundle:', selectedBundle);
+          throw new Error('Invalid price configuration');
+        }
+
+        const priceValue = Number(selectedBundle.numericPrice).toFixed(2);
+        console.log('[Aura] Order amount:', priceValue);
+
         if (!actions || !actions.order) {
           throw new Error('PayPal actions not available');
         }
@@ -163,7 +176,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
             description: `Aura Credit Bundle: ${selectedBundle.name}`,
             amount: { 
               currency_code: "USD", 
-              value: selectedBundle.numericPrice.toString() 
+              value: priceValue
             }
           }]
         });

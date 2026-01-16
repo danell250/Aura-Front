@@ -317,6 +317,15 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
           buttonConfig.style.label = 'pay';
           buttonConfig.createOrder = (data: any, actions: any) => {
             console.log("[Aura] Creating one-time payment for package:", selectedPkg.name);
+            
+            if (!selectedPkg.numericPrice || isNaN(Number(selectedPkg.numericPrice))) {
+              console.error('[Aura] Invalid price for package:', selectedPkg);
+              throw new Error('Invalid price configuration');
+            }
+
+            const priceValue = Number(selectedPkg.numericPrice).toFixed(2);
+            console.log('[Aura] Order amount:', priceValue);
+
             if (!actions || !actions.order) {
               throw new Error('PayPal actions not available');
             }
@@ -325,7 +334,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                 description: `Aura Ad Broadcast: ${selectedPkg.name}`,
                 amount: {
                   currency_code: "USD",
-                  value: selectedPkg.numericPrice.toString()
+                  value: priceValue
                 }
               }]
             });

@@ -265,6 +265,13 @@ const App: React.FC = () => {
       if (result.success && result.user) {
         setCurrentUser(result.user);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(result.user));
+        
+        // Update profile completion status with fresh data
+        if (isProfileComplete(result.user)) {
+          setIsProfileCompletionRequired(false);
+          // If the profile is complete, ensure the modal is closed (fixes issue where stale local data opens it)
+          setIsSettingsOpen(false);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch current user:', error);
@@ -409,6 +416,8 @@ const App: React.FC = () => {
       document.title = baseTitle;
     }
 
+    // Favicon notification logic commented out until favicon files are restored
+    /*
     const favicon = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
     if (favicon) {
       if (totalUnread > 0) {
@@ -417,13 +426,16 @@ const App: React.FC = () => {
         favicon.href = '/favicon.ico';
       }
     }
+    */
 
     return () => {
       document.title = baseTitle;
+      /*
       const resetFavicon = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
       if (resetFavicon) {
         resetFavicon.href = '/favicon.ico';
       }
+      */
     };
   }, [totalUnread]);
 
@@ -508,7 +520,10 @@ const App: React.FC = () => {
           if (savedSession && savedToken) {
             try {
               const user = JSON.parse(savedSession);
-              const refreshedUser = usersToProcess.find((u: User) => u.id === user.id) || user;
+              const foundUser = usersToProcess.find((u: User) => u.id === user.id);
+              // Merge session user (newer) with global user data (potentially older but has other fields)
+              // We prioritize session user for profile fields to avoid "incomplete profile" loop on refresh
+              const refreshedUser = foundUser ? { ...foundUser, ...user } : user;
               setCurrentUser(refreshedUser);
               setIsAuthenticated(true);
               wasAuthenticated = true;
@@ -655,18 +670,28 @@ const App: React.FC = () => {
   };
 
   const handleLogin = (userData: any) => {
-    const existingUser = allUsers.find(u => 
-      (userData.email && u.email.toLowerCase() === userData.email.toLowerCase()) || 
-      (userData.handle && u.handle.toLowerCase() === userData.handle.toLowerCase()) || 
+    // Prefer the fresh userData from login response, but check if we have it in our local list
+    const existingUserIndex = allUsers.findIndex(u => 
+      (userData.email && u.email?.toLowerCase() === userData.email.toLowerCase()) || 
+      (userData.handle && u.handle?.toLowerCase() === userData.handle.toLowerCase()) || 
       (userData.id && u.id === userData.id)
     );
 
-    if (existingUser) {
-      setCurrentUser(existingUser);
+    if (existingUserIndex !== -1) {
+      // Merge existing local data with fresh login data, preferring fresh data
+      const existingUser = allUsers[existingUserIndex];
+      const mergedUser = { ...existingUser, ...userData };
+      
+      const updatedUsers = [...allUsers];
+      updatedUsers[existingUserIndex] = mergedUser;
+      setAllUsers(updatedUsers);
+      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+
+      setCurrentUser(mergedUser);
       setIsAuthenticated(true);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(existingUser));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedUser));
       syncBirthdays();
-      ensureProfileCompletion(existingUser);
+      ensureProfileCompletion(mergedUser);
       navigateToView({ type: 'feed' });
       return;
     }
@@ -724,7 +749,11 @@ const App: React.FC = () => {
       }
 
       setCurrentUser(persistedUser);
-      setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? persistedUser as User : u)));
+      setAllUsers(prev => {
+        const updated = prev.map(u => (u.id === currentUser.id ? persistedUser as User : u));
+        localStorage.setItem(USERS_KEY, JSON.stringify(updated));
+        return updated;
+      });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedUser));
       if (isProfileComplete(persistedUser)) {
         setIsProfileCompletionRequired(false);

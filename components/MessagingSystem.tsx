@@ -39,6 +39,8 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set());
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -143,6 +145,34 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
     };
   }, []);
 
+  useEffect(() => { 
+    // Get the current message IDs 
+    const currentMessageIds = new Set(userMessages.map(m => m.id)); 
+    
+    // Find messages that are new (not in newMessageIds yet) 
+    const freshMessages = userMessages.filter(msg => !newMessageIds.has(msg.id)); 
+    
+    if (freshMessages.length > 0) { 
+      // Add new message IDs to the set 
+      const updatedIds = new Set(newMessageIds); 
+      freshMessages.forEach(msg => updatedIds.add(msg.id)); 
+      setNewMessageIds(updatedIds); 
+      
+      // Highlight the last new message 
+      if (freshMessages.length > 0) { 
+        const lastNewMessage = freshMessages[freshMessages.length - 1]; 
+        setHighlightedMessageId(lastNewMessage.id); 
+        
+        // Remove highlight after 3 seconds 
+        const timer = setTimeout(() => { 
+          setHighlightedMessageId(null); 
+        }, 3000); 
+        
+        return () => clearTimeout(timer); 
+      } 
+    } 
+  }, [userMessages, newMessageIds]); 
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -159,7 +189,8 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
 
   const handleSelectUser = (user: User) => {
     setSelectedUser(user);
-    // Mark messages as read when user opens the chat
+    setNewMessageIds(new Set());
+    setHighlightedMessageId(null);
     onMarkAsRead(user.id);
   };
 

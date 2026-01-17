@@ -307,11 +307,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({
           )}
         </div>
 
-        <div className="bg-white dark:bg-slate-900 mx-4 mt-6 relative z-10 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-900 mx-4 mt-3 relative z-10 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700">
           <div className="p-6 lg:p-8">
             <div className="flex flex-col lg:flex-row gap-6">
               <div className="relative w-full lg:w-auto flex justify-center lg:justify-start">
-                <div className="w-32 h-32 lg:w-36 lg:h-36 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden">
+                <div className="w-32 h-32 lg:w-36 lg:h-36 rounded-full border-4 border-white bg-white shadow-xl ring-4 ring-emerald-400/70 overflow-hidden">
                   <MediaDisplay
                     url={isSelf ? (localAvatar || user.avatar || '') : (user.avatar || '')}
                     type={isSelf ? localAvatarType : user.avatarType}

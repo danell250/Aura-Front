@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Message } from '../types';
 import { Avatar } from './MediaDisplay';
+import { MessageService } from '../services/messageService';
 
 interface MessagingSystemProps {
   currentUser: User;
@@ -39,8 +40,9 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set());
-  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const [localMessages, setLocalMessages] = useState<Message[]>(messages);
+  const [previousMessageCount, setPreviousMessageCount] = useState<Record<string, number>>({});
+  const [highlightedMessageIds, setHighlightedMessageIds] = useState<Set<string>>(new Set());
   const dropdownRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -53,11 +55,15 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   const getDisplayName = (user: User) =>
     user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Support' : user.name;
 
+  useEffect(() => {
+    setLocalMessages(messages);
+  }, [messages]);
+
   const messagingUsers = (() => {
     const base = allUsers.filter(user => {
       if (user.id === currentUser.id) return false;
       
-      const hasMessages = messages.some(msg => 
+      const hasMessages = localMessages.some(msg => 
         (msg.senderId === user.id && msg.receiverId === currentUser.id) || 
         (msg.senderId === currentUser.id && msg.receiverId === user.id)
       );
@@ -78,7 +84,7 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
 
   const messagingConversations = messagingUsers
     .map(user => {
-      const lastMessage = messages
+      const lastMessage = localMessages
         .filter(msg => 
           (msg.senderId === user.id && msg.receiverId === currentUser.id) || 
           (msg.senderId === currentUser.id && msg.receiverId === user.id)
@@ -118,18 +124,39 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
     }
   }, [initialUserId, isOpen, allUsers, onMarkAsRead]);
 
-  // Filter messages for the selected user
+  useEffect(() => { 
+    if (selectedUser) { 
+      console.log('🔍 DEBUG: Selected user:', selectedUser.name); 
+      console.log('📨 DEBUG: All messages count:', localMessages.length); 
+      const userMsgs = localMessages.filter(msg => 
+        (msg.senderId === selectedUser.id && msg.receiverId === currentUser.id) || 
+        (msg.senderId === currentUser.id && msg.receiverId === selectedUser.id) 
+      ); 
+      console.log('💬 DEBUG: Messages with this user:', userMsgs.length); 
+      userMsgs.forEach(msg => { 
+        console.log(`  - ${msg.senderId === currentUser.id ? 'You' : selectedUser.name}: ${msg.text.substring(0, 30)}`); 
+      }); 
+    } 
+  }, [selectedUser, messages, currentUser]);
+
   const userMessages = selectedUser 
-    ? messages.filter(msg => 
+    ? localMessages.filter(msg => 
         (msg.senderId === selectedUser.id && msg.receiverId === currentUser.id) || 
         (msg.senderId === currentUser.id && msg.receiverId === selectedUser.id)
       ).sort((a, b) => a.timestamp - b.timestamp)
     : [];
 
+  const userMessagesWithIds = selectedUser
+    ? userMessages.map((msg, index) => ({
+        ...msg,
+        id: msg.id || `msg-${selectedUser.id}-${index}-${msg.timestamp}`,
+      }))
+    : [];
+
   // Auto-scroll to bottom of messages
   useEffect(() => {
     scrollToBottom();
-  }, [userMessages]);
+  }, [userMessagesWithIds]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -146,51 +173,119 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   }, []);
 
   useEffect(() => { 
-    // Get the current message IDs 
-    const currentMessageIds = new Set(userMessages.map(m => m.id)); 
-    
-    // Find messages that are new (not in newMessageIds yet) 
-    const freshMessages = userMessages.filter(msg => !newMessageIds.has(msg.id)); 
-    
-    if (freshMessages.length > 0) { 
-      // Add new message IDs to the set 
-      const updatedIds = new Set(newMessageIds); 
-      freshMessages.forEach(msg => updatedIds.add(msg.id)); 
-      setNewMessageIds(updatedIds); 
-      
-      // Highlight the last new message 
-      if (freshMessages.length > 0) { 
-        const lastNewMessage = freshMessages[freshMessages.length - 1]; 
-        setHighlightedMessageId(lastNewMessage.id); 
-        
-        // Remove highlight after 3 seconds 
-        const timer = setTimeout(() => { 
-          setHighlightedMessageId(null); 
-        }, 3000); 
-        
-        return () => clearTimeout(timer); 
+    if (!selectedUser || userMessages.length === 0) return;
+
+    const currentCount = userMessages.length; 
+    const previousCount = previousMessageCount[selectedUser.id] || 0; 
+
+    if (currentCount > previousCount) { 
+      const newCount = currentCount - previousCount; 
+      const newHighlighted = new Set<string>(); 
+
+      for (let i = 0; i < newCount && i < userMessages.length; i++) { 
+        const msg = userMessages[userMessages.length - 1 - i]; 
+        if (msg.id) { 
+          newHighlighted.add(msg.id); 
+        } 
       } 
+
+      setHighlightedMessageIds(newHighlighted); 
+      setPreviousMessageCount({ 
+        ...previousMessageCount, 
+        [selectedUser.id]: currentCount 
+      }); 
+
+      const timer = setTimeout(() => { 
+        setHighlightedMessageIds(new Set()); 
+      }, 3000); 
+
+      return () => clearTimeout(timer); 
     } 
-  }, [userMessages, newMessageIds]); 
+  }, [userMessages, selectedUser, previousMessageCount]); 
+
+  useEffect(() => {
+    if (!selectedUser || !currentUser.id) return;
+
+    const fetchMessages = async () => {
+      try {
+        const response = await MessageService.getMessages(
+          currentUser.id,
+          selectedUser.id,
+          1,
+          50
+        );
+
+        if (response.success && response.data) {
+          const fetched = response.data as Message[];
+          setLocalMessages(prev => {
+            const existingIds = new Set(prev.map(m => m.id));
+            const newMessages = fetched.filter(m => !existingIds.has(m.id));
+            if (newMessages.length > 0) {
+              console.log('✨ New messages detected:', newMessages.length);
+            }
+            return [...prev, ...newMessages];
+          });
+        }
+      } catch (error) {
+        console.error('❌ Failed to fetch messages:', error);
+      }
+    };
+
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 2000);
+    return () => clearInterval(interval);
+  }, [selectedUser, currentUser.id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!selectedUser || !messageText.trim()) return;
 
-    onSendMessage(selectedUser.id, messageText);
+    const text = messageText;
+    const messageId = `msg-sent-${Date.now()}`;
+
+    const newMessage: Message = {
+      id: messageId,
+      senderId: currentUser.id,
+      receiverId: selectedUser.id,
+      text,
+      timestamp: Date.now(),
+      messageType: 'text',
+      isRead: false
+    };
+
+    setLocalMessages(prev => [...prev, newMessage]);
+    setHighlightedMessageIds(new Set([messageId]));
+
     setMessageText('');
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
+
+    try {
+      onSendMessage(selectedUser.id, text);
+    } catch (error) {
+      console.error('❌ Failed to send message:', error);
+    }
+
+    setTimeout(() => {
+      setHighlightedMessageIds(new Set());
+    }, 3000);
   };
 
   const handleSelectUser = (user: User) => {
     setSelectedUser(user);
-    setNewMessageIds(new Set());
-    setHighlightedMessageId(null);
+    setHighlightedMessageIds(new Set());
+    const countForUser = localMessages.filter(msg =>
+      (msg.senderId === user.id && msg.receiverId === currentUser.id) ||
+      (msg.senderId === currentUser.id && msg.receiverId === user.id)
+    ).length;
+    setPreviousMessageCount(prev => ({
+      ...prev,
+      [user.id]: countForUser,
+    }));
     onMarkAsRead(user.id);
   };
 
@@ -375,8 +470,8 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                                 size="custom"
                                 className="w-12 h-12 rounded-xl"
                               />
-                              {hasUnread && (
-                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-xs text-white font-bold animate-pulse">
+                              {hasUnread && unreadCounts[user.id] > 0 && (
+                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold animate-bounce">
                                   {unreadCounts[user.id]}
                                 </div>
                               )}
@@ -522,18 +617,21 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                       const isCurrentUser = msg.senderId === currentUser.id;
                       const sender = allUsers.find(u => u.id === msg.senderId);
                       const kind = msg.messageType || 'text';
+                      const isHighlighted = msg.id ? highlightedMessageIds.has(msg.id) : false;
                       
                       return (
                         <div 
                           key={msg.id}
-                          className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                          className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} transition-transform duration-300 ${
+                            isHighlighted ? 'scale-[1.02]' : ''
+                          }`}
                         >
                           <div 
                             className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
                               isCurrentUser 
                                 ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-br-none' 
                                 : 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-bl-none'
-                            }`}
+                            } ${isHighlighted ? 'ring-2 ring-emerald-300 dark:ring-emerald-500 shadow-lg' : ''}`}
                           >
                             {!isCurrentUser && sender && (
                               <p className="text-xs font-bold mb-1">{sender.name}</p>

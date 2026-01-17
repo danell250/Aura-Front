@@ -146,19 +146,19 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, med
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-xl animate-in fade-in duration-300"
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xl animate-in fade-in duration-300"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-10 shadow-2xl border border-white/50 dark:border-slate-800">
-        <div className="flex justify-between items-center mb-10">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-2xl md:max-w-3xl rounded-[2.5rem] p-5 sm:p-6 md:p-8 shadow-2xl border border-white/50 dark:border-slate-800 max-h-[80vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-black uppercase tracking-widest text-slate-900 dark:text-white">Share Post</h2>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">✕</button>
         </div>
 
         {/* Preview Section */}
-        <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 mb-8 border border-slate-200 dark:border-slate-700">
+        <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 sm:p-5 mb-6 border border-slate-200 dark:border-slate-700">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">Preview</p>
           <div className="space-y-2">
             <p className="text-sm font-semibold text-slate-900 dark:text-white line-clamp-3">
@@ -179,7 +179,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, med
           </div>
         </div>
 
-        <div className="mb-8">
+        <div className="mb-6">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">Share to platforms</p>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {socialPlatforms.map(platform => (
@@ -235,9 +235,9 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, med
           </div>
         </div>
 
-        <div className="border-t border-slate-200 dark:border-slate-700 mt-8 pt-8">
+        <div className="border-t border-slate-200 dark:border-slate-700 mt-6 pt-6">
           <label className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3 block">Full Post Text</label>
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 max-h-40 overflow-y-auto">
             <textarea 
               readOnly 
               value={getEnhancedShareContent()} 
@@ -256,7 +256,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, med
           </div> 
         </div>
 
-        <p className="mt-8 text-center text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-600">
+        <p className="mt-6 text-center text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-600">
           Aura Global Broadcast Protocol
         </p>
       </div>

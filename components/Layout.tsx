@@ -43,6 +43,7 @@ interface LayoutProps {
   unreadNotificationCount?: number;
   isNotificationSoundEnabled?: boolean;
   onToggleNotificationSound?: (enabled: boolean) => void;
+  onRefreshNotifications?: () => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -50,7 +51,7 @@ const Layout: React.FC<LayoutProps> = ({
   onGoHome, onViewProfile, onViewChat, onViewFriends,
   onViewSettings, onViewPrivacy, onStartCampaign, onOpenCreditStore, ads, posts, users, notifications,
   activeView, isDarkMode, onToggleDarkMode, onSearchResult, onSearchTag, onOpenMessaging,
-  onReadNotification, onMarkAllNotificationsRead, onAcceptAcquaintance, onRejectAcquaintance, onNavigateNotification, unreadMessageCount = 0, messagePulse = false, unreadNotificationCount, isNotificationSoundEnabled = true, onToggleNotificationSound
+  onReadNotification, onMarkAllNotificationsRead, onAcceptAcquaintance, onRejectAcquaintance, onNavigateNotification, unreadMessageCount = 0, messagePulse = false, unreadNotificationCount, isNotificationSoundEnabled = true, onToggleNotificationSound, onRefreshNotifications
 }) => {
   const unreadCount = typeof unreadNotificationCount === 'number' ? unreadNotificationCount : notifications.filter(n => !n.isRead).length;
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -148,7 +149,11 @@ const Layout: React.FC<LayoutProps> = ({
           <div className="relative">
             <button 
               onClick={() => {
-                setIsNotificationsOpen(!isNotificationsOpen);
+                const nextOpen = !isNotificationsOpen;
+                setIsNotificationsOpen(nextOpen);
+                if (nextOpen && onRefreshNotifications) {
+                  onRefreshNotifications();
+                }
                 setShowUnreadBadge(false);
               }}
               className="p-2.5 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg relative transition-colors"

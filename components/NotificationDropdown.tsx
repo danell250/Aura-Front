@@ -49,6 +49,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
         return '❌';
       case 'profile_view':
         return '👁️';
+      case 'time_capsule_invite':
       case 'time_capsule_unlocked':
         return '⏰';
       case 'credit_received':

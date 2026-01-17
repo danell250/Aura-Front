@@ -66,11 +66,6 @@ const TimeCapsuleCard: React.FC<TimeCapsuleCardProps> = ({
   };
 
   const isOwner = post.author.id === currentUser.id;
-  const canView = isUnlocked || isOwner || (post.invitedUsers && post.invitedUsers.includes(currentUser.id));
-
-  if (!canView && !isUnlocked) {
-    return null; // Don't show time capsules the user shouldn't see
-  }
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">

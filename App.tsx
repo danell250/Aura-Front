@@ -1143,14 +1143,65 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
-  const handleSendConnectionRequest = useCallback((targetUserId: string) => {
-    // Handle sending connection request
-    setAllUsers(prev => prev.map(u => 
-      u.id === currentUser.id 
-        ? { ...u, sentAcquaintanceRequests: [...(u.sentAcquaintanceRequests || []), targetUserId] }
-        : u
-    ));
-  }, [currentUser.id]);
+  const handleSendConnectionRequest = useCallback(async (targetUserId: string) => {
+    if (currentUser.id === targetUserId) return;
+
+    if (currentUser.acquaintances?.includes(targetUserId)) return;
+
+    if (currentUser.sentAcquaintanceRequests?.includes(targetUserId)) {
+      const previousUser = currentUser;
+      const updatedUser: User = {
+        ...currentUser,
+        sentAcquaintanceRequests: (currentUser.sentAcquaintanceRequests || []).filter(id => id !== targetUserId)
+      };
+
+      setCurrentUser(updatedUser);
+      setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? updatedUser : u)));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+
+      try {
+        const result = await UserService.cancelConnectionRequest(currentUser.id, targetUserId);
+        if (!result.success) {
+          setCurrentUser(previousUser);
+          setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? previousUser : u)));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(previousUser));
+          console.error('Failed to cancel connection request:', result.error);
+        }
+      } catch (error) {
+        setCurrentUser(previousUser);
+        setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? previousUser : u)));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(previousUser));
+        console.error('Error cancelling connection request:', error);
+      }
+
+      return;
+    }
+
+    const previousUser = currentUser;
+    const updatedUser: User = {
+      ...currentUser,
+      sentAcquaintanceRequests: [...(currentUser.sentAcquaintanceRequests || []), targetUserId]
+    };
+
+    setCurrentUser(updatedUser);
+    setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? updatedUser : u)));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+
+    try {
+      const result = await UserService.sendConnectionRequest(currentUser.id, targetUserId);
+      if (!result.success) {
+        setCurrentUser(previousUser);
+        setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? previousUser : u)));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(previousUser));
+        console.error('Failed to send connection request:', result.error);
+      }
+    } catch (error) {
+      setCurrentUser(previousUser);
+      setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? previousUser : u)));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(previousUser));
+      console.error('Error sending connection request:', error);
+    }
+  }, [currentUser]);
 
   const handleAdCreated = useCallback(async (ad: Ad) => {
     // Ensure ad is active immediately so it shows in feed
@@ -1844,6 +1895,7 @@ const App: React.FC = () => {
       onSearchTag={setSearchQuery}
       isNotificationSoundEnabled={isNotificationSoundEnabled}
       onToggleNotificationSound={setIsNotificationSoundEnabled}
+      onRefreshNotifications={fetchNotifications}
     >
       {view.type === 'feed' && (
         <div className="space-y-6">

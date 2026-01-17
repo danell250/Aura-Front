@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 
 interface ModernTextareaProps {
@@ -24,6 +25,8 @@ const ModernTextarea: React.FC<ModernTextareaProps> = ({
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState<{ top: number; left: number } | null>(null);
 
   const length = value.length;
   const ratio = maxLength > 0 ? length / maxLength : 0;
@@ -84,11 +87,40 @@ const ModernTextarea: React.FC<ModernTextareaProps> = ({
     }
   };
 
+  const handleEmojiButtonClick = () => {
+    if (emojiButtonRef.current) {
+      const rect = emojiButtonRef.current.getBoundingClientRect();
+      const pickerWidth = 320;
+      const pickerHeight = 400;
+      const margin = 8;
+
+      let top = rect.bottom + margin;
+      let left = rect.left;
+
+      if (top + pickerHeight > window.innerHeight - margin) {
+        top = rect.top - pickerHeight - margin;
+      }
+
+      if (left + pickerWidth > window.innerWidth - margin) {
+        left = window.innerWidth - pickerWidth - margin;
+      }
+
+      if (left < margin) {
+        left = margin;
+      }
+
+      setEmojiPickerPosition({ top, left });
+    }
+
+    setShowEmojiPicker(prev => !prev);
+  };
+
   const handleEmojiPick = (emojiData: EmojiClickData) => {
     const emoji = emojiData.emoji;
     const nextValue = value + emoji;
     onChange(nextValue);
     setShowEmojiPicker(false);
+    setEmojiPickerPosition(null);
   };
 
   return (
@@ -116,29 +148,15 @@ const ModernTextarea: React.FC<ModernTextareaProps> = ({
 
         <div className="mt-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowEmojiPicker(prev => !prev)}
-                className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg"
-                aria-label="Add emoji"
-              >
-                <span>😊</span>
-              </button>
-              {showEmojiPicker && (
-                <div
-                  ref={emojiPickerRef}
-                  className="absolute bottom-11 left-0 z-50 shadow-2xl rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
-                >
-                  <EmojiPicker
-                    onEmojiClick={handleEmojiPick}
-                    theme={document.documentElement.classList.contains('dark') ? Theme.DARK : Theme.LIGHT}
-                    width={320}
-                    height={400}
-                  />
-                </div>
-              )}
-            </div>
+            <button
+              ref={emojiButtonRef}
+              type="button"
+              onClick={handleEmojiButtonClick}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg"
+              aria-label="Add emoji"
+            >
+              <span>😊</span>
+            </button>
 
             <div className="flex flex-col gap-1">
               <div className="w-32 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -189,6 +207,24 @@ const ModernTextarea: React.FC<ModernTextareaProps> = ({
           </div>
         </div>
       </div>
+      {showEmojiPicker && emojiPickerPosition && createPortal(
+        <div
+          ref={emojiPickerRef}
+          className="fixed z-50 shadow-2xl rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+          style={{
+            top: emojiPickerPosition.top,
+            left: emojiPickerPosition.left
+          }}
+        >
+          <EmojiPicker
+            onEmojiClick={handleEmojiPick}
+            theme={document.documentElement.classList.contains('dark') ? Theme.DARK : Theme.LIGHT}
+            width={320}
+            height={400}
+          />
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

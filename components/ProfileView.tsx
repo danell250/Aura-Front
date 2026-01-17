@@ -89,6 +89,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const [localCoverType, setLocalCoverType] = useState<'image' | 'video' | undefined>(user.coverType);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
 
   useEffect(() => {
     if (!isSelf) {
@@ -159,6 +161,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({
       return;
     }
     try {
+      if (field === 'avatar') {
+        setIsAvatarUploading(true);
+      } else {
+        setIsCoverUploading(true);
+      }
       const result = await uploadService.uploadFile(file);
       const isVideo = file.type.startsWith('video/') || /\.mp4$/i.test(file.name);
       const typeProp = field === 'avatar' ? 'avatarType' : 'coverType';
@@ -181,6 +188,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({
     } catch (err) {
       alert('Upload failed');
     } finally {
+      if (field === 'avatar') {
+        setIsAvatarUploading(false);
+      } else {
+        setIsCoverUploading(false);
+      }
       e.target.value = '';
     }
   };
@@ -252,10 +264,24 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               className="w-full h-full" 
               fallback={<div className="w-full h-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-700"></div>}
             />
-            {isSelf && <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-black tracking-widest">Update Cover</div>}
+            {isSelf && (
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-black tracking-widest">
+                {isCoverUploading ? 'Uploading...' : 'Tap to update cover'}
+              </div>
+            )}
           </div>
           <input type="file" ref={coverInputRef} hidden accept="image/*,video/*" onChange={(e) => handleMediaFile(e, 'coverImage')} />
           <div className="absolute inset-0 bg-black/20"></div>
+          {isSelf && (
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={isCoverUploading}
+              className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full bg-white/95 text-[11px] font-black uppercase tracking-widest text-slate-900 shadow-md hover:bg-white disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isCoverUploading ? '⏳ Updating' : 'Update Cover'}
+            </button>
+          )}
           
           {/* Back Button */}
           <button 
@@ -282,7 +308,24 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       size="custom"
                       className="w-full h-full rounded-xl"
                     />
-                    {isSelf && <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-black tracking-widest rounded-xl">Update Photo</div>}
+                    {isSelf && (
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-black tracking-widest rounded-xl">
+                        {isAvatarUploading ? 'Uploading...' : 'Update Photo'}
+                      </div>
+                    )}
+                    {isSelf && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          avatarInputRef.current?.click();
+                        }}
+                        disabled={isAvatarUploading}
+                        className="absolute -bottom-1.5 -right-1.5 w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs shadow-lg border border-white/80 group-hover:bg-emerald-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {isAvatarUploading ? '⏳' : '✎'}
+                      </button>
+                    )}
                     <input type="file" ref={avatarInputRef} hidden accept="image/*,video/*" onChange={(e) => handleMediaFile(e, 'avatar')} />
                   </div>
                 </div>

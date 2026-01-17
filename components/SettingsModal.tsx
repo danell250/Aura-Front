@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../types';
 import { COUNTRIES, INDUSTRIES } from '../constants';
 import { uploadService } from '../services/upload';
+import { apiFetch } from '../utils/api';
 
 interface SettingsModalProps {
   currentUser: User;
@@ -29,6 +30,32 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
     companyWebsite: currentUser.companyWebsite || '',
     isCompany: currentUser.isCompany || false
   });
+
+  const [handleAvailable, setHandleAvailable] = useState<boolean | null>(null);
+  const [isCheckingHandle, setIsCheckingHandle] = useState(false);
+  const [handleError, setHandleError] = useState<string | null>(null);
+  const originalHandleRef = useRef(currentUser.handle || '');
+
+  const normalizeHandleInput = (rawHandle: string): string => {
+    const base = (rawHandle || '').trim().toLowerCase();
+    const withoutAt = base.startsWith('@') ? base.slice(1) : base;
+    const cleaned = withoutAt.replace(/[^a-z0-9_-]/g, '');
+    if (!cleaned) return '';
+    return `@${cleaned}`;
+  };
+
+  const validateHandleInput = (rawHandle: string): string | null => {
+    const normalized = normalizeHandleInput(rawHandle);
+    if (!normalized) return 'Handle is required.';
+    const core = normalized.slice(1);
+    if (core.length < 3 || core.length > 21) {
+      return 'Handle must be between 3 and 21 characters.';
+    }
+    if (!/^[a-z0-9_-]+$/.test(core)) {
+      return 'Handle can only use letters, numbers, underscores and hyphens.';
+    }
+    return null;
+  };
 
   const getZodiacSign = (dateString: string) => {
     if (!dateString) return '';
@@ -147,7 +174,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdate(form);
+
+    const handleValidationMessage = validateHandleInput(form.handle);
+    if (handleValidationMessage) {
+      setHandleError(handleValidationMessage);
+      return;
+    }
+
+    const normalizedHandle = normalizeHandleInput(form.handle);
+    const originalNormalized = normalizeHandleInput(originalHandleRef.current || '');
+
+    if (normalizedHandle !== originalNormalized && handleAvailable === false) {
+      setHandleError('This handle is already taken. Please try another one.');
+      return;
+    }
+
+    const finalForm = {
+      ...form,
+      handle: normalizedHandle || originalHandleRef.current
+    };
+
+    onUpdate(finalForm);
     onClose();
   };
 
@@ -193,6 +240,66 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose, requireCompletion]);
+
+  useEffect(() => {
+    if (!form.handle.trim()) {
+      setHandleAvailable(null);
+      setHandleError(null);
+      setIsCheckingHandle(false);
+      return;
+    }
+
+    const normalized = normalizeHandleInput(form.handle);
+    const originalNormalized = normalizeHandleInput(originalHandleRef.current || '');
+
+    if (!normalized) {
+      setHandleAvailable(false);
+      setHandleError('Handle is required.');
+      return;
+    }
+
+    if (normalized === originalNormalized) {
+      setHandleAvailable(true);
+      setHandleError(null);
+      setIsCheckingHandle(false);
+      return;
+    }
+
+    const validationMessage = validateHandleInput(form.handle);
+    if (validationMessage) {
+      setHandleAvailable(false);
+      setHandleError(validationMessage);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        setIsCheckingHandle(true);
+        const response = await apiFetch('/auth/check-handle', {
+          method: 'POST',
+          body: JSON.stringify({ handle: normalized })
+        });
+        const data = await response.json().catch(() => ({} as any));
+
+        if (!response.ok) {
+          setHandleAvailable(false);
+          setHandleError(data?.message || 'Failed to check handle.');
+          return;
+        }
+
+        setHandleAvailable(!!data.available);
+        setHandleError(!data.available ? 'This handle is already taken. Please try another one.' : null);
+      } catch {
+        setHandleAvailable(null);
+      } finally {
+        setIsCheckingHandle(false);
+      }
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.handle]);
 
   return (
     <div
@@ -279,10 +386,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Username (@)</label>
             <input
               required
-              readOnly
-              className="w-full p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 focus:border-emerald-400 transition-all font-bold text-sm text-slate-900 dark:text-white cursor-not-allowed"
+              className={`w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none border transition-all font-bold text-sm text-slate-900 dark:text-white ${
+                handleAvailable === false
+                  ? 'border-rose-400'
+                  : handleAvailable === true
+                  ? 'border-emerald-400'
+                  : 'border-slate-100 dark:border-slate-700'
+              }`}
               value={form.handle}
+              onChange={e => {
+                setForm({ ...form, handle: e.target.value });
+                setHandleError(null);
+              }}
             />
+            <p className="mt-1 text-[9px] font-bold text-slate-500">
+              3–21 characters. Letters, numbers, underscores and hyphens only.
+              {form.handle && isCheckingHandle && (
+                <span className="ml-1 text-slate-400">Checking availability...</span>
+              )}
+              {form.handle && handleAvailable === false && !isCheckingHandle && (
+                <span className="ml-1 text-rose-500">Handle taken.</span>
+              )}
+              {form.handle && handleAvailable === true && !isCheckingHandle && normalizeHandleInput(form.handle) !== normalizeHandleInput(originalHandleRef.current || '') && (
+                <span className="ml-1 text-emerald-500">Handle available.</span>
+              )}
+            </p>
+            {handleError && (
+              <p className="mt-1 text-[9px] font-bold text-rose-500">
+                {handleError}
+              </p>
+            )}
           </div>
           <div>
             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 block ml-1">Email</label>

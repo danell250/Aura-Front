@@ -20,6 +20,29 @@ const CompleteProfile: React.FC<CompleteProfileProps> = ({ onComplete }) => {
   const [sourceLabel, setSourceLabel] = useState('OAuth');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [handleAvailable, setHandleAvailable] = useState<boolean | null>(null);
+  const [isCheckingHandle, setIsCheckingHandle] = useState(false);
+
+  const normalizeHandleInput = (rawHandle: string): string => {
+    const base = (rawHandle || '').trim().toLowerCase();
+    const withoutAt = base.startsWith('@') ? base.slice(1) : base;
+    const cleaned = withoutAt.replace(/[^a-z0-9_-]/g, '');
+    if (!cleaned) return '';
+    return `@${cleaned}`;
+  };
+
+  const validateHandleInput = (rawHandle: string): string | null => {
+    const normalized = normalizeHandleInput(rawHandle);
+    if (!normalized) return 'Please choose a handle.';
+    const core = normalized.slice(1);
+    if (core.length < 3 || core.length > 21) {
+      return 'Handle must be between 3 and 21 characters.';
+    }
+    if (!/^[a-z0-9_-]+$/.test(core)) {
+      return 'Handle can only use letters, numbers, underscores and hyphens.';
+    }
+    return null;
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -52,6 +75,52 @@ const CompleteProfile: React.FC<CompleteProfileProps> = ({ onComplete }) => {
     if (qpAvatar) setAvatar(qpAvatar);
   }, []);
 
+  useEffect(() => {
+    if (!handle.trim()) {
+      setHandleAvailable(null);
+      setIsCheckingHandle(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      const validationMessage = validateHandleInput(handle);
+      if (validationMessage) {
+        setHandleAvailable(false);
+        return;
+      }
+
+      const normalizedHandle = normalizeHandleInput(handle);
+      if (!normalizedHandle) {
+        setHandleAvailable(false);
+        return;
+      }
+
+      try {
+        setIsCheckingHandle(true);
+        const response = await apiFetch('/auth/check-handle', {
+          method: 'POST',
+          body: JSON.stringify({ handle: normalizedHandle })
+        });
+        const data = await response.json().catch(() => ({} as any));
+
+        if (!response.ok) {
+          setHandleAvailable(false);
+          return;
+        }
+
+        setHandleAvailable(!!data.available);
+      } catch {
+        setHandleAvailable(null);
+      } finally {
+        setIsCheckingHandle(false);
+      }
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [handle]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName.trim() || !lastName.trim()) {
@@ -59,24 +128,18 @@ const CompleteProfile: React.FC<CompleteProfileProps> = ({ onComplete }) => {
       return;
     }
 
-     const rawHandle = handle.trim();
-     if (!rawHandle) {
-       setError('Please choose a handle.');
-       return;
-     }
+    const validationMessage = validateHandleInput(handle);
+    if (validationMessage) {
+      setError(validationMessage);
+      return;
+    }
 
-     const withoutAt = rawHandle.startsWith('@') ? rawHandle.slice(1) : rawHandle;
-     const cleaned = withoutAt.replace(/[^a-z0-9_.]/gi, '');
-     if (!cleaned) {
-       setError('Handle can only use letters, numbers, dots and underscores.');
-       return;
-     }
-     if (cleaned.length < 3 || cleaned.length > 20) {
-       setError('Handle must be between 3 and 20 characters.');
-       return;
-     }
+    if (handleAvailable === false) {
+      setError('This handle is already taken. Please try another one.');
+      return;
+    }
 
-     const normalizedHandle = `@${cleaned.toLowerCase()}`;
+    const normalizedHandle = normalizeHandleInput(handle);
 
     setIsSubmitting(true);
     setError(null);
@@ -208,12 +271,45 @@ const CompleteProfile: React.FC<CompleteProfileProps> = ({ onComplete }) => {
                           setHandle(e.target.value);
                           if (error) setError(null);
                         }}
-                        className="flex-1 px-4 py-3.5 rounded-2xl bg-slate-900 border border-slate-700 text-sm font-semibold text-white outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/30"
+                        className={`flex-1 px-4 py-3.5 rounded-2xl bg-slate-900 border text-sm font-semibold text-white outline-none focus:ring-2 focus:ring-emerald-500/30 ${
+                          handleAvailable === false
+                            ? 'border-rose-500'
+                            : handleAvailable === true
+                            ? 'border-emerald-400'
+                            : 'border-slate-700'
+                        }`}
                         placeholder="yourname"
                       />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const baseName = (firstName || lastName || displayName || 'auramember')
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]/g, '');
+                          let core = baseName || 'auramember';
+                          if (core.length < 3) core = `${core}user`;
+                          core = core.slice(0, 15);
+                          const suffix = Math.floor(100 + Math.random() * 900);
+                          const suggestion = `${core}${suffix}`.slice(0, 21);
+                          setHandle(suggestion);
+                          if (error) setError(null);
+                        }}
+                        className="px-3 py-2 rounded-2xl bg-slate-800 border border-slate-700 text-[11px] font-semibold text-slate-200 hover:bg-slate-700 transition-colors"
+                      >
+                        🎲 Random
+                      </button>
                     </div>
                     <p className="mt-1 text-[10px] font-medium text-slate-500">
-                      3–20 characters. Letters, numbers, dots and underscores only.
+                      3–21 characters. Letters, numbers, underscores and hyphens only.
+                      {handle && handleAvailable === false && !isCheckingHandle && (
+                        <span className="ml-1 text-rose-400 font-semibold">Handle taken.</span>
+                      )}
+                      {handle && handleAvailable === true && (
+                        <span className="ml-1 text-emerald-400 font-semibold">Handle available.</span>
+                      )}
+                      {isCheckingHandle && (
+                        <span className="ml-1 text-slate-400 font-semibold">Checking availability...</span>
+                      )}
                     </p>
                   </div>
 

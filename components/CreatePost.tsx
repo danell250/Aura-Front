@@ -302,20 +302,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
 
 
   const handleTimeCapsuleSubmit = (data: TimeCapsuleData) => {
-    // If media is attached in the main input, include it in the time capsule
-    const capsuleData = {
-      ...data,
-      mediaUrl: data.mediaUrl || mediaPreview?.url,
-      mediaType: data.mediaType || mediaPreview?.type,
-    };
-    
-    // Also check for multiple items and take the first one if mediaPreview is not set
-    if (!capsuleData.mediaUrl && selectedMediaItems.length > 0) {
-        capsuleData.mediaUrl = selectedMediaItems[0].previewUrl || URL.createObjectURL(selectedMediaItems[0].file);
-        capsuleData.mediaType = selectedMediaItems[0].type;
-    }
-
-    onTimeCapsule(capsuleData);
+    onTimeCapsule(data);
     setShowTimeCapsuleModal(false);
     
     // Clear the main input after submitting time capsule

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, EnergyType } from '../types';
+import { User, EnergyType, MediaItem } from '../types';
+import { uploadService } from '../services/upload';
 
 interface TimeCapsuleModalProps {
   isOpen: boolean;
@@ -12,12 +13,23 @@ interface TimeCapsuleModalProps {
 export interface TimeCapsuleData {
   content: string;
   unlockDate: number;
+  unlockTime: string;
+  timezone: string;
   timeCapsuleType: 'personal' | 'group';
   invitedUsers: string[];
   timeCapsuleTitle: string;
   energy: EnergyType;
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'document';
+  mediaItems?: MediaItem[];
+}
+
+interface SelectedMedia {
+  id: string;
+  file: File;
+  previewUrl: string;
+  type: 'image' | 'video';
+  caption: string;
 }
 
 const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
@@ -27,18 +39,33 @@ const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
   currentUser,
   allUsers
 }) => {
+  const defaultTimezone = (() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    } catch {
+      return 'UTC';
+    }
+  })();
+
   const [formData, setFormData] = useState<TimeCapsuleData>({
     content: '',
     unlockDate: 0,
+    unlockTime: '09:00',
+    timezone: defaultTimezone,
     timeCapsuleType: 'personal',
     invitedUsers: [],
     timeCapsuleTitle: '',
-    energy: EnergyType.NEUTRAL
+    energy: EnergyType.NEUTRAL,
+    mediaItems: []
   });
   
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [userSearch, setUserSearch] = useState('');
   const [minDate, setMinDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedMediaItems, setSelectedMediaItems] = useState<SelectedMedia[]>([]);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     if (isOpen) {
@@ -48,22 +75,60 @@ const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
       setMinDate(tomorrow.toISOString().split('T')[0]);
       
       // Reset form
+      const resolvedTimezone = (() => {
+        try {
+          return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        } catch {
+          return 'UTC';
+        }
+      })();
+
       setFormData({
         content: '',
         unlockDate: 0,
+        unlockTime: '09:00',
+        timezone: resolvedTimezone,
         timeCapsuleType: 'personal',
         invitedUsers: [],
         timeCapsuleTitle: '',
-        energy: EnergyType.NEUTRAL
+        energy: EnergyType.NEUTRAL,
+        mediaItems: []
       });
       setSelectedUsers([]);
       setUserSearch('');
+      setSelectedDate('');
+      setSelectedMediaItems([]);
+      setIsUploadingMedia(false);
+      setUploadProgress(0);
     }
   }, [isOpen]);
 
+  const updateUnlockDateFromInputs = (dateStr: string, timeStr: string) => {
+    if (!dateStr) {
+      setFormData(prev => ({ ...prev, unlockDate: 0 }));
+      return;
+    }
+    const [hoursStr, minutesStr] = timeStr.split(':');
+    const hours = parseInt(hoursStr || '0', 10);
+    const minutes = parseInt(minutesStr || '0', 10);
+    const paddedHours = String(isNaN(hours) ? 0 : hours).padStart(2, '0');
+    const paddedMinutes = String(isNaN(minutes) ? 0 : minutes).padStart(2, '0');
+    const dateTime = new Date(`${dateStr}T${paddedHours}:${paddedMinutes}:00`);
+    setFormData(prev => ({ ...prev, unlockDate: dateTime.getTime() }));
+  };
+
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const date = new Date(e.target.value);
-    setFormData({ ...formData, unlockDate: date.getTime() });
+    const value = e.target.value;
+    setSelectedDate(value);
+    updateUnlockDateFromInputs(value, formData.unlockTime);
+  };
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value || '09:00';
+    setFormData(prev => ({ ...prev, unlockTime: value }));
+    if (selectedDate) {
+      updateUnlockDateFromInputs(selectedDate, value);
+    }
   };
 
   const handleUserSelect = (user: User) => {
@@ -94,7 +159,53 @@ const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
      (user.handle || '').toLowerCase().includes(userSearch.toLowerCase()))
   ).slice(0, 5);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleMediaFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+    const maxSizeBytes = 10 * 1024 * 1024;
+    const newItems: SelectedMedia[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!allowedTypes.includes(file.type)) {
+        alert(`File ${file.name} has invalid type. Allowed: JPG, PNG, WEBP, MP4`);
+        continue;
+      }
+      if (file.size > maxSizeBytes) {
+        alert(`File ${file.name} is too large. Max size is 10MB`);
+        continue;
+      }
+
+      const type: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
+
+      newItems.push({
+        id: Math.random().toString(36).substring(7),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        type,
+        caption: ''
+      });
+    }
+
+    if (newItems.length > 0) {
+      setSelectedMediaItems(prev => [...prev, ...newItems]);
+    }
+    e.target.value = '';
+  };
+
+  const handleMediaCaptionChange = (id: string, caption: string) => {
+    setSelectedMediaItems(prev =>
+      prev.map(item => (item.id === id ? { ...item, caption } : item))
+    );
+  };
+
+  const handleMediaRemove = (id: string) => {
+    setSelectedMediaItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.content.trim()) {
@@ -104,6 +215,11 @@ const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
     
     if (!formData.unlockDate) {
       alert('Please select an unlock date');
+      return;
+    }
+
+    if (!formData.unlockTime) {
+      alert('Please select an unlock time');
       return;
     }
     
@@ -117,18 +233,77 @@ const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
       return;
     }
 
-    onSubmit(formData);
+    let finalMediaItems: MediaItem[] | undefined;
+    let finalMediaUrl = formData.mediaUrl;
+    let finalMediaType = formData.mediaType;
+
+    if (selectedMediaItems.length > 0) {
+      setIsUploadingMedia(true);
+      setUploadProgress(0);
+      let progressInterval: number | undefined;
+
+      try {
+        progressInterval = window.setInterval(() => {
+          setUploadProgress(prev => Math.min(prev + 10, 90));
+        }, 200);
+
+        const uploadedItems = await Promise.all(
+          selectedMediaItems.map(async (item) => {
+            const result = await uploadService.uploadFile(item.file);
+            return {
+              url: result.url,
+              type: item.type,
+              caption: item.caption
+            } as MediaItem;
+          })
+        );
+
+        setUploadProgress(100);
+        finalMediaItems = uploadedItems;
+
+        if (uploadedItems.length > 0) {
+          finalMediaUrl = uploadedItems[0].url;
+          finalMediaType = uploadedItems[0].type;
+        }
+      } catch (error) {
+        console.error('Failed to upload media files for time capsule:', error);
+        alert('Failed to upload media files.');
+        if (progressInterval !== undefined) {
+          clearInterval(progressInterval);
+        }
+        setIsUploadingMedia(false);
+        return;
+      } finally {
+        if (progressInterval !== undefined) {
+          clearInterval(progressInterval);
+        }
+        setIsUploadingMedia(false);
+      }
+    }
+
+    const payload: TimeCapsuleData = {
+      ...formData,
+      mediaUrl: finalMediaUrl,
+      mediaType: finalMediaType,
+      mediaItems: finalMediaItems || formData.mediaItems
+    };
+
+    onSubmit(payload);
     onClose();
   };
 
   const formatUnlockDate = () => {
     if (!formData.unlockDate) return '';
     const date = new Date(formData.unlockDate);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: formData.timezone || undefined,
+      timeZoneName: 'short'
     });
   };
 
@@ -303,17 +478,28 @@ const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
             </div>
           )}
 
-          {/* Unlock Date */}
           <div>
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-              Unlock Date *
+              Unlock Date & Time *
             </label>
-            <input
-              type="date"
-              min={minDate}
-              onChange={handleDateChange}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="date"
+                min={minDate}
+                value={selectedDate}
+                onChange={handleDateChange}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+              />
+              <input
+                type="time"
+                value={formData.unlockTime}
+                onChange={handleTimeChange}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+              />
+            </div>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              Timezone: <span className="font-semibold">{formData.timezone}</span>
+            </p>
             {formData.unlockDate > 0 && (
               <div className="mt-2 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-xl">
                 <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">
@@ -322,6 +508,88 @@ const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
                 <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
                   ⏱️ That's {getTimeUntilUnlock()} from now
                 </p>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+              Media (optional)
+            </label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,video/mp4"
+              multiple
+              onChange={handleMediaFileChange}
+              className="w-full text-sm text-slate-600 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-purple-950/40 dark:file:text-purple-200 cursor-pointer"
+            />
+            {selectedMediaItems.length > 0 && (
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {selectedMediaItems.map(item => (
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 overflow-hidden"
+                  >
+                    <div className="relative aspect-video bg-slate-200 dark:bg-slate-800">
+                      {item.type === 'image' ? (
+                        <img
+                          src={item.previewUrl}
+                          className="w-full h-full object-cover"
+                          alt=""
+                        />
+                      ) : (
+                        <video
+                          src={item.previewUrl}
+                          className="w-full h-full object-cover"
+                          muted
+                          loop
+                        />
+                      )}
+                      <div className="absolute top-2 left-2 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-black/60 text-white">
+                        {item.type === 'image' ? 'Image' : 'Video'}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleMediaRemove(item.id)}
+                        className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="p-2 border-t border-slate-200 dark:border-slate-700">
+                      <input
+                        type="text"
+                        value={item.caption}
+                        onChange={(e) => handleMediaCaptionChange(item.id, e.target.value)}
+                        placeholder="Add a caption"
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {isUploadingMedia && (
+              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+                    <p className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                      Uploading media...
+                    </p>
+                  </div>
+                  <p className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                    {Math.round(uploadProgress)}%
+                  </p>
+                </div>
+                <div className="w-full h-1.5 bg-white dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
               </div>
             )}
           </div>

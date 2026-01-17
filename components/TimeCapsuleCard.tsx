@@ -197,19 +197,45 @@ const TimeCapsuleCard: React.FC<TimeCapsuleCardProps> = ({
                 {post.content}
               </p>
             </div>
-            
-            {post.mediaUrl && (
-              <div className="rounded-2xl overflow-hidden">
-                {post.mediaType === 'image' ? (
-                  <img src={post.mediaUrl} className="w-full h-auto" alt="" />
-                ) : post.mediaType === 'video' ? (
-                  <video src={post.mediaUrl} controls className="w-full h-auto" />
-                ) : (
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                    <p className="text-sm text-slate-600 dark:text-slate-400">📎 Attachment: {post.mediaUrl}</p>
+
+            {post.mediaItems && post.mediaItems.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {post.mediaItems.map((media, idx) => (
+                  <div key={idx} className="rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                    <div className="relative">
+                      {media.type === 'image' ? (
+                        <img src={media.url} className="w-full h-auto object-cover" alt={media.caption || ''} />
+                      ) : (
+                        <video src={media.url} controls className="w-full h-auto object-cover" />
+                      )}
+                      <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-black/60 text-white">
+                        {media.type === 'image' ? 'Image' : 'Video'}
+                      </div>
+                    </div>
+                    {media.caption && (
+                      <div className="p-3 border-t border-slate-100 dark:border-slate-800">
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                          {media.caption}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
+            ) : (
+              post.mediaUrl && (
+                <div className="rounded-2xl overflow-hidden">
+                  {post.mediaType === 'image' ? (
+                    <img src={post.mediaUrl} className="w-full h-auto" alt="" />
+                  ) : post.mediaType === 'video' ? (
+                    <video src={post.mediaUrl} controls className="w-full h-auto" />
+                  ) : (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                      <p className="text-sm text-slate-600 dark:text-slate-400">📎 Attachment: {post.mediaUrl}</p>
+                    </div>
+                  )}
+                </div>
+              )
             )}
 
             {/* Actions */}

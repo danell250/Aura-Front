@@ -1015,6 +1015,7 @@ const App: React.FC = () => {
       content: data.content,
       mediaUrl: data.mediaUrl,
       mediaType: data.mediaType,
+      mediaItems: data.mediaItems,
       energy: data.energy || EnergyType.NEUTRAL,
       radiance: 0,
       timestamp: now,
@@ -1044,13 +1045,15 @@ const App: React.FC = () => {
           content: data.content,
           mediaUrl: data.mediaUrl,
           mediaType: data.mediaType,
+          mediaItems: data.mediaItems,
           energy: data.energy,
           authorId: currentUser.id,
           isTimeCapsule: true,
           unlockDate,
           timeCapsuleType: data.timeCapsuleType,
           invitedUsers: data.invitedUsers,
-          timeCapsuleTitle: data.timeCapsuleTitle
+          timeCapsuleTitle: data.timeCapsuleTitle,
+          timezone: data.timezone
         })
       });
 

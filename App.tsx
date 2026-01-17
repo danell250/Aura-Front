@@ -1564,7 +1564,10 @@ const App: React.FC = () => {
     setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
   }, [currentUser.id]);
 
-  const handleRemoveAcquaintance = useCallback((userId: string) => {
+  const handleRemoveAcquaintance = useCallback(async (userId: string) => {
+    const previousUser = currentUser;
+    const previousAllUsers = allUsers;
+
     const updatedAcquaintances = (currentUser.acquaintances || []).filter(id => id !== userId);
     const updatedUser = { ...currentUser, acquaintances: updatedAcquaintances };
     
@@ -1581,7 +1584,23 @@ const App: React.FC = () => {
     }));
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
-  }, [currentUser]);
+
+    try {
+      const result = await UserService.removeAcquaintance(currentUser.id, userId);
+      if (!result.success) {
+        setCurrentUser(previousUser);
+        setAllUsers(previousAllUsers);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(previousUser));
+        alert(result.error || 'Failed to remove acquaintance. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to remove acquaintance from backend:', error);
+      setCurrentUser(previousUser);
+      setAllUsers(previousAllUsers);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(previousUser));
+      alert('Failed to remove acquaintance. Please check your connection and try again.');
+    }
+  }, [currentUser, allUsers]);
 
   const handleSearchResult = useCallback((result: SearchResult) => {
     if (result.type === 'user') {

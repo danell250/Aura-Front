@@ -154,9 +154,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({
       e.target.value = '';
       return;
     }
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Invalid file type. Allowed: JPG, PNG, WEBP, MP4');
+      alert('Invalid file type. Allowed: JPG, PNG, WEBP, GIF, MP4');
       e.target.value = '';
       return;
     }

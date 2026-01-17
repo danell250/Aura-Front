@@ -27,71 +27,6 @@ interface SelectedMedia {
   caption: string;
 }
 
-interface GifPickerProps {
-  onSelect: (url: string) => void;
-}
-
-const GifPicker: React.FC<GifPickerProps> = ({ onSelect }) => {
-  const [query, setQuery] = useState('');
-  const [gifs, setGifs] = useState<any[]>([]);
-
-  useEffect(() => {
-    const loadTrending = async () => {
-      try {
-        const res = await fetch('/api/giphy/trending');
-        if (!res.ok) return;
-        const data = await res.json();
-        setGifs(data.data || []);
-      } catch (e) {
-        console.error('Failed to load trending GIFs', e);
-      }
-    };
-    loadTrending();
-  }, []);
-
-  useEffect(() => {
-    if (!query) return;
-    const load = async () => {
-      try {
-        const res = await fetch(`/api/giphy/search?q=${encodeURIComponent(query)}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        setGifs(data.data || []);
-      } catch (e) {
-        console.error('Failed to search GIFs', e);
-      }
-    };
-    load();
-  }, [query]);
-
-  return (
-    <div className="rounded-xl bg-white dark:bg-gray-900 p-3 border border-gray-200 dark:border-gray-700 shadow-lg">
-      <input
-        placeholder="Search GIFs"
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-        className="w-full mb-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-        {gifs.map(gif => (
-          <button
-            key={gif.id}
-            type="button"
-            onClick={() => onSelect(gif.images.original.url)}
-            className="relative group rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <img
-              src={gif.images.fixed_width.url}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const ActionButton = ({ icon, label, onClick, color, isSpecial }: any) => (
   <button 
     onClick={onClick}
@@ -120,7 +55,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
   const [selectedEnergy, setSelectedEnergy] = useState<EnergyType>(EnergyType.NEUTRAL);
   const [showTimeCapsuleModal, setShowTimeCapsuleModal] = useState(false);
   const [showTimeCapsuleTutorial, setShowTimeCapsuleTutorial] = useState(false);
-  const [showGifPicker, setShowGifPicker] = useState(false);
   const acquaintances = useMemo(
     () => allUsers.filter(u => (currentUser.acquaintances || []).includes(u.id)),
     [allUsers, currentUser]
@@ -542,17 +476,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
           </div>
         )}
 
-        {showGifPicker && (
-          <div className="mt-6">
-            <GifPicker
-              onSelect={(gifUrl) => {
-                setMediaPreview({ url: gifUrl, type: 'image', name: 'GIF' });
-                setShowGifPicker(false);
-              }}
-            />
-          </div>
-        )}
-
         <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -560,7 +483,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
                 <ActionButton onClick={() => imageInputRef.current?.click()} icon="📸" label="Photo" color="text-blue-600" />
                 <ActionButton onClick={() => videoInputRef.current?.click()} icon="🎬" label="Video" color="text-purple-600" />
                 <ActionButton onClick={() => docInputRef.current?.click()} icon="📎" label="File" color="text-green-600" />
-                <ActionButton onClick={() => setShowGifPicker(true)} icon="🎞️" label="GIF" color="text-pink-600" />
                 <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
                 <ActionButton onClick={handleTimeCapsuleClick} icon="⏰" label="Time Capsule" color="text-purple-600" isSpecial={true} />
                 {onCreateAd && (

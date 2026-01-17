@@ -70,6 +70,15 @@ interface BirthdayAnnouncement {
   userReactions: string[];
 }
 
+type SharingContent = {
+  content: string;
+  url: string;
+  title?: string;
+  image?: string;
+  mediaItems?: MediaItem[];
+  originalPost?: Post | Ad;
+};
+
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User>(CURRENT_USER);
@@ -90,7 +99,7 @@ const App: React.FC = () => {
   const [adSubsRefreshTick, setAdSubsRefreshTick] = useState(0);
   const [isCreditStoreOpen, setIsCreditStoreOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [sharingContent, setSharingContent] = useState<{ content: string; url: string } | null>(null);
+  const [sharingContent, setSharingContent] = useState<SharingContent | null>(null);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [messagePulse, setMessagePulse] = useState(false);
   const [isSerendipityOpen, setIsSerendipityOpen] = useState(false);
@@ -830,6 +839,70 @@ const App: React.FC = () => {
       console.error('Failed to create post in backend:', error);
       setPosts(prev => prev.filter(p => p.id !== optimisticId));
       alert('Failed to create post. Please check your connection and try again.');
+    }
+  };
+
+  const handleShareOnAura = async (sharedPost: any, originalPost?: any) => {
+    const source = originalPost && (originalPost as Post).author ? (originalPost as Post) : null;
+    if (!source) return;
+
+    const content = `🔄 Shared from ${source.author.name}:\n\n${source.content}`;
+    const mediaItems = source.mediaItems;
+    const mediaUrl = source.mediaUrl;
+    const mediaType = source.mediaType;
+    const energy = source.energy || EnergyType.NEUTRAL;
+    const taggedUserIds = source.taggedUserIds || [];
+
+    const optimisticId = `shared-${Date.now()}`;
+    const newPost: Post = {
+      id: optimisticId,
+      author: currentUser,
+      content,
+      mediaUrl,
+      mediaType,
+      mediaItems,
+      energy,
+      radiance: 0,
+      timestamp: Date.now(),
+      reactions: {},
+      comments: [],
+      userReactions: [],
+      isBoosted: false,
+      sharedFrom: {
+        postId: source.id,
+        originalAuthor: source.author.name,
+        originalContent: source.content,
+        originalUrl: `${window.location.origin.replace(/\/+$/, '')}/p/${source.id}`,
+        hashtags: source.hashtags
+      }
+    };
+
+    setPosts(prev => [newPost, ...prev]);
+
+    try {
+      const result = await PostService.createPost({
+        content: newPost.content,
+        mediaUrl: newPost.mediaUrl,
+        mediaType: newPost.mediaType,
+        mediaItems: newPost.mediaItems,
+        energy: newPost.energy,
+        authorId: currentUser.id,
+        taggedUserIds,
+        sharedFrom: newPost.sharedFrom
+      } as any);
+
+      if (result.success && result.post) {
+        const createdPost: Post = result.post;
+        setPosts(prev => {
+          const withoutOptimistic = prev.filter(p => p.id !== optimisticId);
+          return [createdPost, ...withoutOptimistic];
+        });
+      } else {
+        setPosts(prev => prev.filter(p => p.id !== optimisticId));
+      }
+    } catch (error) {
+      console.error('Failed to share post on Aura:', error);
+      setPosts(prev => prev.filter(p => p.id !== optimisticId));
     }
   };
 
@@ -1799,8 +1872,52 @@ const App: React.FC = () => {
                 /* Fix: Wrap handleReact to satisfy BirthdayPost's onReact signature requiring only 2 arguments while passing targetType: 'post' internally. */
                 if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} />;
                 return 'content' in item 
-                  ? <PostCard key={item.id} post={item as Post} currentUser={currentUser} allUsers={allUsers} onLike={handleLike} onComment={handleComment} onReact={handleReact} onShare={(p) => setSharingContent({content: p.content, url: `p/${p.id}`})} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onSearchTag={setSearchQuery} onBoost={handleBoostPost} onDeletePost={handleDeletePost} onDeleteComment={handleDeleteComment} onLoadComments={handleLoadComments} onSyncPost={handleSyncPost} />
-                  : <AdCard key={(item as Ad).id} ad={item as Ad} onReact={(id, react) => {}} onShare={(ad) => setSharingContent({content: ad.headline, url: `ad/${ad.id}`})} onSearchTag={setSearchQuery} />
+                  ? (
+                    <PostCard
+                      key={item.id}
+                      post={item as Post}
+                      currentUser={currentUser}
+                      allUsers={allUsers}
+                      onLike={handleLike}
+                      onComment={handleComment}
+                      onReact={handleReact}
+                      onShare={(p) =>
+                        setSharingContent({
+                          content: p.content,
+                          url: `share/p/${p.id}`,
+                          title: p.timeCapsuleTitle || `Post by ${p.author.name}`,
+                          image: p.mediaItems && p.mediaItems.length > 0 ? p.mediaItems[0].url : p.mediaUrl,
+                          mediaItems: p.mediaItems || [],
+                          originalPost: p
+                        })
+                      }
+                      onViewProfile={(id) => setView({ type: 'profile', targetId: id })}
+                      onSearchTag={setSearchQuery}
+                      onBoost={handleBoostPost}
+                      onDeletePost={handleDeletePost}
+                      onDeleteComment={handleDeleteComment}
+                      onLoadComments={handleLoadComments}
+                      onSyncPost={handleSyncPost}
+                    />
+                  )
+                  : (
+                    <AdCard
+                      key={(item as Ad).id}
+                      ad={item as Ad}
+                      onReact={(id, react) => {}}
+                      onShare={(ad) =>
+                        setSharingContent({
+                          content: ad.headline,
+                          url: `ad/${ad.id}`,
+                          title: ad.headline,
+                          image: ad.mediaUrl,
+                          mediaItems: [],
+                          originalPost: ad
+                        })
+                      }
+                      onSearchTag={setSearchQuery}
+                    />
+                  );
               })
             )}
           </div>
@@ -1821,7 +1938,16 @@ const App: React.FC = () => {
           onSendConnectionRequest={handleSendConnectionRequest}
           onReact={handleReact}
           onViewProfile={(id) => navigateToView({ type: 'profile', targetId: id })}
-          onShare={() => {}}
+          onShare={(p) =>
+            setSharingContent({
+              content: p.content,
+              url: `share/p/${p.id}`,
+              title: p.timeCapsuleTitle || `Post by ${p.author.name}`,
+              image: p.mediaItems && p.mediaItems.length > 0 ? p.mediaItems[0].url : p.mediaUrl,
+              mediaItems: p.mediaItems || [],
+              originalPost: p
+            })
+          }
           onAddAcquaintance={handleAddAcquaintance}
           onRemoveAcquaintance={handleRemoveAcquaintance}
           onSearchTag={setSearchQuery}
@@ -1976,7 +2102,19 @@ const App: React.FC = () => {
         />
       )}
       {isCreditStoreOpen && <CreditStoreModal currentUser={currentUser} bundles={CREDIT_BUNDLES} onPurchase={handlePurchaseCredits} onClose={() => setIsCreditStoreOpen(false)} />}
-      {sharingContent && <ShareModal content={sharingContent.content} url={sharingContent.url} onClose={() => setSharingContent(null)} />}
+      {sharingContent && (
+        <ShareModal
+          content={sharingContent.content}
+          url={sharingContent.url}
+          title={sharingContent.title}
+          image={sharingContent.image}
+          mediaItems={sharingContent.mediaItems}
+          currentUser={currentUser}
+          onAuraShare={handleShareOnAura}
+          originalPost={sharingContent.originalPost}
+          onClose={() => setSharingContent(null)}
+        />
+      )}
       <SerendipityModal
         isOpen={isSerendipityOpen}
         onClose={() => setIsSerendipityOpen(false)}

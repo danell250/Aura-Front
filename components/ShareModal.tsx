@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { MediaItem } from '../types';
 
 interface ShareModalProps {
   content: string;
   url: string;
   title?: string;
   image?: string;
+  mediaItems?: MediaItem[];
   onClose: () => void;
   currentUser?: any;
   onAuraShare?: (sharedPost: any, originalPost?: any) => void;
   originalPost?: any;
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onClose, currentUser, onAuraShare, originalPost }) => {
+const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, mediaItems, onClose, currentUser, onAuraShare, originalPost }) => {
   const [copied, setCopied] = useState(false);
   const baseUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin || 'https://auraradiance.vercel.app';
   const shareUrl = url.startsWith('http') ? url : `${baseUrl.replace(/\/+$/, '')}/${url.replace(/^\/+/, '')}`;
@@ -49,8 +51,8 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, onC
       isBoosted: false,
       radiance: 0,
       energy: 'NEUTRAL' as const,
-      mediaUrl: image,
-      mediaType: image ? 'image' as const : undefined,
+      mediaUrl: image || (mediaItems && mediaItems.length > 0 ? mediaItems[0].url : undefined),
+      mediaType: image || (mediaItems && mediaItems.length > 0) ? 'image' as const : undefined,
       originalPost: {
         content,
         url,

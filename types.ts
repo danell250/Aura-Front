@@ -109,6 +109,13 @@ export interface Post {
   invitedUsers?: string[]; // user IDs for group time capsules
   timeCapsuleTitle?: string; // custom title for the time capsule
   taggedUserIds?: string[];
+  sharedFrom?: {
+    postId: string;
+    originalAuthor: string;
+    originalContent: string;
+    originalUrl?: string;
+    hashtags?: string[];
+  };
 }
 
 export type AdPlacement = 'feed' | 'left' | 'right';

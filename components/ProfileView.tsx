@@ -261,96 +261,494 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8">
       <div className="max-w-4xl mx-auto">
-        <button
-          onClick={onBack}
-          className="mt-4 mb-6 px-4 py-2 bg-white/10 backdrop-blur-md text-slate-900 dark:text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 font-medium text-sm"
-        >
-          ← Back
-        </button>
-        <div className="relative h-64 overflow-hidden rounded-2xl shadow-lg border border-slate-200 dark:border-slate-800">
-          <MediaDisplay
-            url={isSelf ? (localCover || '') : (user.coverImage || '')}
-            type={isSelf ? localCoverType : user.coverType}
-            className="w-full h-full"
-            fallback={
-              <div className="w-full h-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-700" />
-            }
+        <div className="relative h-64 overflow-hidden">
+          <div
+            className={`relative w-full h-full ${isSelf ? 'group cursor-pointer' : ''}`}
+            onClick={() => {
+              if (isSelf) coverInputRef.current?.click();
+            }}
+          >
+            <MediaDisplay
+              url={isSelf ? (localCover || '') : (user.coverImage || '')}
+              type={isSelf ? localCoverType : user.coverType}
+              className="w-full h-full object-cover"
+              fallback={
+                <div className="w-full h-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-700" />
+              }
+            />
+            {isSelf && (
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-black tracking-widest">
+                {isCoverUploading ? 'Uploading...' : 'Tap to update cover'}
+              </div>
+            )}
+          </div>
+          <input
+            type="file"
+            ref={coverInputRef}
+            hidden
+            accept="image/*,video/*"
+            onChange={(e) => handleMediaFile(e, 'coverImage')}
           />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 pointer-events-none" />
+          <button
+            onClick={onBack}
+            className="absolute top-6 left-6 px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 font-medium text-sm"
+          >
+            ← Back
+          </button>
           {isSelf && (
-            <>
-              <input
-                type="file"
-                ref={coverInputRef}
-                hidden
-                accept="image/*,video/*"
-                onChange={(e) => handleMediaFile(e, 'coverImage')}
-              />
-              <button
-                type="button"
-                onClick={() => coverInputRef.current?.click()}
-                disabled={isCoverUploading}
-                className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full bg-white/95 text-[11px] font-black uppercase tracking-widest text-slate-900 shadow-md hover:bg-white disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isCoverUploading ? '⏳ Updating' : 'Update Cover'}
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={isCoverUploading}
+              className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full bg-white/95 text-[11px] font-black uppercase tracking-widest text-slate-900 shadow-md hover:bg-white disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isCoverUploading ? '⏳ Updating' : 'Update Cover'}
+            </button>
           )}
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6 mt-6 items-start">
-          <div className="flex justify-center md:justify-start">
-            <div className="w-40 h-40 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden">
-              <MediaDisplay
-                url={isSelf ? (localAvatar || user.avatar || '') : (user.avatar || '')}
-                type={isSelf ? localAvatarType : user.avatarType}
-                className="w-full h-full object-cover object-center"
-                fallback={
-                  <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-500 font-bold text-xl">
-                    {user.name ? user.name.charAt(0) : '?'}
+        <div className="bg-white dark:bg-slate-900 mx-4 -mt-16 relative z-10 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700">
+          <div className="p-6 lg:p-8">
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="relative w-full lg:w-auto flex justify-center lg:justify-start">
+                <div className="w-32 h-32 lg:w-36 lg:h-36 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden">
+                  <MediaDisplay
+                    url={isSelf ? (localAvatar || user.avatar || '') : (user.avatar || '')}
+                    type={isSelf ? localAvatarType : user.avatarType}
+                    className="w-full h-full object-cover object-center"
+                    fallback={
+                      <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-500 font-bold text-xl">
+                        {user.name ? user.name.charAt(0) : '?'}
+                      </div>
+                    }
+                  />
+                </div>
+                {isSelf && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={isAvatarUploading}
+                      className="absolute bottom-2 right-2 bg-white rounded-full p-2.5 shadow-lg hover:bg-gray-50 border-2 border-gray-100 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      <span className="w-5 h-5 text-gray-700">{isAvatarUploading ? '⏳' : '📸'}</span>
+                    </button>
+                    <input
+                      type="file"
+                      ref={avatarInputRef}
+                      hidden
+                      accept="image/*,video/*"
+                      onChange={(e) => handleMediaFile(e, 'avatar')}
+                    />
+                  </>
+                )}
+              </div>
+
+              <div className="flex-1 flex flex-col gap-4">
+                <div>
+                  <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2 leading-tight">
+                    {user.isCompany && user.companyName ? user.companyName : user.name}
+                  </h1>
+                  {user.isCompany && (
+                    <div className="flex items-center flex-wrap gap-2 mb-2">
+                      <span className="px-2.5 py-1 text-[11px] font-black uppercase tracking-widest rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                        Business Profile
+                      </span>
+                      {user.companyWebsite && (
+                        <a
+                          href={user.companyWebsite}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-medium text-emerald-600 dark:text-emerald-400 underline underline-offset-4 decoration-emerald-400/60"
+                        >
+                          {user.companyWebsite}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex items-center flex-wrap gap-3 mb-2">
+                    <p className="text-emerald-600 dark:text-emerald-400 font-medium">
+                      {user.handle}
+                    </p>
+                    <OnlineStatus userId={user.id} showText={false} size="md" />
+                    {user.isPrivate && (
+                      <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-medium">
+                        <span>🔒</span>
+                        <span>Private</span>
+                      </div>
+                    )}
+                    {trustBadge && (
+                      <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium ${trustBadge.colorClass}`}>
+                        <span className={trustBadge.textClass}>
+                          <span className="mr-1">{trustBadge.icon}</span>
+                          <span>{trustBadge.label}</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
-                }
-              />
+                </div>
+
+                <div className="flex flex-col gap-3 max-w-sm">
+                  {!isSelf ? (
+                    <>
+                      {!isBlocked && (
+                        <>
+                          <button
+                            onClick={() => (isAcquaintance ? onRemoveAcquaintance(user.id) : onSendConnectionRequest(user.id))}
+                            className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
+                              isAcquaintance
+                                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                                : isRequested
+                                  ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
+                                  : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
+                            }`}
+                          >
+                            <span>{isAcquaintance ? '✓' : isRequested ? '⏳' : '+'}</span>
+                            <span>{isAcquaintance ? 'Connected' : isRequested ? 'Requested (Tap to cancel)' : 'Connect'}</span>
+                          </button>
+                          <button
+                            onClick={() => onOpenMessaging && onOpenMessaging(user.id)}
+                            className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-medium rounded-lg text-sm shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                          >
+                            <span>✉️</span>
+                            <span>Message</span>
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={isBlocked ? handleUnblock : handleBlock}
+                        disabled={blockLoading}
+                        className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
+                          isBlocked
+                            ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                            : 'bg-rose-600 text-white hover:bg-rose-700'
+                        } ${blockLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      >
+                        <span>{isBlocked ? '🔓' : '⛔'}</span>
+                        <span>{isBlocked ? 'Unblock' : 'Block'}</span>
+                      </button>
+                      <button
+                        onClick={() => setReportOpen(true)}
+                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-medium rounded-lg text-sm shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <span>🚩</span>
+                        <span>Report</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={onEditProfile}
+                        className="w-full px-4 py-2.5 bg-slate-900 dark:bg-slate-700 text-white font-medium rounded-lg text-sm shadow-md hover:bg-slate-800 dark:hover:bg-slate-600 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <span>⚙️</span>
+                        <span>Edit Profile</span>
+                      </button>
+                      <button
+                        onClick={() => setShowPrivacySettings(true)}
+                        className="w-full px-4 py-2.5 bg-blue-600 dark:bg-blue-700 text-white font-medium rounded-lg text-sm shadow-md hover:bg-blue-700 dark:hover:bg-blue-600 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <span>🔒</span>
+                        <span>Privacy Settings</span>
+                      </button>
+                      <button
+                        onClick={onSerendipityMode}
+                        className="w-full px-4 py-2.5 bg-emerald-600 dark:bg-emerald-700 text-white font-medium rounded-lg text-sm shadow-md hover:bg-emerald-700 dark:hover:bg-emerald-600 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <span>✨</span>
+                        <span>Serendipity</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex gap-8">
+                  <div>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white">{posts.length}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Posts</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white">{user.acquaintances?.length || 0}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Acquaintances</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{user.trustScore}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Trust Score</div>
+                  </div>
+                </div>
+              </div>
             </div>
-            {isSelf && (
-              <>
-                <input
-                  type="file"
-                  ref={avatarInputRef}
-                  hidden
-                  accept="image/*,video/*"
-                  onChange={(e) => handleMediaFile(e, 'avatar')}
-                />
-              </>
-            )}
           </div>
 
-          <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6">
-            <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2 leading-tight">
-              {user.isCompany && user.companyName ? user.companyName : user.name}
-            </h1>
-            <div className="flex items-center flex-wrap gap-3 mb-4">
-              <p className="text-emerald-600 dark:text-emerald-400 font-medium">
-                {user.handle}
-              </p>
-              <OnlineStatus userId={user.id} showText={false} size="md" />
-              {user.isPrivate && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-medium">
-                  <span>🔒</span>
-                  <span>Private</span>
-                </div>
-              )}
-              {trustBadge && (
-                <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium ${trustBadge.colorClass}`}>
-                  <span className={trustBadge.textClass}>
-                    <span className="mr-1">{trustBadge.icon}</span>
-                    <span>{trustBadge.label}</span>
-                  </span>
-                </div>
+          <div className="border-t border-slate-200 dark:border-slate-700">
+            <div className="flex px-4 lg:px-8">
+              <button
+                onClick={() => setActiveTab('posts')}
+                className={`py-4 px-6 text-sm font-medium transition-all relative ${
+                  activeTab === 'posts'
+                    ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                Timeline
+              </button>
+              <button
+                onClick={() => setActiveTab('about')}
+                className={`py-4 px-6 text-sm font-medium transition-all relative ${
+                  activeTab === 'about'
+                    ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                About
+              </button>
+              {isSelf && (
+                <button
+                  onClick={() => setActiveTab('adplans')}
+                  className={`py-4 px-6 text-sm font-medium transition-all relative flex items-center gap-2 ${
+                    activeTab === 'adplans'
+                      ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+                >
+                  <span>📢</span>
+                  Ad Plans
+                  {adSubscriptions.filter(s => s.status === 'active').length > 0 && (
+                    <span className="ml-1 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-bold">
+                      {adSubscriptions.filter(s => s.status === 'active').length}
+                    </span>
+                  )}
+                </button>
               )}
             </div>
           </div>
         </div>
+
+        <div className="px-4 pt-6">
+          {activeTab === 'posts' ? (
+            <div className="space-y-6">
+              {user.isPrivate && !isSelf && !isAcquaintance && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-8 text-center">
+                  <div className="text-4xl mb-4">🔒</div>
+                  <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-200 mb-2">Private Profile</h3>
+                  <p className="text-amber-700 dark:text-amber-300 mb-4">
+                    This user's posts are private. Connect with them to see their content.
+                  </p>
+                  <button
+                    onClick={() => !isRequested && onSendConnectionRequest(user.id)}
+                    className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                      isRequested
+                        ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md hover:shadow-lg'
+                    }`}
+                    disabled={isRequested}
+                  >
+                    {isRequested ? 'Connection Requested' : 'Send Connection Request'}
+                  </button>
+                </div>
+              )}
+
+              {(!user.isPrivate || isSelf || isAcquaintance) && (
+                <>
+                  {posts.length === 0 ? (
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-12 text-center">
+                      <div className="text-4xl mb-4 opacity-30">📝</div>
+                      <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No posts yet</h3>
+                      <p className="text-slate-500 dark:text-slate-400">Posts will appear here when they're shared</p>
+                    </div>
+                  ) : (
+                    posts.map(post => (
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        currentUser={currentUser}
+                        allUsers={allUsers}
+                        onLike={handleLike}
+                        onComment={handleComment}
+                        onReact={handleReact}
+                        onShare={onShare}
+                        onViewProfile={onViewProfile}
+                        onSearchTag={onSearchTag}
+                        onBoost={onBoostPost}
+                        onDeletePost={onDeletePost}
+                        onDeleteComment={onDeleteComment}
+                        onLoadComments={onLoadComments}
+                      />
+                    ))
+                  )}
+                </>
+              )}
+            </div>
+          ) : activeTab === 'about' ? (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">About</h3>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-base">
+                  {user.bio || 'No bio available.'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                      <span className="text-xl">📍</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Location</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {user.country || 'Not set'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+                      <span className="text-xl">🏢</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Industry</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {user.industry || 'Not set'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {user.companyName && (
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                        <span className="text-xl">🏬</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Company</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                          {user.companyName}
+                        </p>
+                        {user.companyWebsite && (
+                          <a
+                            href={user.companyWebsite}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-medium text-emerald-600 dark:text-emerald-400 underline underline-offset-4 decoration-emerald-400/60"
+                          >
+                            {user.companyWebsite}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(user.dob || zodiacSign) && (
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                        <span className="text-xl">🎂</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Birthday</p>
+                        {user.dob && (
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {new Date(user.dob).toLocaleDateString(undefined, {
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </p>
+                        )}
+                        {zodiacSign && (
+                          <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                            {zodiacSign}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : activeTab === 'adplans' && isSelf ? (
+            <AdPlansDashboard
+              user={currentUser}
+              ads={ads}
+              onOpenAdManager={() => onOpenAdManager && onOpenAdManager()}
+              onCancelAd={(id) => onCancelAd && onCancelAd(id)}
+              onUpdateAd={(id, updates) => (onUpdateAd ? onUpdateAd(id, updates) : Promise.resolve(false))}
+              refreshTrigger={adRefreshTick}
+            />
+          ) : null}
+        </div>
       </div>
+
+      {showPrivacySettings && (
+        <PrivacySettings
+          user={currentUser}
+          onClose={() => setShowPrivacySettings(false)}
+          onSettingsUpdate={(settings) => {
+            console.log('Privacy settings updated:', settings);
+          }}
+        />
+      )}
+
+      {reportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Report User</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {['Harassment', 'Spam', 'FakeAccount', 'Other'].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setReportReason(r as any)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium border ${
+                      reportReason === r
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={reportNotes}
+                onChange={(e) => setReportNotes(e.target.value)}
+                placeholder="Additional details (optional)"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                rows={4}
+              />
+            </div>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setReportOpen(false)}
+                className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-lg text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitReport}
+                className="flex-1 px-4 py-2.5 bg-emerald-600 text-white font-medium rounded-lg text-sm hover:bg-emerald-700 transition-all"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {actionMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm shadow-lg">
+            {actionMessage}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

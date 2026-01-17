@@ -1361,13 +1361,8 @@ const App: React.FC = () => {
       }));
 
       try {
-        const token = localStorage.getItem('aura_auth_token') || '';
-        const response = await fetch(`${API_BASE_URL}/posts/${postId}/react`, {
+        const response = await apiFetch(`/posts/${postId}/react`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          },
           body: JSON.stringify({ reaction, userId: currentUser.id })
         });
         const result = await response.json().catch(() => null);

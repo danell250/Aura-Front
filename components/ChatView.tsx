@@ -55,6 +55,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   const messagesInitRef = useRef(false);
   const lastMessageIdRef = useRef<string | null>(null);
   const shouldStickToBottomRef = useRef(true);
+  const initialUnreadScrollDoneRef = useRef(false);
 
   const auraAdminUser = useMemo(
     () => allUsers.find(u => (u.email || '').toLowerCase() === AURA_ADMIN_EMAIL),
@@ -160,9 +161,34 @@ const ChatView: React.FC<ChatViewProps> = ({
 
   useEffect(() => {
     if (!activeContact) return;
+    initialUnreadScrollDoneRef.current = false;
+    shouldStickToBottomRef.current = true;
+  }, [activeContact]);
+
+  useEffect(() => {
+    if (!activeContact) return;
+
+    if (!initialUnreadScrollDoneRef.current) {
+      const firstUnread = messages.find(
+        msg =>
+          msg.senderId === activeContact.id &&
+          msg.receiverId === currentUser.id &&
+          msg.isRead === false
+      );
+
+      if (firstUnread) {
+        const el = document.getElementById(`message-${firstUnread.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          initialUnreadScrollDoneRef.current = true;
+          return;
+        }
+      }
+    }
+
     if (!shouldStickToBottomRef.current && messagesInitRef.current) return;
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, activeContact]);
+  }, [messages, activeContact, currentUser.id]);
 
 
   useEffect(() => {
@@ -483,6 +509,14 @@ const ChatView: React.FC<ChatViewProps> = ({
   const renderMessages = () => {
     const items: React.ReactElement[] = [];
     let lastDateKey: string | null = null;
+    const firstUnreadIndex = activeContact
+      ? messages.findIndex(
+          msg =>
+            msg.senderId === activeContact.id &&
+            msg.receiverId === currentUser.id &&
+            msg.isRead === false
+        )
+      : -1;
 
     messages.forEach((msg, idx) => {
       const isMe = msg.senderId === currentUser.id;
@@ -510,6 +544,21 @@ const ChatView: React.FC<ChatViewProps> = ({
         lastDateKey = dateKey;
       }
 
+      if (idx === firstUnreadIndex) {
+        items.push(
+          <div
+            key="unread-separator"
+            className="flex items-center my-3"
+          >
+            <div className="flex-1 h-px bg-emerald-500/40" />
+            <span className="mx-4 px-4 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase tracking-[0.25em]">
+              Unread messages
+            </span>
+            <div className="flex-1 h-px bg-emerald-500/40" />
+          </div>
+        );
+      }
+
       const dateLabel = new Intl.DateTimeFormat('en-US', {
         month: 'short',
         day: '2-digit',
@@ -528,9 +577,17 @@ const ChatView: React.FC<ChatViewProps> = ({
           ? `${BACKEND_ORIGIN}${rawMediaUrl}`
           : rawMediaUrl;
 
+      const isUnreadIncoming =
+        !isMe &&
+        activeContact &&
+        msg.senderId === activeContact.id &&
+        msg.receiverId === currentUser.id &&
+        msg.isRead === false;
+
       items.push(
         <div
           key={msg.id}
+          id={`message-${msg.id}`}
           className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-4 duration-300`}
         >
           <div
@@ -540,7 +597,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                 : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-100 dark:border-slate-800 shadow-slate-200/40 dark:shadow-black/30'
             } ${isMe ? 'rounded-br-xl' : 'rounded-bl-xl'} ${
               !isFirstInSequence && (isMe ? 'rounded-tr-xl' : 'rounded-tl-xl')
-            }`}
+            } ${isUnreadIncoming ? 'ring-2 ring-emerald-400/60' : ''}`}
           >
             <div className="space-y-2.5">
               {kind === 'image' && mediaUrl && (

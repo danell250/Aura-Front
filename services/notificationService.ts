@@ -1,5 +1,6 @@
 import { Notification } from '../types';
 import { getApiBaseUrl } from '../constants';
+import { apiFetch } from '../utils/api';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -11,13 +12,9 @@ export class NotificationService {
     try {
       const params = new URLSearchParams();
       if (unreadOnly) params.append('unreadOnly', 'true');
-      const url = `${API_BASE_URL}/notifications/user/${userId}${params.toString() ? '?' + params.toString() : ''}`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' as RequestCredentials
+      const url = `/notifications/user/${userId}${params.toString() ? '?' + params.toString() : ''}`;
+      const response = await apiFetch(url, {
+        method: 'GET'
       });
 
       if (response.ok) {
@@ -42,12 +39,8 @@ export class NotificationService {
    */
   static async markAsRead(notificationId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' as RequestCredentials
+      const response = await apiFetch(`/notifications/${notificationId}/read`, {
+        method: 'PUT'
       });
 
       if (response.ok) {
@@ -67,12 +60,8 @@ export class NotificationService {
    */
   static async markAllAsRead(userId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/notifications/user/${userId}/read-all`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' as RequestCredentials
+      const response = await apiFetch(`/notifications/user/${userId}/read-all`, {
+        method: 'PUT'
       });
 
       if (response.ok) {
@@ -92,12 +81,8 @@ export class NotificationService {
    */
   static async deleteNotification(notificationId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include' as RequestCredentials
+      const response = await apiFetch(`/notifications/${notificationId}`, {
+        method: 'DELETE'
       });
 
       if (response.ok) {
@@ -124,11 +109,8 @@ export class NotificationService {
     connectionId?: string
   ): Promise<{ success: boolean; data?: Notification; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/notifications`, {
+      const response = await apiFetch('/notifications', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           userId,
           type,
@@ -136,8 +118,7 @@ export class NotificationService {
           message,
           postId,
           connectionId
-        }),
-        credentials: 'include' as RequestCredentials
+        })
       });
 
       if (response.ok) {

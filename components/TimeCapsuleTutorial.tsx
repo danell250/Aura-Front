@@ -349,7 +349,7 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-200 dark:border-slate-700 p-6">
+        <div className="border-t border-emerald-100 dark:border-emerald-900/40 p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
@@ -358,7 +358,7 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
               {currentStep > 0 && (
                 <button
                   onClick={prevStep}
-                  className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 font-medium transition-colors"
+                  className="text-sm text-emerald-600 dark:text-emerald-300 hover:text-emerald-700 dark:hover:text-emerald-200 font-medium transition-colors"
                 >
                   ← Previous
                 </button>
@@ -368,7 +368,7 @@ const TimeCapsuleTutorial: React.FC<TimeCapsuleTutorialProps> = ({
             <div className="flex items-center gap-3">
               <button
                 onClick={skipTutorial}
-                className="px-6 py-2.5 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 font-bold text-sm uppercase tracking-wider transition-colors"
+                className="px-6 py-2.5 text-emerald-500 dark:text-emerald-300 hover:text-emerald-700 dark:hover:text-emerald-200 font-bold text-sm uppercase tracking-wider transition-colors"
               >
                 Skip Tutorial
               </button>

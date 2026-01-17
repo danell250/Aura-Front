@@ -514,14 +514,14 @@ const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
 
           <div>
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-              Media (optional)
+              Add Media (optional)
             </label>
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp,video/mp4"
               multiple
               onChange={handleMediaFileChange}
-              className="w-full text-sm text-slate-600 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-purple-950/40 dark:file:text-purple-200 cursor-pointer"
+              className="w-full text-sm text-emerald-600 dark:text-emerald-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-950/40 dark:file:text-emerald-200 cursor-pointer"
             />
             {selectedMediaItems.length > 0 && (
               <div className="mt-3 grid grid-cols-2 gap-3">

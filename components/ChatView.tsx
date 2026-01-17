@@ -63,6 +63,21 @@ const ChatView: React.FC<ChatViewProps> = ({
   );
 
 
+  const mapConversationsWithUnread = (data: any[]) =>
+    data.map(conv => ({
+      ...conv,
+      unread: typeof conv.unreadCount === 'number' && conv.unreadCount > 0
+    }));
+
+  const handleConversationClick = (user: User) => {
+    setActiveContact(user);
+    setConversations(prev =>
+      prev.map(conv =>
+        conv._id === user.id ? { ...conv, unread: false, unreadCount: 0 } : conv
+      )
+    );
+  };
+
   // Load conversations and keep them updated
   useEffect(() => {
     let cancelled = false;
@@ -73,8 +88,9 @@ const ChatView: React.FC<ChatViewProps> = ({
         if (!response.success) return;
         if (cancelled) return;
         const data = response.data || [];
-        setConversations(data);
-        const archivedFromBackend = data
+        const mapped = mapConversationsWithUnread(data);
+        setConversations(mapped);
+        const archivedFromBackend = mapped
           .filter((conv: any) => conv.isArchived)
           .map((conv: any) => conv._id as string);
         setArchivedIds(archivedFromBackend);
@@ -295,8 +311,9 @@ const ChatView: React.FC<ChatViewProps> = ({
         const updatedConversations = await MessageService.getConversations(currentUser.id);
         if (updatedConversations.success) {
           const data = updatedConversations.data || [];
-          setConversations(data);
-          const archivedFromBackend = data
+          const mapped = mapConversationsWithUnread(data);
+          setConversations(mapped);
+          const archivedFromBackend = mapped
             .filter((conv: any) => conv.isArchived)
             .map((conv: any) => conv._id as string);
           setArchivedIds(archivedFromBackend);
@@ -366,8 +383,9 @@ const ChatView: React.FC<ChatViewProps> = ({
       const updatedConversations = await MessageService.getConversations(currentUser.id);
       if (updatedConversations.success) {
         const data = updatedConversations.data || [];
-        setConversations(data);
-        const archivedFromBackend = data
+        const mapped = mapConversationsWithUnread(data);
+        setConversations(mapped);
+        const archivedFromBackend = mapped
           .filter((conv: any) => conv.isArchived)
           .map((conv: any) => conv._id as string);
         setArchivedIds(archivedFromBackend);
@@ -395,8 +413,9 @@ const ChatView: React.FC<ChatViewProps> = ({
       const updatedConversations = await MessageService.getConversations(currentUser.id);
       if (updatedConversations.success) {
         const data = updatedConversations.data || [];
-        setConversations(data);
-        const archivedFromBackend = data
+        const mapped = mapConversationsWithUnread(data);
+        setConversations(mapped);
+        const archivedFromBackend = mapped
           .filter((conv: any) => conv.isArchived)
           .map((conv: any) => conv._id as string);
         setArchivedIds(archivedFromBackend);
@@ -742,10 +761,12 @@ const ChatView: React.FC<ChatViewProps> = ({
               const lastMsg = getLastMessage(user.id);
               const isAcquaintance = acquaintances.some(acq => acq.id === user.id);
               const trustBadge = getTrustBadgeConfig(user.trustScore ?? 0);
+              const conversation = conversations.find(conv => conv._id === user.id);
+              const hasUnread = !!conversation?.unread && typeof conversation.unreadCount === 'number' && conversation.unreadCount > 0;
               
               const handleSelect = () => {
                 if (activeContact?.id === user.id) return;
-                setActiveContact(user);
+                handleConversationClick(user);
               };
 
               const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
@@ -768,6 +789,9 @@ const ChatView: React.FC<ChatViewProps> = ({
                       : 'hover:bg-white dark:hover:bg-slate-800/60 text-slate-600'
                   }`}
                 >
+                  {hasUnread && (
+                    <div className="absolute -left-2 top-4 w-3 h-3 bg-blue-600 rounded-full" />
+                  )}
                   <div className="relative flex-shrink-0">
                     {user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? (
                       <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white flex items-center justify-center ring-4 ring-white/10 group-hover:scale-110 transition-transform">

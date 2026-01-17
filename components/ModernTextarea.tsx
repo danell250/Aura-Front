@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 
 interface ModernTextareaProps {
   value: string;
@@ -8,7 +9,6 @@ interface ModernTextareaProps {
   onSubmit?: () => void;
   submitText?: string;
   isSubmitting?: boolean;
-  onEmojiClick?: () => void;
 }
 
 const ModernTextarea: React.FC<ModernTextareaProps> = ({
@@ -19,10 +19,11 @@ const ModernTextarea: React.FC<ModernTextareaProps> = ({
   onSubmit,
   submitText = 'Post',
   isSubmitting = false,
-  onEmojiClick
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement | null>(null);
 
   const length = value.length;
   const ratio = maxLength > 0 ? length / maxLength : 0;
@@ -56,6 +57,16 @@ const ModernTextarea: React.FC<ModernTextareaProps> = ({
     }
   }, [isSubmitting, isEmpty, isOverLimit]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
   };
@@ -71,6 +82,13 @@ const ModernTextarea: React.FC<ModernTextareaProps> = ({
     if (canSubmit && onSubmit) {
       onSubmit();
     }
+  };
+
+  const handleEmojiPick = (emojiData: EmojiClickData) => {
+    const emoji = emojiData.emoji;
+    const nextValue = value + emoji;
+    onChange(nextValue);
+    setShowEmojiPicker(false);
   };
 
   return (
@@ -98,16 +116,29 @@ const ModernTextarea: React.FC<ModernTextareaProps> = ({
 
         <div className="mt-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            {onEmojiClick && (
+            <div className="relative">
               <button
                 type="button"
-                onClick={onEmojiClick}
+                onClick={() => setShowEmojiPicker(prev => !prev)}
                 className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg"
                 aria-label="Add emoji"
               >
                 <span>😊</span>
               </button>
-            )}
+              {showEmojiPicker && (
+                <div
+                  ref={emojiPickerRef}
+                  className="absolute bottom-11 left-0 z-50 shadow-2xl rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                >
+                  <EmojiPicker
+                    onEmojiClick={handleEmojiPick}
+                    theme={document.documentElement.classList.contains('dark') ? Theme.DARK : Theme.LIGHT}
+                    width={320}
+                    height={400}
+                  />
+                </div>
+              )}
+            </div>
 
             <div className="flex flex-col gap-1">
               <div className="w-32 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -163,4 +194,3 @@ const ModernTextarea: React.FC<ModernTextareaProps> = ({
 };
 
 export default ModernTextarea;
-

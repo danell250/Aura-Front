@@ -170,6 +170,7 @@ const Layout: React.FC<LayoutProps> = ({
                 onNavigate={onNavigateNotification}
                 isSoundEnabled={isNotificationSoundEnabled}
                 onToggleSound={onToggleNotificationSound}
+                onMarkAllRead={onMarkAllNotificationsRead}
               />
             )}
           </div>

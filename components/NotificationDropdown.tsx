@@ -11,9 +11,10 @@ interface NotificationDropdownProps {
   onNavigate?: (notification: Notification) => void;
   isSoundEnabled?: boolean;
   onToggleSound?: (enabled: boolean) => void;
+  onMarkAllRead?: () => void;
 }
 
-const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notifications, onClose, onRead, onAccept, onReject, onNavigate, isSoundEnabled = true, onToggleSound }) => {
+const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notifications, onClose, onRead, onAccept, onReject, onNavigate, isSoundEnabled = true, onToggleSound, onMarkAllRead }) => {
   const formatDate = (ts: number) => {
     return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric' }).format(ts);
   };
@@ -68,6 +69,14 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
       <div className="p-4 border-b border-slate-100 flex justify-between items-center">
         <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Notifications</h3>
         <div className="flex items-center gap-2">
+          {onMarkAllRead && notifications.some(n => !n.isRead) && (
+            <button
+              onClick={onMarkAllRead}
+              className="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700"
+            >
+              Mark all read
+            </button>
+          )}
           <button
             onClick={() => onToggleSound && onToggleSound(!isSoundEnabled)}
             className={`p-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-colors ${isSoundEnabled ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'}`}

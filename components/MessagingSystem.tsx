@@ -51,7 +51,6 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
   const getDisplayName = (user: User) =>
     user.email && user.email.toLowerCase() === AURA_ADMIN_EMAIL ? 'Aura Support' : user.name;
 
-  // Filter users for messaging - show users with message history plus Aura Admin for support
   const messagingUsers = (() => {
     const base = allUsers.filter(user => {
       if (user.id === currentUser.id) return false;
@@ -74,6 +73,24 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
 
     return base;
   })();
+
+  const messagingConversations = messagingUsers
+    .map(user => {
+      const lastMessage = messages
+        .filter(msg => 
+          (msg.senderId === user.id && msg.receiverId === currentUser.id) || 
+          (msg.senderId === currentUser.id && msg.receiverId === user.id)
+        )
+        .sort((a, b) => b.timestamp - a.timestamp)[0];
+      
+      const hasUnread = unreadCounts[user.id] > 0;
+      return { user, lastMessage, hasUnread };
+    })
+    .sort((a, b) => {
+      const aTime = a.lastMessage ? a.lastMessage.timestamp : 0;
+      const bTime = b.lastMessage ? b.lastMessage.timestamp : 0;
+      return bTime - aTime;
+    });
 
   // Filter connections for search (acquaintances + all users if searching)
   const searchableUsers = allUsers.filter(user => {
@@ -303,20 +320,17 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                     <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800/50">
                       <h3 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Recent Conversations</h3>
                     </div>
-                    {messagingUsers.map(user => {
-                      const lastMessage = messages
-                        .filter(msg => 
-                          (msg.senderId === user.id && msg.receiverId === currentUser.id) || 
-                          (msg.senderId === currentUser.id && msg.receiverId === user.id)
-                        )
-                        .sort((a, b) => b.timestamp - a.timestamp)[0];
-                      
-                      const hasUnread = unreadCounts[user.id] > 0;
-                      
+                    {messagingConversations.map(({ user, lastMessage, hasUnread }) => {
+                      const lastMessageFromThem = !!lastMessage && lastMessage.senderId === user.id;
+
                       return (
                         <div 
                           key={user.id}
-                          className={`p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                          className={`p-4 border-b border-slate-100 dark:border-slate-800 cursor-pointer transition-all ${
+                            hasUnread
+                              ? 'bg-blue-50/80 dark:bg-slate-800/70 border-l-4 border-l-sky-400'
+                              : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                          } ${
                             selectedUser?.id === user.id ? 'bg-slate-100 dark:bg-slate-800/50' : ''
                           }`}
                           onClick={() => handleSelectUser(user)}
@@ -331,26 +345,51 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
                                 className="w-12 h-12 rounded-xl"
                               />
                               {hasUnread && (
-                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
+                                <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center text-xs text-white font-bold animate-pulse">
                                   {unreadCounts[user.id]}
                                 </div>
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-start">
-                                <h3 className="font-black text-slate-900 dark:text-white truncate">{getDisplayName(user)}</h3>
+                                <h3
+                                  className={`truncate ${
+                                    lastMessageFromThem && hasUnread
+                                      ? 'font-black text-slate-900 dark:text-white'
+                                      : 'font-semibold text-slate-800 dark:text-slate-200'
+                                  }`}
+                                >
+                                  {getDisplayName(user)}
+                                </h3>
                                 {lastMessage && (
-                                  <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                  <span
+                                    className={`text-xs whitespace-nowrap ${
+                                      lastMessageFromThem && hasUnread
+                                        ? 'text-rose-500 dark:text-rose-400 font-bold'
+                                        : 'text-slate-500 dark:text-slate-400'
+                                    }`}
+                                  >
                                     {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                   </span>
                                 )}
                               </div>
                               {lastMessage && (
                                 <p className={`text-sm truncate ${lastMessage.senderId === currentUser.id ? 'text-right' : 'text-left'} ${
-                                  hasUnread ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-600 dark:text-slate-400'
+                                  lastMessageFromThem && hasUnread
+                                    ? 'text-slate-900 dark:text-slate-100 font-black'
+                                    : 'text-slate-600 dark:text-slate-400'
                                 }`}>
                                   {lastMessage.senderId === currentUser.id ? 'You: ' : ''}
+                                  {lastMessageFromThem && hasUnread && '📥 '}
                                   {lastMessage.text.length > 30 ? lastMessage.text.substring(0, 30) + '...' : lastMessage.text}
+                                </p>
+                              )}
+                              {hasUnread && unreadCounts[user.id] > 0 && (
+                                <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1">
+                                  <span className="text-xs">●</span>
+                                  <span>
+                                    {unreadCounts[user.id]} new message{unreadCounts[user.id] > 1 ? 's' : ''}
+                                  </span>
                                 </p>
                               )}
                             </div>

@@ -14,8 +14,8 @@ class SoundService {
   private ensureLoaded() {
     if (this.initialized) return;
     if (!this.ensureSupport()) return;
-    this.audios.notification = new Audio('/sounds/bell-notification-337658.mp3');
-    this.audios.message = new Audio('/sounds/short-message-ping-430425.mp3');
+    this.audios.notification = new Audio('/sounds/positive-notification-alert-351299.mp3');
+    this.audios.message = new Audio('/sounds/happy-message-ping-351298.mp3');
     this.initialized = true;
   }
 
@@ -44,4 +44,3 @@ class SoundService {
 }
 
 export const soundService = new SoundService();
-

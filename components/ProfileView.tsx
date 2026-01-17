@@ -426,17 +426,34 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                             )}
                           </>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowOwnerMenu(false);
-                              setReportOpen(true);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                          >
-                            <span>🚩</span>
-                            <span>Report user</span>
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowOwnerMenu(false);
+                                if (isBlocked) {
+                                  handleUnblock();
+                                } else {
+                                  handleBlock();
+                                }
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            >
+                              <span>{isBlocked ? '🔓' : '⛔'}</span>
+                              <span>{isBlocked ? 'Unblock user' : 'Block user'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowOwnerMenu(false);
+                                setReportOpen(true);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            >
+                              <span>🚩</span>
+                              <span>Report user</span>
+                            </button>
+                          </>
                         )}
                       </div>
                     )}

@@ -371,6 +371,18 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       <p className="text-emerald-600 dark:text-emerald-400 font-medium">
                         {user.handle}
                       </p>
+                      {!isSelf && isAcquaintance && (
+                        <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full text-xs font-medium">
+                          <span>✓</span>
+                          <span>Connected</span>
+                        </div>
+                      )}
+                      {!isSelf && !isAcquaintance && isRequested && (
+                        <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium">
+                          <span>⏳</span>
+                          <span>Requested</span>
+                        </div>
+                      )}
                       <OnlineStatus userId={user.id} showText={false} size="md" />
                       {user.isPrivate && (
                         <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-medium">
@@ -388,123 +400,105 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       )}
                     </div>
                   </div>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowOwnerMenu((open) => !open)}
-                      className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm"
-                    >
-                      <span className="text-lg">⚙️</span>
-                    </button>
-                    {showOwnerMenu && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20 py-1">
-                        {isSelf ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowOwnerMenu(false);
-                                onEditProfile && onEditProfile();
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                            >
-                              <span>✏️</span>
-                              <span>Edit profile</span>
-                            </button>
-                            {onSerendipityMode && (
+                  <div className="flex items-center gap-2">
+                    {!isSelf && !isBlocked && onOpenMessaging && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenMessaging(user.id)}
+                        className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm"
+                      >
+                        <span className="text-lg">✉️</span>
+                      </button>
+                    )}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowOwnerMenu((open) => !open)}
+                        className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm"
+                      >
+                        <span className="text-lg">⚙️</span>
+                      </button>
+                      {showOwnerMenu && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20 py-1">
+                          {isSelf ? (
+                            <>
                               <button
                                 type="button"
                                 onClick={() => {
                                   setShowOwnerMenu(false);
-                                  onSerendipityMode();
+                                  onEditProfile && onEditProfile();
                                 }}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                               >
-                                <span>✨</span>
-                                <span>Serendipity</span>
+                                <span>✏️</span>
+                                <span>Edit profile</span>
                               </button>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowOwnerMenu(false);
-                                if (isBlocked) {
-                                  handleUnblock();
-                                } else {
-                                  handleBlock();
-                                }
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                            >
-                              <span>{isBlocked ? '🔓' : '⛔'}</span>
-                              <span>{isBlocked ? 'Unblock user' : 'Block user'}</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowOwnerMenu(false);
-                                setReportOpen(true);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                            >
-                              <span>🚩</span>
-                              <span>Report user</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
+                              {onSerendipityMode && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowOwnerMenu(false);
+                                    onSerendipityMode();
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                >
+                                  <span>✨</span>
+                                  <span>Serendipity</span>
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowOwnerMenu(false);
+                                  if (isBlocked) {
+                                    handleUnblock();
+                                  } else {
+                                    handleBlock();
+                                  }
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                              >
+                                <span>{isBlocked ? '🔓' : '⛔'}</span>
+                                <span>{isBlocked ? 'Unblock user' : 'Block user'}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowOwnerMenu(false);
+                                  setReportOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                              >
+                                <span>🚩</span>
+                                <span>Report user</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {!isSelf && (
                   <div className="flex flex-col gap-3 max-w-sm">
-                    {!isBlocked && (
-                      <>
-                        <button
-                          onClick={() => (isAcquaintance ? onRemoveAcquaintance(user.id) : onSendConnectionRequest(user.id))}
-                          className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
-                            isAcquaintance
-                              ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                              : isRequested
-                                ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
-                                : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
-                          }`}
-                        >
-                          <span>{isAcquaintance ? '✓' : isRequested ? '⏳' : '+'}</span>
-                          <span>{isAcquaintance ? 'Connected' : isRequested ? 'Requested (Tap to cancel)' : 'Connect'}</span>
-                        </button>
-                        <button
-                          onClick={() => onOpenMessaging && onOpenMessaging(user.id)}
-                          className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-medium rounded-lg text-sm shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                        >
-                          <span>✉️</span>
-                          <span>Message</span>
-                        </button>
-                      </>
+                    {!isBlocked && !isAcquaintance && (
+                      <button
+                        onClick={() => onSendConnectionRequest(user.id)}
+                        className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
+                          isRequested
+                            ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
+                            : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
+                        }`}
+                        disabled={isRequested}
+                      >
+                        <span>{isRequested ? '⏳' : '+'}</span>
+                        <span>{isRequested ? 'Requested' : 'Connect'}</span>
+                      </button>
                     )}
-                    <button
-                      onClick={isBlocked ? handleUnblock : handleBlock}
-                      disabled={blockLoading}
-                      className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
-                        isBlocked
-                          ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-                          : 'bg-rose-600 text-white hover:bg-rose-700'
-                      } ${blockLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                    >
-                      <span>{isBlocked ? '🔓' : '⛔'}</span>
-                      <span>{isBlocked ? 'Unblock' : 'Block'}</span>
-                    </button>
-                    <button
-                      onClick={() => setReportOpen(true)}
-                      className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-medium rounded-lg text-sm shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      <span>🚩</span>
-                      <span>Report</span>
-                    </button>
                   </div>
                 )}
 

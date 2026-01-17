@@ -101,6 +101,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   const [localReactions, setLocalReactions] = useState<Record<string, number>>(post.reactions || {});
   const [localUserReactions, setLocalUserReactions] = useState<string[]>(post.userReactions || []);
   const [commentReactionsState, setCommentReactionsState] = useState<Record<string, { reactions: Record<string, number>; userReactions: string[] }>>({});
+  const [localViewCount, setLocalViewCount] = useState<number>(post.viewCount ?? 0);
 
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
@@ -415,8 +416,22 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
 
   useEffect(() => {
     if (post.id.startsWith('temp-')) return;
-    PostService.incrementPostViews(post.id).catch(() => {});
+    let cancelled = false;
+    PostService.incrementPostViews(post.id)
+      .then(result => {
+        if (!cancelled && result.success && typeof result.viewCount === 'number') {
+          setLocalViewCount(result.viewCount);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [post.id]);
+
+  useEffect(() => {
+    setLocalViewCount(post.viewCount ?? 0);
+  }, [post.viewCount]);
 
   const handleAISuggestion = async () => {
     if (isSuggesting) return;
@@ -721,7 +736,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
             )}
             <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">{new Date(post.timestamp).toLocaleDateString()}</span>
             <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
-              {(post.viewCount ?? 0).toLocaleString()} views
+              {localViewCount.toLocaleString()} views
             </span>
             {post.author.id === currentUser.id && (
               <button 

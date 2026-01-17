@@ -307,7 +307,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
           )}
         </div>
 
-        <div className="bg-white dark:bg-slate-900 mx-4 -mt-16 relative z-10 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-900 mx-4 mt-6 relative z-10 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700">
           <div className="p-6 lg:p-8">
             <div className="flex flex-col lg:flex-row gap-6">
               <div className="relative w-full lg:w-auto flex justify-center lg:justify-start">
@@ -388,45 +388,59 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       )}
                     </div>
                   </div>
-                  {isSelf && (
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setShowOwnerMenu((open) => !open)}
-                        className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm"
-                      >
-                        <span className="text-lg">⚙️</span>
-                      </button>
-                      {showOwnerMenu && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20 py-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowOwnerMenu(false);
-                              onEditProfile && onEditProfile();
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                          >
-                            <span>✏️</span>
-                            <span>Edit profile</span>
-                          </button>
-                          {onSerendipityMode && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowOwnerMenu((open) => !open)}
+                      className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm"
+                    >
+                      <span className="text-lg">⚙️</span>
+                    </button>
+                    {showOwnerMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20 py-1">
+                        {isSelf ? (
+                          <>
                             <button
                               type="button"
                               onClick={() => {
                                 setShowOwnerMenu(false);
-                                onSerendipityMode();
+                                onEditProfile && onEditProfile();
                               }}
                               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                             >
-                              <span>✨</span>
-                              <span>Serendipity</span>
+                              <span>✏️</span>
+                              <span>Edit profile</span>
                             </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                            {onSerendipityMode && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowOwnerMenu(false);
+                                  onSerendipityMode();
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                              >
+                                <span>✨</span>
+                                <span>Serendipity</span>
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowOwnerMenu(false);
+                              setReportOpen(true);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          >
+                            <span>🚩</span>
+                            <span>Report user</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {!isSelf && (

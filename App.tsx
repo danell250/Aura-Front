@@ -45,21 +45,23 @@ const AURA_SUPPORT_EMAIL = 'aurasocialradiate@gmail.com';
 
 const isProfileComplete = (user: User | null | undefined) => {
   if (!user) return false;
+
   const hasDob = !!user.dob;
+  const hasCountry = !!user.country && user.country.trim().length > 0;
   const bio = (user.bio || '').trim();
   const industry = (user.industry || '').trim();
-  const hasBio = bio.length > 0 && bio !== 'New to Aura';
-  const hasIndustry = industry.length > 0 && industry.toLowerCase() !== 'other';
-  const hasCountry = !!user.country && user.country.trim().length > 0;
-  const baseComplete = hasDob && hasBio && hasIndustry && hasCountry;
+
+  const hasBio = bio.length > 0;
+  const hasIndustry = industry.length > 0;
+
+  const baseComplete = hasDob && hasCountry && hasBio && hasIndustry;
 
   if (!user.isCompany) {
     return baseComplete;
   }
 
   const hasCompanyName = !!user.companyName && user.companyName.trim().length > 0;
-  const hasCompanyWebsite = !!user.companyWebsite && user.companyWebsite.trim().length > 0;
-  return baseComplete && hasCompanyName && hasCompanyWebsite;
+  return baseComplete && hasCompanyName;
 };
 
 interface BirthdayAnnouncement {

@@ -20,7 +20,16 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, med
   const socialShareUrl = shareUrl;
 
   const shareTitle = title || 'Check out this post on Aura';
-  const shareText = `${content}\n\n${shareUrl}`;
+
+  const getEnhancedShareContent = () => {
+    const authorName = originalPost?.author?.name || currentUser?.name || 'Aura User';
+    const authorHandle = originalPost?.author?.handle || currentUser?.handle || '';
+    const trustScore = originalPost?.author?.trustScore || 0;
+
+    return `"${content}"${authorHandle ? `\n\n— @${authorHandle}` : `\n\n— ${authorName}`}${trustScore ? ` (Trust: ${trustScore})` : ''}\n\n${shareUrl}`;
+  };
+
+  const shareText = getEnhancedShareContent();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -73,44 +82,65 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, med
       icon: '✨', 
       color: 'bg-gradient-to-r from-emerald-500 to-blue-500 text-white',
       link: '#', // Internal Aura sharing
-      action: 'aura'
+      action: 'aura',
+      description: 'Share inside Aura'
     },
     { 
       name: 'X', 
       icon: '𝕏', 
       color: 'bg-black text-white',
-      link: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareTitle}\n${content}`)}&url=${encodeURIComponent(socialShareUrl)}`
+      link: `https://twitter.com/intent/tweet?text=${encodeURIComponent(getEnhancedShareContent())}&url=${encodeURIComponent(shareUrl)}`,
+      description: 'Share on X (Twitter)'
     },
     { 
       name: 'LinkedIn', 
       icon: 'in', 
       color: 'bg-[#0077b5] text-white',
-      link: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(socialShareUrl)}`
+      link: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(socialShareUrl)}`,
+      description: 'Share on LinkedIn'
     },
     { 
       name: 'Facebook', 
       icon: 'f', 
       color: 'bg-[#1877f2] text-white',
-      link: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(socialShareUrl)}&quote=${encodeURIComponent(`${shareTitle}\n${content}`)}`
+      link: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(socialShareUrl)}&quote=${encodeURIComponent(`${shareTitle}\n${content}`)}`,
+      description: 'Share on Facebook'
     },
     { 
       name: 'Instagram', 
       icon: '📸', 
       color: 'bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white',
       link: '#', // Instagram doesn't support direct sharing, will copy to clipboard
-      action: 'copy'
+      action: 'copy',
+      description: 'Copy for Instagram'
     },
     { 
       name: 'Threads', 
       icon: '🧵', 
       color: 'bg-black text-white',
-      link: `https://www.threads.net/intent/post?text=${encodeURIComponent(`${shareTitle}\n${content}\n${socialShareUrl}`)}`
+      link: `https://www.threads.net/intent/post?text=${encodeURIComponent(getEnhancedShareContent())}`,
+      description: 'Share on Threads'
     },
     { 
       name: 'Reddit', 
       icon: '🤖', 
       color: 'bg-[#ff4500] text-white',
-      link: `https://reddit.com/submit?url=${encodeURIComponent(socialShareUrl)}&title=${encodeURIComponent(shareTitle)}${image ? `&image=${encodeURIComponent(image)}` : ''}`
+      link: `https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}&text=${encodeURIComponent(content)}`,
+      description: 'Share on Reddit'
+    },
+    { 
+      name: 'WhatsApp', 
+      icon: '💬', 
+      color: 'bg-[#25D366] text-white', 
+      link: `https://wa.me/?text=${encodeURIComponent(getEnhancedShareContent())}`,
+      description: 'Share on WhatsApp'
+    },
+    { 
+      name: 'Telegram', 
+      icon: '✈️', 
+      color: 'bg-[#0088cc] text-white', 
+      link: `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(getEnhancedShareContent())}`,
+      description: 'Share on Telegram'
     }
   ];
 
@@ -123,49 +153,112 @@ const ShareModal: React.FC<ShareModalProps> = ({ content, url, title, image, med
     >
       <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-10 shadow-2xl border border-white/50 dark:border-slate-800">
         <div className="flex justify-between items-center mb-10">
-          <h2 className="text-xl font-black uppercase tracking-widest text-slate-900 dark:text-white">Radiate Signal</h2>
+          <h2 className="text-2xl font-black uppercase tracking-widest text-slate-900 dark:text-white">Share Post</h2>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">✕</button>
         </div>
 
-        <div className="flex justify-center gap-4 mb-12 flex-wrap">
-          {socialPlatforms.map(platform => (
-            <button
-              key={platform.name}
-              onClick={() => {
-                if (platform.action === 'copy') {
-                  copyToClipboard();
-                } else if (platform.action === 'aura') {
-                  handleAuraShare();
-                } else {
-                  window.open(platform.link, '_blank', 'noopener,noreferrer');
-                }
-              }}
-              className={`w-12 h-12 rounded-xl ${platform.color} flex items-center justify-center text-lg font-black shadow-lg hover:scale-110 transition-transform active:scale-90`}
-              title={`Share to ${platform.name}`}
-            >
-              {platform.icon}
-            </button>
-          ))}
+        {/* Preview Section */}
+        <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 mb-8 border border-slate-200 dark:border-slate-700">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">Preview</p>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white line-clamp-3">
+              {content}
+            </p>
+            {image && (
+              <div className="mt-3 rounded-lg overflow-hidden max-h-40 bg-slate-200 dark:bg-slate-700">
+                <img
+                  src={image}
+                  alt="Post preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 break-all hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+              {shareUrl}
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">Share to platforms</p>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            {socialPlatforms.map(platform => (
+              <button
+                key={platform.name}
+                onClick={() => {
+                  if (platform.action === 'copy') {
+                    copyToClipboard();
+                  } else if (platform.action === 'aura') {
+                    handleAuraShare();
+                  } else {
+                    window.open(platform.link, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                className={`group relative flex flex-col items-center gap-2 p-4 rounded-xl ${platform.color} shadow-md hover:shadow-lg transition-all active:scale-95 transform hover:-translate-y-1`}
+                title={`Share to ${platform.name}`}
+              >
+                {/* Tooltip */}
+                {platform.description && (
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-700 text-white text-xs font-medium px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    {platform.description}
+                  </div>
+                )}
+                <span className="text-lg font-black">
+                  {platform.icon}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  {platform.name}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="relative">
-          <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 mb-3 block ml-1">Universal Sync Link</label>
+          <label className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3 block">Share Link</label>
           <div className="flex gap-2">
             <input 
               readOnly 
               value={shareUrl} 
-              className="flex-1 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 text-xs font-bold text-slate-500 outline-none truncate"
+              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs font-medium text-slate-700 dark:text-slate-300 outline-none truncate hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             />
             <button 
               onClick={copyToClipboard}
-              className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${copied ? 'bg-emerald-500 text-white' : 'bg-slate-900 dark:bg-slate-700 text-white hover:brightness-125'}`}
+              className={`px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all transform active:scale-95 ${
+                copied
+                  ? 'bg-emerald-500 text-white shadow-lg'
+                  : 'bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 shadow-md hover:shadow-lg'
+              }`}
             >
               {copied ? 'Synced' : 'Copy'}
             </button>
           </div>
         </div>
 
-        <p className="mt-10 text-center text-[9px] font-black uppercase tracking-[0.4em] text-slate-300 dark:text-slate-600">Aura Global Broadcast Protocol</p>
+        <div className="border-t border-slate-200 dark:border-slate-700 mt-8 pt-8">
+          <label className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3 block">Full Post Text</label>
+          <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+            <textarea 
+              readOnly 
+              value={getEnhancedShareContent()} 
+              className="w-full bg-transparent text-xs font-mono text-slate-700 dark:text-slate-300 outline-none resize-none h-24" 
+            />
+            <button 
+              onClick={() => { 
+                navigator.clipboard.writeText(getEnhancedShareContent()); 
+                setCopied(true); 
+                setTimeout(() => setCopied(false), 2000); 
+              }} 
+              className="mt-3 text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors" 
+            > 
+              {copied ? '✓ Copied to clipboard' : 'Copy this text'} 
+            </button> 
+          </div> 
+        </div>
+
+        <p className="mt-8 text-center text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-600">
+          Aura Global Broadcast Protocol
+        </p>
       </div>
     </div>
   );

@@ -74,7 +74,12 @@ export enum EnergyType {
   HIGH_ENERGY = '⚡ High Energy',
   CALM = '🌿 Calm',
   DEEP_DIVE = '💡 Deep Dive',
-  NEUTRAL = '🪐 Neutral'
+  NEUTRAL = '🪐 Neutral',
+  MOTIVATED = '🔥 Motivated',
+  VENTING = '😔 Venting',
+  HEALING = '🤍 Healing',
+  CELEBRATING = '🎉 Celebrating',
+  THINKING_OUT_LOUD = '🤔 Thinking out loud'
 }
 
 export interface MediaItem {

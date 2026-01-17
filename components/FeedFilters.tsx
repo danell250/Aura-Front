@@ -41,6 +41,15 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
       textColor: 'text-amber-700 dark:text-amber-400'
     },
     { 
+      key: EnergyType.MOTIVATED, 
+      label: 'Motivated', 
+      icon: '🔥', 
+      description: 'Goal-driven, focused progress updates',
+      gradient: 'from-red-500 to-orange-600',
+      bgColor: 'bg-red-50 dark:bg-red-900/20',
+      textColor: 'text-red-700 dark:text-red-400'
+    },
+    { 
       key: EnergyType.CALM, 
       label: 'Calm & Mindful', 
       icon: '🌿', 
@@ -50,6 +59,15 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
       textColor: 'text-emerald-700 dark:text-emerald-400'
     },
     { 
+      key: EnergyType.HEALING, 
+      label: 'Healing', 
+      icon: '🤍', 
+      description: 'Recovery, self-care and support',
+      gradient: 'from-rose-400 to-amber-400',
+      bgColor: 'bg-rose-50 dark:bg-rose-900/20',
+      textColor: 'text-rose-700 dark:text-rose-300'
+    },
+    { 
       key: EnergyType.DEEP_DIVE, 
       label: 'Deep Insights', 
       icon: '🧠', 
@@ -57,6 +75,33 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
       gradient: 'from-indigo-500 to-purple-600',
       bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
       textColor: 'text-indigo-700 dark:text-indigo-400'
+    },
+    { 
+      key: EnergyType.THINKING_OUT_LOUD, 
+      label: 'Thinking out loud', 
+      icon: '🤔', 
+      description: 'Working through ideas in public',
+      gradient: 'from-sky-500 to-indigo-500',
+      bgColor: 'bg-sky-50 dark:bg-sky-900/20',
+      textColor: 'text-sky-700 dark:text-sky-300'
+    },
+    { 
+      key: EnergyType.VENTING, 
+      label: 'Venting', 
+      icon: '😔', 
+      description: 'Letting off steam and sharing struggles',
+      gradient: 'from-slate-500 to-slate-700',
+      bgColor: 'bg-slate-50 dark:bg-slate-900/40',
+      textColor: 'text-slate-700 dark:text-slate-300'
+    },
+    { 
+      key: EnergyType.CELEBRATING, 
+      label: 'Celebrating', 
+      icon: '🎉', 
+      description: 'Wins, milestones and good news',
+      gradient: 'from-emerald-500 to-lime-500',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-900/30',
+      textColor: 'text-emerald-700 dark:text-emerald-400'
     }
   ];
 

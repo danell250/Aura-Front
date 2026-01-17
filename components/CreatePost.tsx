@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { User, EnergyType } from '../types';
 import { uploadService } from '../services/upload';
-import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import Logo from './Logo';
 import TimeCapsuleModal, { TimeCapsuleData } from './TimeCapsuleModal';
 import TimeCapsuleTutorial from './TimeCapsuleTutorial';
@@ -50,7 +49,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
   const [isProcessingMedia, setIsProcessingMedia] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingType, setProcessingType] = useState<'image' | 'video' | 'document' | null>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ url: string, type: 'image' | 'video' | 'document', name?: string } | null>(null);
   const [selectedMediaItems, setSelectedMediaItems] = useState<SelectedMedia[]>([]);
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -69,17 +67,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
   const videoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const emojiPickerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
-        setShowEmojiPicker(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
@@ -215,7 +202,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
     setContent('');
     setMediaPreview(null);
     setSelectedMediaItems([]);
-    setShowEmojiPicker(false);
     setSelectedEnergy(EnergyType.NEUTRAL);
   };
 
@@ -291,16 +277,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
     e.target.value = '';
   };
 
-  const onEmojiClick = (emojiData: EmojiClickData) => {
-    const { emoji } = emojiData;
-    const start = content.substring(0, cursorPosition);
-    const end = content.substring(cursorPosition);
-    setContent(start + emoji + end);
-    setCursorPosition(cursorPosition + emoji.length);
-  };
-
-
-
   const handleTimeCapsuleSubmit = (data: TimeCapsuleData) => {
     onTimeCapsule(data);
     setShowTimeCapsuleModal(false);
@@ -358,7 +334,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
                 onSubmit={handleSubmit}
                 submitText="Post"
                 isSubmitting={isProcessingMedia}
-                onEmojiClick={() => setShowEmojiPicker(!showEmojiPicker)}
               />
               {isMentioning && mentionSuggestions.length > 0 && (
                 <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20">
@@ -514,22 +489,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
                 {onCreateAd && (
                   <ActionButton onClick={onCreateAd} icon="📢" label="Create Ad" color="text-orange-600" isSpecial={true} />
                 )}
-                <div className="relative" ref={emojiPickerRef}>
-                  <ActionButton onClick={() => setShowEmojiPicker(!showEmojiPicker)} icon="😄" label="Emoji" color="text-yellow-600" />
-                  {showEmojiPicker && (
-                    <div className="fixed inset-0 z-[99]" onClick={() => setShowEmojiPicker(false)} />
-                  )}
-                  {showEmojiPicker && (
-                    <div className="absolute bottom-full left-0 mb-2 z-[100] shadow-xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                      <EmojiPicker
-                        onEmojiClick={onEmojiClick}
-                        theme={document.documentElement.classList.contains('dark') ? Theme.DARK : Theme.LIGHT}
-                        width={320}
-                        height={400}
-                      />
-                    </div>
-                  )}
-                </div>
             </div>
           </div>
           </div>

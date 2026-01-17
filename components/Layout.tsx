@@ -82,7 +82,7 @@ const Layout: React.FC<LayoutProps> = ({
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FDFDFD] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden">
-      <header className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800 px-4 sm:px-6 h-16 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 px-4 sm:px-6 h-16 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         <div className="flex items-center space-x-3 cursor-pointer" onClick={onGoHome}>
           <Logo showText={false} size="sm" />
           <h1 className="text-lg font-bold text-slate-900 dark:text-white hidden sm:block tracking-tight">{APP_NAME}</h1>

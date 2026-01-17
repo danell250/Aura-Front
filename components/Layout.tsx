@@ -101,6 +101,7 @@ const Layout: React.FC<LayoutProps> = ({
               }
             }}
             placeholder="Search Aura Network... (⌘K)"
+            userId={currentUser.id}
           />
         </div>
 
@@ -201,6 +202,7 @@ const Layout: React.FC<LayoutProps> = ({
             }
           }}
           placeholder="Search Aura Network..."
+          userId={currentUser.id}
         />
       </div>
 

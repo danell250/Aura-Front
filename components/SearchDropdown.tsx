@@ -11,6 +11,7 @@ interface SearchDropdownProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   placeholder?: string;
+  userId?: string;
 }
 
 const SearchDropdown: React.FC<SearchDropdownProps> = ({
@@ -20,7 +21,8 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
   onSelectResult,
   searchQuery,
   onSearchChange,
-  placeholder = "Search Aura Network... (⌘K)"
+  placeholder = "Search Aura Network... (⌘K)",
+  userId
 }) => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);

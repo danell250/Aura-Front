@@ -6,6 +6,7 @@ import CreatePost from './components/CreatePost';
 import BirthdayPost from './components/BirthdayPost';
 import AdCard from './components/AdCard';
 import Login from './components/Login';
+import CompleteProfile from './components/CompleteProfile';
 import ProfileView from './components/ProfileView';
 import ChatView from './components/ChatView';
 import SettingsModal from './components/SettingsModal';
@@ -1909,6 +1910,10 @@ const App: React.FC = () => {
           <PrivacyPolicy onClose={() => { window.history.back(); }} />
         </div>
       );
+    }
+
+    if (segments[0] === 'complete-profile') {
+      return <CompleteProfile onComplete={handleLogin} />;
     }
 
     if (typeof window !== 'undefined' && path !== '/login') {

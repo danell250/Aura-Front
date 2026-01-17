@@ -271,7 +271,7 @@ export class UserService {
     try {
       const response = await apiFetch(`/users/${userId}/remove-acquaintance`, {
         method: 'POST',
-        body: JSON.stringify({ acquaintanceId })
+        body: JSON.stringify({ targetUserId: acquaintanceId })
       });
 
       if (response.ok) {

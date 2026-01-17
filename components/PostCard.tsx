@@ -11,6 +11,53 @@ import PDFViewer from './PDFViewer';
 import { linkService } from '../services/linkService';
 import TimeCapsuleCard from './TimeCapsuleCard';
 
+const AutoplayVideo: React.FC<{ src: string; className?: string }> = ({ src, className = '' }) => {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element) return;
+    element.muted = true;
+
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (!videoRef.current) return;
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+            const playPromise = videoRef.current.play();
+            if (playPromise && typeof (playPromise as any).catch === 'function') {
+              (playPromise as any).catch(() => {});
+            }
+          } else {
+            videoRef.current.pause();
+          }
+        });
+      },
+      {
+        threshold: [0.2, 0.6, 0.9],
+      }
+    );
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      className={`${className} cursor-pointer`}
+      loop
+      muted
+      playsInline
+      preload="auto"
+    />
+  );
+};
+
 interface PostCardProps {
   post: Post;
   onReact: (postId: string, reaction: string, targetType: 'post' | 'comment', commentId?: string) => void;
@@ -203,7 +250,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
     const isGif = lowerUrl.match(/\.gif$/i) !== null;
     if (isVideo) {
       return (
-        <video key={url} src={url} className={`${className} cursor-pointer`} autoPlay loop muted playsInline preload="auto" />
+        <AutoplayVideo key={url} src={url} className={className} />
       );
     }
     if (isGif) {

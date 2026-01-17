@@ -232,15 +232,6 @@ export class SearchService {
         relevance += handleMatches * 3;
       }
 
-      // Search in bio
-      if (user.bio && typeof user.bio === 'string') {
-        const bioMatches = this.calculateRelevance(searchTerms, user.bio.toLowerCase());
-        if (bioMatches > 0) {
-          matchedFields.push('bio');
-          relevance += bioMatches * 2;
-        }
-      }
-
       // Search in company name
       if (user.companyName && typeof user.companyName === 'string') {
         const companyMatches = this.calculateRelevance(searchTerms, user.companyName.toLowerCase());
@@ -266,7 +257,7 @@ export class SearchService {
         type: 'user' as const,
         id: user.id,
         title: user.name || user.handle || 'Unknown User',
-        description: user.bio || user.handle || '',
+        description: user.handle || '',
         relevance,
         data: user,
         matchedFields

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Notification } from '../types';
+import { Avatar } from './MediaDisplay';
 
 interface NotificationDropdownProps {
   notifications: Notification[];
@@ -104,7 +105,13 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
               className={`p-4 flex gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer border-b border-slate-50 dark:border-slate-800 last:border-0 ${!notif.isRead ? 'bg-indigo-50/30 dark:bg-indigo-950/20' : ''}`}
             >
               <div className="relative">
-                <img src={notif.fromUser.avatar} className="w-10 h-10 rounded-xl object-cover" alt="" />
+                <Avatar
+                  src={notif.fromUser.avatar}
+                  type={notif.fromUser.avatarType}
+                  name={notif.fromUser.name}
+                  size="custom"
+                  className="w-10 h-10 rounded-xl"
+                />
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center text-xs border border-slate-200 dark:border-slate-700">
                   {getNotificationIcon(notif.type)}
                 </div>

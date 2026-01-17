@@ -140,6 +140,14 @@ const MessagingSystem: React.FC<MessagingSystemProps> = ({
     } 
   }, [selectedUser, messages, currentUser]);
 
+  useEffect(() => {
+    if (!selectedUser) return;
+    const updated = allUsers.find(u => u.id === selectedUser.id);
+    if (updated && (updated.avatar !== selectedUser.avatar || updated.avatarType !== selectedUser.avatarType || updated.name !== selectedUser.name)) {
+      setSelectedUser(updated);
+    }
+  }, [allUsers, selectedUser]);
+
   const userMessages = selectedUser 
     ? localMessages.filter(msg => 
         (msg.senderId === selectedUser.id && msg.receiverId === currentUser.id) || 

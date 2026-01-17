@@ -53,6 +53,7 @@ interface ProfileViewProps {
    onBoostPost?: (postId: string) => void;
    onBoostUser?: (userId: string) => void;
    onEditProfile?: () => void;
+   onUpdateProfileMedia?: (updates: Partial<User>) => Promise<void> | void;
    onDeletePost?: (postId: string) => void;
    onDeleteComment?: (postId: string, commentId: string) => void;
    onSerendipityMode?: () => void;
@@ -65,7 +66,7 @@ interface ProfileViewProps {
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({
-   user, posts, ads, adRefreshTick, currentUser, allUsers, onBack, onReact, onComment, onLoadComments, onShare, onAddAcquaintance, onRemoveAcquaintance, onSendConnectionRequest, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager, onCancelAd, onUpdateAd
+   user, posts, ads, adRefreshTick, currentUser, allUsers, onBack, onReact, onComment, onLoadComments, onShare, onAddAcquaintance, onRemoveAcquaintance, onSendConnectionRequest, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onUpdateProfileMedia, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager, onCancelAd, onUpdateAd
 }) => {
   const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'adplans'>('posts');
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
@@ -173,17 +174,22 @@ const ProfileView: React.FC<ProfileViewProps> = ({
         [field]: result.url,
         [typeProp]: isVideo ? 'video' : 'image'
       } as any;
-      const updateResp = await UserService.updateUser(currentUser.id, updates);
-      if (updateResp.success) {
-        if (field === 'avatar') {
-          setLocalAvatar(result.url);
-          setLocalAvatarType(isVideo ? 'video' : 'image');
-        } else {
-          setLocalCover(result.url);
-          setLocalCoverType(isVideo ? 'video' : 'image');
-        }
+
+      if (field === 'avatar') {
+        setLocalAvatar(result.url);
+        setLocalAvatarType(isVideo ? 'video' : 'image');
       } else {
-        alert(updateResp.error || 'Failed to update profile media');
+        setLocalCover(result.url);
+        setLocalCoverType(isVideo ? 'video' : 'image');
+      }
+
+      if (onUpdateProfileMedia) {
+        await onUpdateProfileMedia(updates);
+      } else {
+        const updateResp = await UserService.updateUser(currentUser.id, updates);
+        if (!updateResp.success) {
+          alert(updateResp.error || 'Failed to update profile media');
+        }
       }
     } catch (err) {
       alert('Upload failed');

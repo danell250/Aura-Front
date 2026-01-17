@@ -769,6 +769,10 @@ const App: React.FC = () => {
       } catch (e) {
       }
 
+      if (!persistedUser) {
+        return;
+      }
+
       setCurrentUser(persistedUser);
       setAllUsers(prev => {
         const updated = prev.map(u => (u.id === currentUser.id ? persistedUser as User : u));
@@ -779,6 +783,30 @@ const App: React.FC = () => {
       if (isProfileComplete(persistedUser)) {
         setIsProfileCompletionRequired(false);
       }
+
+      setPosts(prev =>
+        prev.map(post => {
+          let updatedPost = post;
+
+          if (post.author.id === persistedUser!.id) {
+            updatedPost = { ...updatedPost, author: { ...post.author, ...persistedUser! } };
+          }
+
+          if (post.comments && post.comments.length > 0) {
+            const updatedComments = post.comments.map(comment =>
+              comment.author.id === persistedUser!.id
+                ? { ...comment, author: { ...comment.author, ...persistedUser! } }
+                : comment
+            );
+
+            if (updatedComments !== post.comments) {
+              updatedPost = { ...updatedPost, comments: updatedComments };
+            }
+          }
+
+          return updatedPost;
+        })
+      );
     } catch (error) {
       await fetchCurrentUser();
     }
@@ -2020,6 +2048,7 @@ const App: React.FC = () => {
           onBoostPost={handleBoostPost}
           onBoostUser={handleBoostUser}
           onEditProfile={() => setIsSettingsOpen(true)}
+          onUpdateProfileMedia={handleUpdateProfile}
           onDeletePost={handleDeletePost}
           onDeleteComment={handleDeleteComment}
           onSerendipityMode={handleOpenSerendipity}

@@ -261,48 +261,55 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8">
       <div className="max-w-4xl mx-auto">
-        {/* Cover Section */}
-        <div className="relative h-80 overflow-hidden">
-          <div className={`relative w-full h-full ${isSelf ? 'group cursor-pointer' : ''}`} onClick={() => { if (isSelf) coverInputRef.current?.click(); }}>
-            <MediaDisplay 
-              url={isSelf ? (localCover || '') : (user.coverImage || '')} 
-              type={isSelf ? localCoverType : user.coverType} 
-              className="w-full h-full" 
-              fallback={<div className="w-full h-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-700"></div>}
-            />
+        <div className="bg-white dark:bg-slate-900 mx-4 mt-6 relative z-10 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className={`relative h-56 ${isSelf ? 'cursor-pointer group' : ''}`}>
+            <div
+              className="w-full h-full"
+              onClick={() => {
+                if (isSelf) coverInputRef.current?.click();
+              }}
+            >
+              <MediaDisplay
+                url={isSelf ? (localCover || user.coverImage || '') : (user.coverImage || '')}
+                type={isSelf ? localCoverType : user.coverType}
+                className="w-full h-full"
+                fallback={
+                  <div className="w-full h-full bg-gradient-to-r from-blue-600 to-blue-800" />
+                }
+              />
+            </div>
             {isSelf && (
               <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-black tracking-widest">
                 {isCoverUploading ? 'Uploading...' : 'Tap to update cover'}
               </div>
             )}
-          </div>
-          <input type="file" ref={coverInputRef} hidden accept="image/*,video/*" onChange={(e) => handleMediaFile(e, 'coverImage')} />
-          <div className="absolute inset-0 bg-black/20"></div>
-          {isSelf && (
+            {isSelf && (
+              <button
+                type="button"
+                onClick={() => coverInputRef.current?.click()}
+                disabled={isCoverUploading}
+                className="absolute top-4 right-4 bg-white rounded-lg px-4 py-2 shadow-lg hover:bg-gray-50 flex items-center gap-2 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                <span className="w-4 h-4">📸</span>
+                <span>{isCoverUploading ? 'Updating cover…' : 'Edit cover photo'}</span>
+              </button>
+            )}
             <button
-              type="button"
-              onClick={() => coverInputRef.current?.click()}
-              disabled={isCoverUploading}
-              className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full bg-white/95 text-[11px] font-black uppercase tracking-widest text-slate-900 shadow-md hover:bg-white disabled:opacity-70 disabled:cursor-not-allowed"
+              onClick={onBack}
+              className="absolute top-4 left-4 px-4 py-2 bg-black/30 backdrop-blur-md text-white rounded-lg hover:bg-black/40 transition-all border border-white/20 font-medium text-sm"
             >
-              {isCoverUploading ? '⏳ Updating' : 'Update Cover'}
+              ← Back
             </button>
-          )}
-          
-          {/* Back Button */}
-          <button 
-            onClick={onBack} 
-            className="absolute top-6 left-6 px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 font-medium text-sm"
-          >
-            ← Back
-          </button>
-        </div>
-
-        {/* Profile Card */}
-        <div className="bg-white dark:bg-slate-900 mx-4 -mt-20 relative z-10 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700">
-          {/* Profile Header */}
+          </div>
+          <input
+            type="file"
+            ref={coverInputRef}
+            hidden
+            accept="image/*,video/*"
+            onChange={(e) => handleMediaFile(e, 'coverImage')}
+          />
           <div className="p-8">
-            <div className="flex flex-col lg:flex-row gap-8">
+            <div className="flex flex-col lg:flex-row gap-8 -mt-16">
               {/* Left Section - Avatar & Info */}
               <div className="flex flex-col lg:flex-row gap-6 flex-1">
                 <div className="flex justify-center lg:justify-start">

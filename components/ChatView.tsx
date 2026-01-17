@@ -359,6 +359,7 @@ const ChatView: React.FC<ChatViewProps> = ({
     );
     setShowHeaderMenu(false);
     setActiveContact(null);
+    setSidebarTab(isArchived ? 'recent' : 'archived');
 
     try {
       await MessageService.setArchiveState(currentUser.id, activeContact.id, !isArchived);

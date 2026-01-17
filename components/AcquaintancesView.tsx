@@ -60,6 +60,21 @@ const AcquaintancesView: React.FC<AcquaintancesViewProps> = ({
     }
   };
 
+  const handleBlock = async (targetUserId: string) => {
+    if (blockedList.includes(targetUserId)) return;
+    try {
+      const result = await UserService.blockUser(currentUser.id, targetUserId);
+      if (result.success) {
+        setBlockedList(prev => (prev.includes(targetUserId) ? prev : [...prev, targetUserId]));
+      } else {
+        alert(result.error || 'Failed to block user. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to block user:', error);
+      alert('Failed to block user. Please check your connection and try again.');
+    }
+  };
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
       <div className="bg-white rounded-[2.5rem] p-8 mb-8 border border-slate-200 shadow-sm relative overflow-hidden">
@@ -215,12 +230,20 @@ const AcquaintancesView: React.FC<AcquaintancesViewProps> = ({
                           {unblockLoadingId === user.id ? 'Unblocking...' : 'Unblock'}
                         </button>
                       ) : (
-                        <button 
-                          onClick={() => onRemoveAcquaintance(user.id)}
-                          className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-[11px] font-semibold tracking-wide hover:bg-rose-600 hover:text-white border border-rose-100"
-                        >
-                          Remove
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => onRemoveAcquaintance(user.id)}
+                            className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-[11px] font-semibold tracking-wide hover:bg-rose-600 hover:text-white border border-rose-100"
+                          >
+                            Remove
+                          </button>
+                          <button 
+                            onClick={() => handleBlock(user.id)}
+                            className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[11px] font-semibold tracking-wide hover:bg-slate-800"
+                          >
+                            Block
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

@@ -80,6 +80,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const isSelf = currentUser.id === user.id;
   const isAcquaintance = currentUser.acquaintances?.includes(user.id);
   const isRequested = currentUser.sentAcquaintanceRequests?.includes(user.id);
+  const isBlocked = blockedList.includes(user.id);
   const trustBadge = getTrustBadgeConfig(user.trustScore ?? 0);
   const zodiacSign = user.zodiacSign || (user.dob ? getZodiacSign(user.dob) : '');
   const [localAvatar, setLocalAvatar] = useState<string>(user.avatar);
@@ -334,25 +335,41 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                   <div className="flex flex-col gap-3 mb-6 max-w-sm mx-auto lg:mx-0 mt-4">
                     {!isSelf ? (
                       <>
-                        <button 
-                          onClick={() => isAcquaintance ? onRemoveAcquaintance(user.id) : onSendConnectionRequest(user.id)} 
+                        {!isBlocked && (
+                          <>
+                            <button 
+                              onClick={() => isAcquaintance ? onRemoveAcquaintance(user.id) : onSendConnectionRequest(user.id)} 
+                              className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
+                                isAcquaintance 
+                                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600' 
+                                  : isRequested 
+                                    ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700' 
+                                    : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
+                              }`}
+                            >
+                              <span>{isAcquaintance ? '✓' : isRequested ? '⏳' : '+'}</span>
+                              <span>{isAcquaintance ? 'Connected' : isRequested ? 'Requested (Tap to cancel)' : 'Connect'}</span>
+                            </button>
+                            <button 
+                              onClick={() => onOpenMessaging && onOpenMessaging(user.id)} 
+                              className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-medium rounded-lg text-sm shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                            >
+                              <span>✉️</span>
+                              <span>Message</span>
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={isBlocked ? handleUnblock : handleBlock}
+                          disabled={blockLoading}
                           className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
-                            isAcquaintance 
-                              ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600' 
-                              : isRequested 
-                                ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700' 
-                                : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
-                          }`}
+                            isBlocked
+                              ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                              : 'bg-rose-600 text-white hover:bg-rose-700'
+                          } ${blockLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
-                          <span>{isAcquaintance ? '✓' : isRequested ? '⏳' : '+'}</span>
-                          <span>{isAcquaintance ? 'Connected' : isRequested ? 'Requested (Tap to cancel)' : 'Connect'}</span>
-                        </button>
-                        <button 
-                          onClick={() => onOpenMessaging && onOpenMessaging(user.id)} 
-                          className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-medium rounded-lg text-sm shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                        >
-                          <span>✉️</span>
-                          <span>Message</span>
+                          <span>{isBlocked ? '🔓' : '⛔'}</span>
+                          <span>{isBlocked ? 'Unblock' : 'Block'}</span>
                         </button>
                         <button
                           onClick={() => setReportOpen(true)}

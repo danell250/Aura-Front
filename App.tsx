@@ -214,15 +214,19 @@ const App: React.FC = () => {
   }, []);
 
   const ensureProfileCompletion = useCallback((user: User) => {
-    // Only enforce for new users (created within the last 24 hours)
-    // Existing users should not be forced to complete profile on every login
-    if (!user.createdAt) return;
+    if (!user.createdAt || !user.id) return;
 
     const createdTime = new Date(user.createdAt).getTime();
-    const now = Date.now();
-    const isNewUser = (now - createdTime) < 24 * 60 * 60 * 1000; // 24 hours threshold
+    if (!Number.isFinite(createdTime)) return;
 
-    if (isNewUser && !isProfileComplete(user)) {
+    const now = Date.now();
+    const isNewUser = (now - createdTime) < 24 * 60 * 60 * 1000;
+    const completionKey = `aura_profile_completed_${user.id}`;
+    const hasCompletionFlag = typeof window !== 'undefined'
+      ? localStorage.getItem(completionKey) === 'true'
+      : false;
+
+    if (isNewUser && !hasCompletionFlag && !isProfileComplete(user)) {
       setIsProfileCompletionRequired(true);
       setIsSettingsOpen(true);
     } else {
@@ -771,6 +775,13 @@ const App: React.FC = () => {
 
       if (!persistedUser) {
         return;
+      }
+
+      if (isProfileComplete(persistedUser)) {
+        try {
+          localStorage.setItem(`aura_profile_completed_${persistedUser.id}`, 'true');
+        } catch {
+        }
       }
 
       setCurrentUser(persistedUser);

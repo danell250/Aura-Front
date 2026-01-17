@@ -721,14 +721,14 @@ const App: React.FC = () => {
       id: userData.id || `user-${Date.now()}`,
       ...userData,
       avatar: userData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.firstName}${userData.lastName}${Date.now()}`,
-      avatarType: 'image',
-      handle: userData.handle || ('@' + userData.firstName.toLowerCase().replace(/\s+/g, '') + userData.lastName.toLowerCase().replace(/\s+/g, '') + Math.floor(Math.random() * 100)),
+      avatarType: userData.avatarType || 'image',
+      handle: userData.handle,
       name: userData.name || `${userData.firstName} ${userData.lastName}`,
       acquaintances: ['1', '2', '3'],
       blockedUsers: [],
       trustScore: 10,
-      auraCredits: 0,
-      activeGlow: 'none'
+      auraCredits: userData.auraCredits ?? 0,
+      activeGlow: userData.activeGlow || 'none'
     };
     
     const updatedUsers = [...allUsers, newUser];

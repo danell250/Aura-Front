@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Post, User, Comment } from '../types';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import { geminiService } from '../services/gemini';
@@ -10,6 +10,7 @@ import { PostService } from '../services/postService';
 import PDFViewer from './PDFViewer';
 import { linkService } from '../services/linkService';
 import TimeCapsuleCard from './TimeCapsuleCard';
+import { useOptimisticReactions } from '../hooks/useOptimisticReactions';
 
 const AutoplayVideo: React.FC<{ src: string; className?: string }> = ({ src, className = '' }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -96,6 +97,10 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   const [reportMsg, setReportMsg] = useState<string | null>(null);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
+  const { optimisticAdd, queueReaction } = useOptimisticReactions();
+  const [localReactions, setLocalReactions] = useState<Record<string, number>>(post.reactions || {});
+  const [localUserReactions, setLocalUserReactions] = useState<string[]>(post.userReactions || []);
+  const [commentReactionsState, setCommentReactionsState] = useState<Record<string, { reactions: Record<string, number>; userReactions: string[] }>>({});
 
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
@@ -176,6 +181,53 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
       window.clearInterval(interval);
     };
   }, [post.isTimeCapsule, post.unlockDate, post.isUnlocked]);
+
+  useEffect(() => {
+    setLocalReactions(post.reactions || {});
+    setLocalUserReactions(post.userReactions || []);
+  }, [post.id, post.reactions, post.userReactions]);
+
+  useEffect(() => {
+    setCommentReactionsState({});
+  }, [post.id]);
+
+  const handleInstantReaction = useCallback((emoji: string) => {
+    const { newReactions, newUserReactions } = optimisticAdd(
+      post.id,
+      emoji,
+      localReactions,
+      localUserReactions
+    );
+    setLocalReactions(newReactions);
+    setLocalUserReactions(newUserReactions);
+    queueReaction(post.id, emoji, 'post', onReact);
+  }, [post.id, localReactions, localUserReactions, optimisticAdd, queueReaction, onReact]);
+
+  const getCommentLocalState = (comment: Comment) => {
+    const existing = commentReactionsState[comment.id];
+    if (existing) return existing;
+    return {
+      reactions: comment.reactions || {},
+      userReactions: comment.userReactions || []
+    };
+  };
+
+  const getCommentLocalStateById = (commentId: string) => {
+    const existing = commentReactionsState[commentId];
+    if (existing) return existing;
+    const comments = post.comments || [];
+    const comment = comments.find(c => c.id === commentId);
+    if (!comment) {
+      return {
+        reactions: {},
+        userReactions: []
+      };
+    }
+    return {
+      reactions: comment.reactions || {},
+      userReactions: comment.userReactions || []
+    };
+  };
 
   const getEmbedUrl = (url: string) => {
     const ytMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([^&?/\s]+)/);
@@ -430,12 +482,31 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   };
 
   const handlePostEmojiClick = (emojiData: EmojiClickData) => {
-    onReact(post.id, emojiData.emoji, 'post');
+    const { newReactions, newUserReactions } = optimisticAdd(
+      post.id,
+      emojiData.emoji,
+      localReactions,
+      localUserReactions
+    );
+    setLocalReactions(newReactions);
+    setLocalUserReactions(newUserReactions);
     setShowEmojiPicker(false);
+    queueReaction(post.id, emojiData.emoji, 'post', onReact);
   };
 
   const handleCommentEmojiClick = (emojiData: EmojiClickData, commentId: string) => {
-    onReact(post.id, emojiData.emoji, 'comment', commentId);
+    const current = getCommentLocalStateById(commentId);
+    const { newReactions, newUserReactions } = optimisticAdd(
+      commentId,
+      emojiData.emoji,
+      current.reactions,
+      current.userReactions
+    );
+    setCommentReactionsState(prev => ({
+      ...prev,
+      [commentId]: { reactions: newReactions, userReactions: newUserReactions }
+    }));
+    queueReaction(post.id, emojiData.emoji, 'comment', onReact, commentId);
     setActiveCommentEmojiPicker(null);
   };
 
@@ -452,6 +523,24 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
     const replies = comments.filter(c => c.parentId === comment.id);
     const isReplying = replyingTo === comment.id;
     const isEmojiPickerActive = activeCommentEmojiPicker === comment.id;
+    const localState = getCommentLocalState(comment);
+    const commentLocalReactions = localState.reactions;
+    const commentUserReactions = localState.userReactions;
+
+    const handleCommentReaction = (emoji: string) => {
+      const current = getCommentLocalState(comment);
+      const { newReactions, newUserReactions } = optimisticAdd(
+        comment.id,
+        emoji,
+        current.reactions,
+        current.userReactions
+      );
+      setCommentReactionsState(prev => ({
+        ...prev,
+        [comment.id]: { reactions: newReactions, userReactions: newUserReactions }
+      }));
+      queueReaction(post.id, emoji, 'comment', onReact, comment.id);
+    };
     
     return (
       <div key={comment.id} className={`${isNested ? 'ml-10 mt-4 border-l-2 border-slate-100 dark:border-slate-800 pl-4' : 'mt-6'}`}>
@@ -480,13 +569,13 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
               </div>
               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">{comment.text}</p>
               
-              {comment.reactions && Object.keys(comment.reactions).length > 0 && (
+              {commentLocalReactions && Object.keys(commentLocalReactions).length > 0 && (
                 <div className="absolute -bottom-3 right-4 flex gap-1 animate-in zoom-in duration-300">
-                  {Object.entries(comment.reactions).map(([emoji, count]) => (
+                  {Object.entries(commentLocalReactions).map(([emoji, count]) => (
                     <button 
                       key={emoji} 
-                      onClick={() => onReact(post.id, emoji, 'comment', comment.id)}
-                      className={`bg-white dark:bg-slate-700 border rounded-full px-2 py-0.5 flex items-center gap-1 shadow-sm scale-90 transition-all hover:scale-100 ${comment.userReactions?.includes(emoji) ? 'border-emerald-400 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'border-slate-100 dark:border-slate-600'}`}
+                      onClick={() => handleCommentReaction(emoji)}
+                      className={`bg-white dark:bg-slate-700 border rounded-full px-2 py-0.5 flex items-center gap-1 shadow-sm scale-90 transition-all hover:scale-100 ${commentUserReactions.includes(emoji) ? 'border-emerald-400 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'border-slate-100 dark:border-slate-600'}`}
                     >
                       <span className="text-[10px] leading-none align-middle">{emoji}</span>
                       <span className="text-[8px] font-black text-slate-400">{count as number}</span>
@@ -793,10 +882,10 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
         ) : null}
 
         <div className="flex items-center gap-2 mb-6 flex-wrap">
-           {Object.entries(post.reactions).map(([emoji, count]) => (
-             <button key={emoji} onClick={() => onReact(post.id, emoji, 'post')} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${post.userReactions?.includes(emoji) ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-700 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-transparent hover:border-slate-200'}`}>
+           {Object.entries(localReactions).map(([emoji, count]) => (
+             <button key={emoji} onClick={() => handleInstantReaction(emoji)} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${localUserReactions.includes(emoji) ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-700 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-transparent hover:border-slate-200'}`}>
                <span className="text-sm leading-none align-middle">{emoji}</span>
-               <span className={`text-xs font-bold ${post.userReactions?.includes(emoji) ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>{count as number}</span>
+               <span className={`text-xs font-bold ${localUserReactions.includes(emoji) ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>{count as number}</span>
              </button>
            ))}
            <div className="relative">

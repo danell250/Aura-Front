@@ -455,7 +455,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   }, [post.viewCount]);
 
   useEffect(() => {
-    if (!post.id || post.id.startsWith('temp-')) {
+    if ((!post.id || post.id.startsWith('temp-')) && import.meta.env.MODE === 'development') {
       console.warn('Post still temp:', post.id);
     }
   }, [post.id]);

@@ -102,9 +102,17 @@ export class PostService {
 
   static async getMyInsights(): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const response = await apiFetch('/posts/insights/me', {
-        method: 'GET'
-      });
+      const timeoutMs = 10000;
+      const timeoutPromise = new Promise<Response>((_, reject) =>
+        setTimeout(() => reject(new Error('Insights request timed out')), timeoutMs)
+      );
+
+      const response = await Promise.race([
+        apiFetch('/posts/insights/me', {
+          method: 'GET'
+        }),
+        timeoutPromise
+      ]);
 
       let payload: any = null;
       try {

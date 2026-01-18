@@ -112,7 +112,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
               Monitor your advertising performance and use your Ad Plans to create new ads
             </p>
             <p className="mt-1 text-emerald-100/90 text-xs">
-              Access this space anytime from your profile by opening the Ad Plans tab.
+              Access this space anytime from your profile by opening the Ad Manager tab.
             </p>
           </div>
           <div className="flex items-center gap-4">

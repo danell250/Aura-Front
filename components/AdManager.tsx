@@ -1018,7 +1018,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                         <span>ℹ️</span> Important Instructions
                       </p>
                       <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-relaxed">
-                        To manage your ads or create new ones later, please go to your <span className="text-emerald-600 dark:text-emerald-400 underline decoration-2 decoration-emerald-400/30">Profile</span> and select the <span className="text-emerald-600 dark:text-emerald-400 underline decoration-2 decoration-emerald-400/30">Ad Plans</span> tab.
+                        To manage your ads or create new ones later, please go to your <span className="text-emerald-600 dark:text-emerald-400 underline decoration-2 decoration-emerald-400/30">Profile</span> and select the <span className="text-emerald-600 dark:text-emerald-400 underline decoration-2 decoration-emerald-400/30">Ad Manager</span> tab.
                       </p>
                     </div>
                     <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -1038,7 +1038,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                         }}
                         className="w-full sm:w-auto px-10 py-4 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-black uppercase rounded-2xl text-[11px] tracking-widest hover:text-slate-900 dark:hover:text-white hover:border-emerald-400 transition-all"
                       >
-                        Go to Ad Plans
+                        Go to Ad Manager
                       </button>
                     </div>
                   </div>

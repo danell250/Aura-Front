@@ -552,7 +552,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                   }`}
                 >
                   <span>📢</span>
-                  Ad Plans
+                  Ad Manager
                   {adSubscriptions.filter(s => s.status === 'active').length > 0 && (
                     <span className="ml-1 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-bold">
                       {adSubscriptions.filter(s => s.status === 'active').length}

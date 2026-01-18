@@ -234,7 +234,7 @@ const Layout: React.FC<LayoutProps> = ({
             <NavItem label="Home Feed" onClick={onGoHome} active={activeView === 'feed'} />
             <NavItem label="Credit Hub" onClick={onOpenCreditStore} active={activeView === 'credits'} isAction />
             <NavItem label="Ad Plans" onClick={onStartCampaign} active={activeView === 'ad_manager'} />
-            <NavItem label="Ad Manager" onClick={() => onViewProfile(currentUser.id)} active={activeView === 'profile'} />
+            <NavItem label="Ad Manager" onClick={onStartCampaign} active={activeView === 'ad_manager'} />
             <NavItem label="Acquaintances" onClick={onViewFriends} active={activeView === 'acquaintances'} />
             <NavItem label="Privacy & Data" onClick={onViewPrivacy} active={activeView === 'data_aura'} />
           </nav>

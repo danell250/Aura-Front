@@ -11,6 +11,12 @@ interface AdAnalyticsPageProps {
 type AnalyticsTab = 'overview' | 'ads' | 'details';
 
 const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onDeleteAd }) => {
+  const card = 'bg-white rounded-2xl border border-slate-200 shadow-sm';
+  const cardPad = 'p-5';
+  const label = 'text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500';
+  const value = 'mt-2 text-2xl font-black text-slate-900';
+  const sub = 'mt-1 text-xs text-slate-500';
+
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview');
   const [campaignPerformance, setCampaignPerformance] = useState<CampaignPerformance | null>(null);
   const [adPerformance, setAdPerformance] = useState<AdPerformanceMetrics[]>([]);
@@ -21,9 +27,81 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [sortBy, setSortBy] = useState<'impressions' | 'clicks' | 'ctr' | 'spend' | 'roi'>('impressions');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'completed'>('all');
+  const [useMock, setUseMock] = useState(false);
+
+  const generateMockAnalytics = () => {
+    const now = Date.now();
+
+    const mockAdMetrics: AdPerformanceMetrics[] = [
+      {
+        adId: 'mock-1',
+        adName: 'Launch your new offer into the Aura network',
+        status: 'active',
+        impressions: 12400,
+        clicks: 860,
+        ctr: 6.93,
+        engagement: 2300,
+        spend: 320,
+        roi: 3.4,
+        createdAt: now - 5 * 24 * 60 * 60 * 1000
+      },
+      {
+        adId: 'mock-2',
+        adName: 'Retarget warm profiles from last week',
+        status: 'active',
+        impressions: 8300,
+        clicks: 410,
+        ctr: 4.94,
+        engagement: 1500,
+        spend: 210,
+        roi: 2.1,
+        createdAt: now - 10 * 24 * 60 * 60 * 1000
+      },
+      {
+        adId: 'mock-3',
+        adName: 'Awareness burst to cold accounts',
+        status: 'completed',
+        impressions: 15200,
+        clicks: 520,
+        ctr: 3.42,
+        engagement: 1800,
+        spend: 280,
+        roi: 1.8,
+        createdAt: now - 20 * 24 * 60 * 60 * 1000
+      }
+    ];
+
+    const totalImpressions = mockAdMetrics.reduce((sum, m) => sum + m.impressions, 0);
+    const totalClicks = mockAdMetrics.reduce((sum, m) => sum + m.clicks, 0);
+    const totalEngagement = mockAdMetrics.reduce((sum, m) => sum + m.engagement, 0);
+    const totalSpend = mockAdMetrics.reduce((sum, m) => sum + m.spend, 0);
+
+    const campaign: CampaignPerformance = {
+      totalImpressions,
+      totalClicks,
+      totalReach: Math.round(totalImpressions * 0.65),
+      totalEngagement,
+      totalSpend,
+      averageCTR: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
+      activeAds: mockAdMetrics.filter(m => m.status === 'active').length,
+      daysToNextExpiry: 3,
+      performanceScore: 78,
+      trendData: [
+        { date: 'Day -6', impressions: 4200, clicks: 210, engagement: 620 },
+        { date: 'Day -5', impressions: 5100, clicks: 260, engagement: 710 },
+        { date: 'Day -4', impressions: 5900, clicks: 290, engagement: 760 },
+        { date: 'Day -3', impressions: 6100, clicks: 310, engagement: 800 },
+        { date: 'Day -2', impressions: 6800, clicks: 340, engagement: 880 },
+        { date: 'Day -1', impressions: 7200, clicks: 360, engagement: 930 },
+        { date: 'Today', impressions: 7600, clicks: 380, engagement: 970 }
+      ]
+    };
+
+    return { campaign, mockAdMetrics };
+  };
 
   useEffect(() => {
-    if (!currentUser.id) return;
+    if (!currentUser.id || useMock) return;
     setLoadingCampaign(true);
     setLoadingAds(true);
     adAnalyticsService.getCampaignPerformance(currentUser.id).then(setCampaignPerformance).finally(() => {
@@ -32,7 +110,16 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
     adAnalyticsService.getUserAdPerformance(currentUser.id).then(setAdPerformance).finally(() => {
       setLoadingAds(false);
     });
-  }, [currentUser.id]);
+  }, [currentUser.id, useMock]);
+
+  useEffect(() => {
+    if (!useMock) return;
+    const { campaign, mockAdMetrics } = generateMockAnalytics();
+    setCampaignPerformance(campaign);
+    setAdPerformance(mockAdMetrics);
+    setLoadingCampaign(false);
+    setLoadingAds(false);
+  }, [useMock]);
 
   useEffect(() => {
     if (!selectedAdId) {
@@ -47,14 +134,12 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
 
   const totalImpressions = campaignPerformance?.totalImpressions ?? adPerformance.reduce((sum, p) => sum + (p.impressions || 0), 0);
   const totalClicks = campaignPerformance?.totalClicks ?? adPerformance.reduce((sum, p) => sum + (p.clicks || 0), 0);
-  const totalReach =
-    campaignPerformance?.totalReach ?? 0;
+  const totalReach = campaignPerformance?.totalReach ?? Math.round(totalImpressions * 0.65);
   const totalEngagement = campaignPerformance?.totalEngagement ?? adPerformance.reduce((sum, p) => sum + (p.engagement || 0), 0);
   const totalSpend = campaignPerformance?.totalSpend ?? adPerformance.reduce((sum, p) => sum + (p.spend || 0), 0);
   const averageCTR = campaignPerformance?.averageCTR ?? (adPerformance.length > 0 ? adPerformance.reduce((sum, p) => sum + (p.ctr || 0), 0) / adPerformance.length : 0);
   const activeAdsCount = campaignPerformance?.activeAds ?? adPerformance.filter(p => p.status === 'active').length;
   const performanceScore = campaignPerformance?.performanceScore ?? 0;
-  const formattedAverageCTR = Number(averageCTR || 0).toFixed(2);
 
   const ctrRatio = averageCTR > 1 ? averageCTR / 100 : averageCTR;
   const formattedAverageCTR = (ctrRatio * 100).toFixed(2);

@@ -3,8 +3,8 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// Use the stable worker URL that matches our installed version
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
+// Use legacy build for better compatibility
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
 interface PDFViewerProps {
   url: string;
@@ -16,14 +16,17 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
   const [numPages, setNumPages] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [pageInput, setPageInput] = useState(initialPage.toString());
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentPage(initialPage);
     setPageInput(initialPage.toString());
+    setError(null);
   }, [initialPage, url]);
 
   const handleDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
+    setError(null);
     if (currentPage > numPages) {
       setCurrentPage(numPages);
       setPageInput(numPages.toString());
@@ -57,6 +60,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
 
   const handleDocumentLoadError = (error: any) => {
     console.error('PDF Load Error:', error);
+    setError(error?.message || 'Failed to load PDF');
   };
 
   const commitPageInput = () => {
@@ -78,32 +82,52 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = url;
-    link.download = '';
+    link.download = url.split('/').pop() || 'document.pdf';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
+  if (error) {
+    return (
+      <div className="w-full flex flex-col bg-white dark:bg-slate-950 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 p-8">
+        <div className="text-center">
+          <div className="text-6xl mb-4">📄</div>
+          <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            Unable to preview PDF
+          </h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            {error}
+          </p>
+          <button
+            onClick={handleDownload}
+            className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+          >
+            Download PDF Instead
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex flex-col bg-white dark:bg-slate-950 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800">
       <div className="relative w-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center px-2 py-4 sm:px-4 sm:py-6">
         <div className="max-w-full overflow-x-auto flex justify-center">
           <Document
-            file={{ url }}
-            options={{
-              cMapUrl: 'https://unpkg.com/pdfjs-dist@4.4.168/cmaps/',
-              cMapPacked: true,
-              standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@4.4.168/standard_fonts/',
-            }}
+            file={url}
             onLoadSuccess={handleDocumentLoadSuccess}
             onLoadError={handleDocumentLoadError}
             loading={
-              <div className="text-sm text-slate-500 dark:text-slate-400">Loading PDF…</div>
+              <div className="flex flex-col items-center gap-3 py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">Loading PDF…</div>
+              </div>
             }
             error={
-              <div className="p-4 text-sm text-rose-500">
-                <p>Failed to load PDF.</p>
-                <p className="text-xs mt-1 break-all">URL: {url}</p>
+              <div className="p-4 text-center">
+                <div className="text-4xl mb-2">⚠️</div>
+                <p className="text-sm text-rose-500">Failed to load PDF</p>
               </div>
             }
           >
@@ -112,6 +136,11 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
               scale={scale}
               renderTextLayer={false}
               renderAnnotationLayer={false}
+              loading={
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+                </div>
+              }
               className="transition-transform transition-opacity duration-300 ease-out"
             />
           </Document>
@@ -144,22 +173,22 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
           <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-700 dark:text-slate-200 flex-shrink-0">
             PDF
           </div>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-            <span className="font-semibold">Page</span>
-            <input
-              type="number"
-              min={1}
-              max={numPages ?? undefined}
-              value={pageInput}
-              onChange={handlePageInputChange}
-              onKeyDown={handlePageInputKeyDown}
-              onBlur={commitPageInput}
-              className="w-14 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-            <span className="text-slate-500 dark:text-slate-400">
-              of {numPages ?? '…'}
-            </span>
-          </div>
+          {numPages && (
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+              <span className="font-semibold">Page</span>
+              <input
+                type="number"
+                min={1}
+                max={numPages}
+                value={pageInput}
+                onChange={handlePageInputChange}
+                onKeyDown={handlePageInputKeyDown}
+                onBlur={commitPageInput}
+                className="w-14 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <span className="text-slate-500 dark:text-slate-400">of {numPages}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 justify-end">

@@ -59,6 +59,15 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
       textColor: 'text-emerald-700 dark:text-emerald-400'
     },
     { 
+      key: EnergyType.NEUTRAL, 
+      label: 'Neutral', 
+      icon: '🪐', 
+      description: 'Balanced, everyday updates',
+      gradient: 'from-slate-500 to-slate-600',
+      bgColor: 'bg-slate-50 dark:bg-slate-900/30',
+      textColor: 'text-slate-700 dark:text-slate-300'
+    },
+    { 
       key: EnergyType.HEALING, 
       label: 'Healing', 
       icon: '🤍', 

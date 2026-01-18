@@ -7,6 +7,7 @@ import { PrivacyService } from '../services/privacyService';
 import { UserService } from '../services/userService';
 import { getTrustBadgeConfig, formatTrustSummary } from '../services/trustService';
 import { uploadService } from '../services/upload';
+import { PostService } from '../services/postService';
 
 const getZodiacSign = (dateString: string) => {
   if (!dateString) return '';
@@ -28,6 +29,33 @@ const getZodiacSign = (dateString: string) => {
   if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return 'Pisces ♓';
   return '';
 };
+
+interface ProfileInsightsTotals {
+  totalPosts: number;
+  totalViews: number;
+  boostedPosts: number;
+  totalRadiance: number;
+}
+
+interface ProfileInsightsCredits {
+  balance: number;
+  spent: number;
+}
+
+interface ProfileInsightsTopPost {
+  id: string;
+  preview: string;
+  views: number;
+  timestamp: number;
+  isBoosted: boolean;
+  radiance: number;
+}
+
+interface ProfileInsights {
+  totals: ProfileInsightsTotals;
+  credits: ProfileInsightsCredits;
+  topPosts: ProfileInsightsTopPost[];
+}
 
 interface ProfileViewProps {
    user: User;
@@ -64,7 +92,7 @@ interface ProfileViewProps {
 const ProfileView: React.FC<ProfileViewProps> = ({
    user, posts, ads, adRefreshTick, currentUser, allUsers, onBack, onReact, onComment, onLoadComments, onShare, onAddAcquaintance, onRemoveAcquaintance, onSendConnectionRequest, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onUpdateProfileMedia, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager, onCancelAd, onUpdateAd
 }) => {
-  const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'insights'>('posts');
   const [blockLoading, setBlockLoading] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<'Harassment' | 'Spam' | 'FakeAccount' | 'Other'>('Harassment');
@@ -72,6 +100,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [blockedList, setBlockedList] = useState<string[]>(currentUser.blockedUsers || []);
   const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const [insights, setInsights] = useState<ProfileInsights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
   const isSelf = currentUser.id === user.id;
   const isAcquaintance = currentUser.acquaintances?.includes(user.id);
   const isRequested = currentUser.sentAcquaintanceRequests?.includes(user.id);
@@ -93,6 +124,43 @@ const ProfileView: React.FC<ProfileViewProps> = ({
       PrivacyService.trackPageView(currentUser.id, 'profile', { viewedUserId: user.id });
     }
   }, [user.id, currentUser.id, isSelf]);
+
+  useEffect(() => {
+    if (!isSelf) return;
+    if (activeTab !== 'insights') return;
+
+    let cancelled = false;
+
+    const fetchInsights = async () => {
+      setInsightsLoading(true);
+      setInsightsError(null);
+      try {
+        const resp = await PostService.getMyInsights();
+        if (cancelled) return;
+        if (resp.success && resp.data) {
+          setInsights(resp.data as ProfileInsights);
+        } else {
+          setInsightsError(resp.error || 'Failed to load insights');
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setInsightsError(e?.message || 'Failed to load insights');
+        }
+      } finally {
+        if (!cancelled) {
+          setInsightsLoading(false);
+        }
+      }
+    };
+
+    if (!insights && !insightsLoading) {
+      fetchInsights();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSelf, activeTab, insights, insightsLoading]);
 
   useEffect(() => {
     setLocalAvatar(user.avatar);
@@ -512,12 +580,24 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               >
                 About
               </button>
+              {isSelf && (
+                <button
+                  onClick={() => setActiveTab('insights')}
+                  className={`py-4 px-6 text-sm font-medium transition-all relative ${
+                    activeTab === 'insights'
+                      ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+                >
+                  Dashboard
+                </button>
+              )}
             </div>
           </div>
         </div>
 
         <div className="px-4 pt-6">
-          {activeTab === 'posts' ? (
+          {activeTab === 'posts' && (
             <div className="space-y-6">
               {user.isPrivate && !isSelf && !isAcquaintance && (
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-8 text-center">
@@ -571,7 +651,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                 </>
               )}
             </div>
-          ) : (
+          )}
+          {activeTab === 'about' && (
             <div className="space-y-6">
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">About</h3>
@@ -660,6 +741,132 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       </div>
                     </div>
                   </div>
+                )}
+              </div>
+            </div>
+          )}
+          {activeTab === 'insights' && isSelf && (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Dashboard</h3>
+                  {insightsLoading && (
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      Loading…
+                    </span>
+                  )}
+                </div>
+
+                {insightsError && (
+                  <div className="mb-4 text-sm text-rose-600 dark:text-rose-400">
+                    {insightsError}
+                  </div>
+                )}
+
+                {!insights && !insightsLoading && !insightsError && (
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    No insights available yet. Start posting and boosting to see your stats.
+                  </p>
+                )}
+
+                {insights && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          Total Posts
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                          {insights.totals.totalPosts.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          Total Views
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                          {insights.totals.totalViews.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          Boosted Posts
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                          {insights.totals.boostedPosts.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          Total Radiance
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                          {insights.totals.totalRadiance.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-5">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          Credits
+                        </p>
+                        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                          Balance:{' '}
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            {insights.credits.balance.toLocaleString()} credits
+                          </span>
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                          Spent on boosts:{' '}
+                          <span className="font-semibold text-slate-900 dark:text-white">
+                            {insights.credits.spent.toLocaleString()} credits
+                          </span>
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-5">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
+                          Top Posts
+                        </p>
+                        {insights.topPosts.length === 0 ? (
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Your top-performing posts will appear here.
+                          </p>
+                        ) : (
+                          <ul className="space-y-3">
+                            {insights.topPosts.map(post => (
+                              <li
+                                key={post.id}
+                                className="flex items-start justify-between gap-3 rounded-lg bg-white/70 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 px-3 py-2.5"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    {post.preview || 'Untitled post'}
+                                  </p>
+                                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                    {new Date(post.timestamp).toLocaleDateString()} ·{' '}
+                                    {post.isBoosted ? 'Boosted' : 'Organic'}
+                                  </p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                    Views
+                                  </span>
+                                  <span className="text-sm font-bold text-slate-900 dark:text-white">
+                                    {post.views.toLocaleString()}
+                                  </span>
+                                  <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">
+                                    ✨ {post.radiance.toLocaleString()}
+                                  </span>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

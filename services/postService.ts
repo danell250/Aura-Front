@@ -100,6 +100,24 @@ export class PostService {
     }
   }
 
+  static async getMyInsights(): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await apiFetch('/posts/insights/me', {
+        method: 'GET'
+      });
+
+      const result = await response.json().catch(() => null as any);
+      if (response.ok && result && result.success) {
+        return { success: true, data: result.data };
+      }
+
+      return { success: false, error: result?.error || result?.message || 'Failed to load insights' };
+    } catch (error: any) {
+      console.error('❌ Error fetching insights:', error);
+      return { success: false, error: error?.message || 'Failed to load insights' };
+    }
+  }
+
   /**
    * Increment view count for a post
    */

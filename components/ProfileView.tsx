@@ -3,11 +3,8 @@ import { User, Post, Ad, Comment } from '../types';
 import PostCard from './PostCard';
 import { MediaDisplay, Avatar } from './MediaDisplay';
 import OnlineStatus from './OnlineStatus';
-import AdPlansDashboard from './AdPlansDashboard';
 import { PrivacyService } from '../services/privacyService';
 import { UserService } from '../services/userService';
-import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
-import { AD_PACKAGES } from '../constants';
 import { getTrustBadgeConfig, formatTrustSummary } from '../services/trustService';
 import { uploadService } from '../services/upload';
 
@@ -67,9 +64,7 @@ interface ProfileViewProps {
 const ProfileView: React.FC<ProfileViewProps> = ({
    user, posts, ads, adRefreshTick, currentUser, allUsers, onBack, onReact, onComment, onLoadComments, onShare, onAddAcquaintance, onRemoveAcquaintance, onSendConnectionRequest, onViewProfile, onSearchTag, onLike, onBoostPost, onBoostUser, onEditProfile, onUpdateProfileMedia, onDeletePost, onDeleteComment, onSerendipityMode, onOpenMessaging, onOpenAdManager, onCancelAd, onUpdateAd
 }) => {
-  const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'adplans'>('posts');
-  const [adSubscriptions, setAdSubscriptions] = useState<AdSubscription[]>([]);
-  const [loadingSubscriptions, setLoadingSubscriptions] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
   const [blockLoading, setBlockLoading] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<'Harassment' | 'Spam' | 'FakeAccount' | 'Other'>('Harassment');
@@ -100,36 +95,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   }, [user.id, currentUser.id, isSelf]);
 
   useEffect(() => {
-    if (isSelf) {
-      loadAdSubscriptions();
-    }
-  }, [isSelf, currentUser.id]);
-  useEffect(() => {
     setLocalAvatar(user.avatar);
     setLocalAvatarType(user.avatarType);
     setLocalCover(user.coverImage);
     setLocalCoverType(user.coverType);
   }, [user.avatar, user.avatarType, user.coverImage, user.coverType]);
-
-  const loadAdSubscriptions = async () => {
-    setLoadingSubscriptions(true);
-    try {
-      console.log('[ProfileView] Loading ad subscriptions for user:', currentUser.id);
-      const subscriptions = await adSubscriptionService.getUserSubscriptions(currentUser.id);
-      console.log('[ProfileView] Loaded subscriptions:', subscriptions.length);
-      setAdSubscriptions(subscriptions);
-    } catch (error) {
-      console.error('[ProfileView] Failed to load ad subscriptions:', error);
-      // Set empty array to prevent UI from getting stuck
-      setAdSubscriptions([]);
-    } finally {
-      setLoadingSubscriptions(false);
-    }
-  };
-
-  const getPackageDetails = (packageId: string) => {
-    return AD_PACKAGES.find(pkg => pkg.id === packageId);
-  };
 
   const handleLike = (postId: string) => {
     onLike(postId);
@@ -542,24 +512,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               >
                 About
               </button>
-              {isSelf && (
-                <button
-                  onClick={() => setActiveTab('adplans')}
-                  className={`py-4 px-6 text-sm font-medium transition-all relative flex items-center gap-2 ${
-                    activeTab === 'adplans'
-                      ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                  }`}
-                >
-                  <span>📢</span>
-                  Ad Manager
-                  {adSubscriptions.filter(s => s.status === 'active').length > 0 && (
-                    <span className="ml-1 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-bold">
-                      {adSubscriptions.filter(s => s.status === 'active').length}
-                    </span>
-                  )}
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -619,7 +571,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                 </>
               )}
             </div>
-          ) : activeTab === 'about' ? (
+          ) : (
             <div className="space-y-6">
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">About</h3>
@@ -711,16 +663,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                 )}
               </div>
             </div>
-          ) : activeTab === 'adplans' && isSelf ? (
-            <AdPlansDashboard
-              user={currentUser}
-              ads={ads}
-              onOpenAdManager={() => onOpenAdManager && onOpenAdManager()}
-              onCancelAd={(id) => onCancelAd && onCancelAd(id)}
-              onUpdateAd={(id, updates) => (onUpdateAd ? onUpdateAd(id, updates) : Promise.resolve(false))}
-              refreshTrigger={adRefreshTick}
-            />
-          ) : null}
+          )}
         </div>
       </div>
 

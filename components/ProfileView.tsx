@@ -135,14 +135,21 @@ const ProfileView: React.FC<ProfileViewProps> = ({
       setInsightsLoading(true);
       setInsightsError(null);
       try {
+        console.log('🔍 Fetching insights for user:', currentUser.id);
         const resp = await PostService.getMyInsights();
+        console.log('📊 Insights response:', resp);
+
         if (cancelled) return;
+
         if (resp.success && resp.data) {
           setInsights(resp.data as ProfileInsights);
+          console.log('✅ Insights loaded successfully');
         } else {
+          console.error('❌ Insights fetch failed:', resp.error);
           setInsightsError(resp.error || 'Failed to load insights');
         }
       } catch (e: any) {
+        console.error('❌ Insights fetch error:', e);
         if (!cancelled) {
           setInsightsError(e?.message || 'Failed to load insights');
         }
@@ -153,14 +160,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({
       }
     };
 
-    if (!insights && !insightsLoading) {
-      fetchInsights();
-    }
+    fetchInsights();
 
     return () => {
       cancelled = true;
     };
-  }, [isSelf, activeTab, insights, insightsLoading]);
+  }, [isSelf, activeTab, currentUser.id]);
 
   useEffect(() => {
     setLocalAvatar(user.avatar);
@@ -751,25 +756,48 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Dashboard</h3>
                   {insightsLoading && (
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                      Loading…
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        Loading insights…
+                      </span>
+                    </div>
                   )}
                 </div>
 
                 {insightsError && (
-                  <div className="mb-4 text-sm text-rose-600 dark:text-rose-400">
-                    {insightsError}
+                  <div className="mb-4 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg">
+                    <p className="text-sm text-rose-600 dark:text-rose-400 font-medium">
+                      {insightsError}
+                    </p>
+                    <button
+                      onClick={() => {
+                        setInsights(null);
+                        setInsightsError(null);
+                      }}
+                      className="mt-2 text-xs text-rose-600 dark:text-rose-400 underline hover:no-underline"
+                    >
+                      Try again
+                    </button>
                   </div>
                 )}
 
-                {!insights && !insightsLoading && !insightsError && (
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                {insightsLoading && !insights && (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                      <p className="text-sm text-slate-600 dark:text-slate-400">Loading your dashboard...</p>
+                    </div>
+                  </div>
+                )}
+
+                {!insightsLoading && !insights && !insightsError && (
+                  <p className="text-sm text-slate-600 dark:text-slate-400 text-center py-8">
                     No insights available yet. Start posting and boosting to see your stats.
                   </p>
                 )}
 
-                {insights && (
+                {insights && !insightsLoading && (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">

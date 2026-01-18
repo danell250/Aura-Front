@@ -3,6 +3,36 @@ import { SearchService, SearchResult, SearchFilters } from '../services/searchSe
 import { Post, User, Ad } from '../types';
 import { Avatar } from './MediaDisplay';
 
+type RecentSearchItem = {
+  q: string;
+  ts: number;
+};
+
+const makeRecentKey = (userId?: string) => `aura_recent_searches:${userId || 'anon'}`;
+
+const loadRecentSearches = (userId?: string, limit = 8): RecentSearchItem[] => {
+  try {
+    const raw = localStorage.getItem(makeRecentKey(userId));
+    const arr = raw ? (JSON.parse(raw) as RecentSearchItem[]) : [];
+    return Array.isArray(arr) ? arr.slice(0, limit) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveRecentSearch = (userId: string | undefined, q: string, limit = 8) => {
+  const query = q.trim();
+  if (!query) return;
+
+  const existing = loadRecentSearches(userId, 50);
+  const next: RecentSearchItem[] = [
+    { q: query, ts: Date.now() },
+    ...existing.filter(x => x.q.toLowerCase() !== query.toLowerCase())
+  ].slice(0, limit);
+
+  localStorage.setItem(makeRecentKey(userId), JSON.stringify(next));
+};
+
 interface SearchDropdownProps {
   posts: Post[];
   users: User[];
@@ -28,6 +58,7 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [recent, setRecent] = useState<RecentSearchItem[]>(() => loadRecentSearches(userId));
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -41,8 +72,10 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
   useEffect(() => {
     const performSearch = async () => {
       if (!searchQuery.trim()) {
+        const items = loadRecentSearches(userId);
+        setRecent(items);
         setResults([]);
-        setIsOpen(false);
+        setIsOpen(items.length > 0);
         return;
       }
 
@@ -50,9 +83,10 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
       
       try {
         const searchResults = await SearchService.search(searchQuery, posts, users, ads, filters);
-        // Limit results to top 8 for dropdown
-        setResults(searchResults.slice(0, 8));
-        setIsOpen(searchResults.length > 0);
+        const limited = searchResults.slice(0, 8);
+        setResults(limited);
+        setIsOpen(limited.length > 0);
+        setSelectedIndex(limited.length > 0 ? 0 : -1);
       } catch (error) {
         console.error('Search error:', error);
         setResults([]);
@@ -65,7 +99,7 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
     // Debounce search
     const timeoutId = setTimeout(performSearch, 200);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, posts, users, ads]);
+  }, [searchQuery, posts, users, ads, userId]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -121,12 +155,18 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
   };
 
   const handleInputFocus = () => {
-    if (searchQuery.trim() && results.length > 0) {
-      setIsOpen(true);
+    if (!searchQuery.trim()) {
+      const items = loadRecentSearches(userId);
+      setRecent(items);
+      setIsOpen(items.length > 0);
+      setSelectedIndex(-1);
+      return;
     }
+    if (results.length > 0) setIsOpen(true);
   };
 
   const handleResultClick = (result: SearchResult) => {
+    saveRecentSearch(userId, searchQuery);
     onSelectResult(result);
     setIsOpen(false);
     setSelectedIndex(-1);
@@ -208,7 +248,24 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
       </div>
 
       {/* Search Results Dropdown */}
-      {isOpen && (
+      {isOpen && !searchQuery.trim() && recent.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
+          <div className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+            Recent searches
+          </div>
+          {recent.map(item => (
+            <button
+              key={item.q + item.ts}
+              className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
+              onClick={() => onSearchChange(item.q)}
+            >
+              <span className="text-slate-700 dark:text-slate-200">{item.q}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {isOpen && searchQuery.trim() && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
           {results.length === 0 ? (
             <div className="p-4 text-center text-slate-500 dark:text-slate-400">
@@ -261,6 +318,11 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
                   </div>
                 </button>
               ))}
+              {results.length > 0 && (
+                <div className="px-4 py-2 text-[11px] text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800">
+                  Press <span className="font-semibold">Enter</span> to open the top result
+                </div>
+              )}
             </div>
           )}
         </div>

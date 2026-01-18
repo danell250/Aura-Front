@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc =
+  `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface PDFViewerProps {
   url: string;
@@ -104,9 +102,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
           <Document
             file={{ url }}
             options={{
-              cMapUrl: 'https://unpkg.com/pdfjs-dist@5.4.530/cmaps/',
+              cMapUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/web/cmaps/`,
               cMapPacked: true,
-              standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@5.4.530/standard_fonts/'
+              standardFontDataUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/web/standard_fonts/`
             }}
             onLoadSuccess={handleDocumentLoadSuccess}
             onLoadError={handleDocumentLoadError}

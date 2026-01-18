@@ -391,7 +391,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                 </div>
 
                 {/* Name and Stats */}
-                <div className="mb-2">
+                <div className="mb-2 mt-12">
                   <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
                     {user.isCompany && user.companyName ? user.companyName : user.name}
                   </h1>
@@ -429,6 +429,45 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       <span>✏️</span>
                       <span>Edit</span>
                     </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowOwnerMenu((open) => !open)}
+                        className="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 font-medium text-sm"
+                      >
+                        ⚙️
+                      </button>
+                      {showOwnerMenu && (
+                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20 py-1">
+                          {onEditProfile && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowOwnerMenu(false);
+                                onEditProfile();
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            >
+                              <span>✏️</span>
+                              <span>Edit profile</span>
+                            </button>
+                          )}
+                          {onSerendipityMode && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowOwnerMenu(false);
+                                onSerendipityMode();
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            >
+                              <span>🎲</span>
+                              <span>Serendipity mode</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <>
@@ -464,7 +503,20 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                         ⚙️
                       </button>
                       {showOwnerMenu && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20 py-1">
+                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20 py-1">
+                          {onSerendipityMode && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowOwnerMenu(false);
+                                onSerendipityMode();
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            >
+                              <span>🎲</span>
+                              <span>Serendipity mode</span>
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => {
@@ -489,7 +541,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                           >
                             <span>🚩</span>
-                            <span>Report</span>
+                            <span>Report user</span>
                           </button>
                         </div>
                       )}

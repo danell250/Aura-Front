@@ -85,6 +85,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
           <Document
             file={url}
             onLoadSuccess={handleDocumentLoadSuccess}
+            onLoadError={(error) => console.error('PDF Load Error:', error)}
             loading={
               <div className="text-sm text-slate-500 dark:text-slate-400">Loading PDF…</div>
             }

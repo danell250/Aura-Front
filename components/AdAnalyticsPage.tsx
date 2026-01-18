@@ -191,33 +191,41 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
       <div className="rounded-3xl p-8 border border-slate-200 bg-white shadow-[0_20px_60px_-30px_rgba(0,0,0,0.25)]">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100 mb-2">
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500 mb-2">
               AuraSocialConnect • Ad Intelligence
             </p>
-            <h2 className="text-3xl md:text-4xl font-black tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
               Campaign Analytics
             </h2>
-            <p className="mt-3 text-sm md:text-base text-emerald-50 max-w-xl">
-              Monitor how your neural signals perform across the network with live reach, engagement, and efficiency insights.
+            <p className="mt-3 text-sm md:text-base text-slate-500 max-w-xl">
+              Monitor how your signals perform across the network with live reach, engagement, and efficiency insights.
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-100">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500">
               Active Signals
             </span>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black">
+              <span className="text-4xl font-black text-slate-900">
                 {activeAdsCount}
               </span>
-              <span className="text-sm text-emerald-100">
+              <span className="text-sm text-slate-500">
                 running
               </span>
             </div>
             {campaignPerformance?.daysToNextExpiry != null && (
-              <p className="text-[11px] font-semibold text-emerald-100/90">
+              <p className="text-[11px] font-semibold text-slate-500">
                 Next expiry in <span className="font-bold">{campaignPerformance.daysToNextExpiry}</span> days
               </p>
             )}
+            <button
+              type="button"
+              onClick={() => setUseMock(prev => !prev)}
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600 bg-white hover:bg-slate-50"
+            >
+              <span className={`h-2 w-2 rounded-full ${useMock ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+              {useMock ? 'Mock data: ON' : 'Mock data: OFF'}
+            </button>
           </div>
         </div>
       </div>
@@ -236,7 +244,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
           All Ads
         </button>
         <button
-          className={`flex-1 px-4 py-2 rounded-xl transition-all ${activeTab === 'details' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-800'}`}
+          className={`flex-1 px-4 py-2 rounded-xl transition-all ${activeTab === 'details' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
           onClick={() => setActiveTab('details')}
         >
           Single Ad
@@ -266,178 +274,196 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
           {hasData && (
             <>
               {primaryAd && (
-                <div className="mt-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 sticky top-4 z-20">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-emerald-500">
-                        Live Signal Preview
-                      </p>
-                      <h3 className="mt-2 text-lg font-bold text-slate-900 dark:text-white line-clamp-2">
-                        {primaryAd.headline}
-                      </h3>
-                      <p className="mt-2 text-xs text-slate-600 dark:text-slate-300 line-clamp-3">
-                        {primaryAd.description}
-                      </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <span className="inline-flex px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-semibold text-slate-700 dark:text-slate-200">
-                          {(primaryAd.subscriptionTier || 'Custom') + ' plan'}
+                <div className="sticky top-4 z-20">
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-[0_25px_70px_-40px_rgba(0,0,0,0.35)] overflow-hidden">
+                    <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-500">
+                          Your Posted Signal
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-slate-900 line-clamp-1">
+                          {primaryAd.headline}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-[0.2em]">
+                          {primaryAd.status === 'active' ? 'Live' : 'Not Live'}
                         </span>
-                        <span className="inline-flex px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
-                          {primaryAd.status === 'active' ? 'Active' : 'Inactive'}
-                        </span>
+                        <a
+                          href={primaryAd.ctaLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition"
+                        >
+                          {primaryAd.ctaText || 'View'}
+                        </a>
                       </div>
                     </div>
-                    <a
-                      href={primaryAd.ctaLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="shrink-0 px-4 py-2 rounded-xl bg-emerald-500 text-white text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-emerald-600 transition-colors"
-                    >
-                      {primaryAd.ctaText || 'View'}
-                    </a>
+
+                    <div className="p-5">
+                      <p className="text-xs text-slate-600 line-clamp-3">{primaryAd.description}</p>
+
+                      <div className="mt-4 grid grid-cols-3 gap-3">
+                        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Plan</p>
+                          <p className="mt-1 text-sm font-black text-slate-900 line-clamp-1">
+                            {primaryAd.subscriptionTier || 'Custom'}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Placement</p>
+                          <p className="mt-1 text-sm font-black text-slate-900">Feed</p>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Badge</p>
+                          <p className="mt-1 text-sm font-black text-amber-700">Gold Aura</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className={`${card} ${cardPad}`}>
+                  <p className={label}>
                     Impressions
                   </p>
-                  <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className={value}>
                     {totalImpressions.toLocaleString()}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className={sub}>
                     Total views across all ads
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className={`${card} ${cardPad}`}>
+                  <p className={label}>
                     Clicks
                   </p>
-                  <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className={value}>
                     {totalClicks.toLocaleString()}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className={sub}>
                     Interactions with your calls to action
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                <div className={`${card} ${cardPad}`}>
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    <p className={label}>
                       Average CTR
                     </p>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-[0.2em]">
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold uppercase tracking-[0.2em]">
                       Rate
                     </span>
                   </div>
-                  <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className={value}>
                     {formattedAverageCTR}%
                   </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className={sub}>
                     Click-through performance across all signals
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className={`${card} ${cardPad}`}>
+                  <p className={label}>
                     Engagement
                   </p>
-                  <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className={value}>
                     {totalEngagement.toLocaleString()}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className={sub}>
                     Reactions, comments, and shares
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+                <div className={`${card} ${cardPad}`}>
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    <p className={label}>
                       Spend
                     </p>
-                    <span className="text-[10px] px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold uppercase tracking-[0.2em]">
+                    <span className="text-[10px] px-2 py-1 rounded-full bg-slate-100 text-slate-700 font-bold uppercase tracking-[0.2em]">
                       Credits
                     </span>
                   </div>
-                  <p className="text-3xl font-black text-slate-900 dark:text-white">
+                  <p className="text-3xl font-black text-slate-900">
                     {totalSpend.toFixed(2)}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className={sub}>
                     Approximate total signal spend
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-3">
+                <div className={`${card} ${cardPad}`}>
+                  <p className={label}>
                     Reach
                   </p>
-                  <p className="text-3xl font-black text-slate-900 dark:text-white">
+                  <p className="text-3xl font-black text-slate-900">
                     {totalReach.toLocaleString()}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className={sub}>
                     Estimated unique people touched by your ads
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-3">
+                <div className={`${card} ${cardPad}`}>
+                  <p className={label}>
                     Performance Score
                   </p>
-                  <p className="text-3xl font-black text-slate-900 dark:text-white">
+                  <p className="text-3xl font-black text-slate-900">
                     {performanceScore.toFixed(0)}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className={sub}>
                     Composite health indicator across your active campaigns
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-2">
+                <div className={`${card} ${cardPad}`}>
+                  <p className={label}>
                     Momentum
                   </p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className={value}>
                     {momentumScore.toFixed(0)} / 100
                   </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className={sub}>
                     Blend of active signals and fresh engagement.
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-2">
+                <div className={`${card} ${cardPad}`}>
+                  <p className={label}>
                     Fatigue Index
                   </p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className={value}>
                     {fatigueIndex.toFixed(0)}%
                   </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className={sub}>
                     Higher values suggest repeated views without action.
                   </p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-2">
+                <div className={`${card} ${cardPad}`}>
+                  <p className={label}>
                     Attention Half-Life
                   </p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <p className={value}>
                     {attentionHalfLifeDays} days
                   </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className={sub}>
                     Rough estimate before performance naturally decays.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+              <div className={`${card} ${cardPad}`}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">
                     Next Best Action
                   </p>
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-bold uppercase tracking-[0.2em]">
+                  <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold uppercase tracking-[0.2em]">
                     Recommendation
                   </span>
                 </div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                <p className="text-sm font-semibold text-slate-900">
                   {nextAction}
                 </p>
               </div>

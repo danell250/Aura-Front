@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { User, Ad } from '../types';
 import { adAnalyticsService, AdAnalytics, AdPerformanceMetrics, CampaignPerformance } from '../services/adAnalyticsService';
+import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
 
 interface AdAnalyticsPageProps {
   currentUser: User;
@@ -27,6 +28,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [sortBy, setSortBy] = useState<'impressions' | 'clicks' | 'ctr' | 'spend' | 'roi'>('impressions');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'completed'>('all');
+  const [subscription, setSubscription] = useState<AdSubscription | null>(null);
 
   useEffect(() => {
     if (!currentUser.id) return;
@@ -38,6 +40,11 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
     adAnalyticsService.getUserAdPerformance(currentUser.id).then(setAdPerformance).finally(() => {
       setLoadingAds(false);
     });
+  }, [currentUser.id]);
+
+  useEffect(() => {
+    if (!currentUser.id) return;
+    adSubscriptionService.getActiveSubscription(currentUser.id).then(setSubscription);
   }, [currentUser.id]);
 
   useEffect(() => {
@@ -132,6 +139,16 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                 running
               </span>
             </div>
+              {subscription && (
+                <div className="text-right">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {subscription.packageName}
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">
+                    {subscription.adsUsed}/{subscription.adLimit} ads used
+                  </p>
+                </div>
+              )}
             {campaignPerformance?.daysToNextExpiry != null && (
               <p className="text-[11px] font-semibold text-slate-500">
                 Next expiry in <span className="font-bold">{campaignPerformance.daysToNextExpiry}</span> days
@@ -558,6 +575,42 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                 </span>
               )}
             </div>
+            {subscription && (
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-5 text-white mb-2">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">
+                      {subscription.packageName}
+                    </p>
+                    <h3 className="text-xl font-black">
+                      Ad Usage This Month
+                    </h3>
+                    <p className="text-sm text-emerald-100">
+                      Your plan resets on {subscription.endDate ? new Date(subscription.endDate).toLocaleDateString() : '—'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm uppercase tracking-widest text-emerald-100">
+                      Remaining
+                    </p>
+                    <p className="text-4xl font-black">
+                      {subscription.adLimit - subscription.adsUsed}
+                      <span className="text-lg font-semibold ml-1">/ {subscription.adLimit}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="mt-4 w-full bg-emerald-700/40 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-white h-2 rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(100, (subscription.adsUsed / subscription.adLimit) * 100)}%`
+                    }}
+                  />
+                </div>
+              </div>
+            )}
             {!selectedAdId && (
               <div className="py-8 text-sm text-slate-500 dark:text-slate-300">
                 Select an ad from the table to inspect its metrics.
@@ -570,64 +623,64 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
             )}
             {selectedAdId && !loadingDetails && selectedAdAnalytics && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                     Impressions
                   </p>
                   <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
                     {selectedAdAnalytics.impressions.toLocaleString()}
                   </p>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                     Clicks
                   </p>
                   <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
                     {selectedAdAnalytics.clicks.toLocaleString()}
                   </p>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                     CTR
                   </p>
                   <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
                     {selectedAdAnalytics.ctr.toFixed(2)}%
                   </p>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                     Engagement
                   </p>
                   <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
                     {selectedAdAnalytics.engagement.toLocaleString()}
                   </p>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                     Reach
                   </p>
                   <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
                     {selectedAdAnalytics.reach.toLocaleString()}
                   </p>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                     Conversions
                   </p>
                   <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
                     {selectedAdAnalytics.conversions.toLocaleString()}
                   </p>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                     Spend
                   </p>
                   <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
                     {selectedAdAnalytics.spend.toFixed(2)}
                   </p>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                     Last Updated
                   </p>
                   <p className="mt-2 text-xs font-semibold text-slate-900 dark:text-white">

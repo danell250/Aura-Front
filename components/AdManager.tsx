@@ -59,6 +59,16 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
   const isSpecialUser =
     currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
 
+  const remainingAds = selectedSubscription
+    ? selectedSubscription.adLimit - selectedSubscription.adsUsed
+    : null;
+
+  const isQuotaDepleted =
+    !isSpecialUser &&
+    !editingAd &&
+    remainingAds !== null &&
+    remainingAds <= 0;
+
   // Debug logging
   useEffect(() => {
     console.log("🔍 AdManager state:", {
@@ -1084,7 +1094,22 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                       <input className="w-full p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 text-[10px] font-black dark:text-white shadow-inner" value={form.ctaLink} onChange={e => setForm({...form, ctaLink: e.target.value})} />
                     </div>
                   </div>
-                  <button onClick={handleBroadcast} className="w-full py-6 aura-bg-gradient text-white font-black uppercase rounded-[2.5rem] text-sm tracking-[0.4em] shadow-2xl shadow-emerald-500/40 hover:brightness-110 active:scale-95 transition-all mt-6">Launch Broadcast</button>
+                  <button
+                    onClick={handleBroadcast}
+                    disabled={isQuotaDepleted}
+                    className={`w-full py-6 font-black uppercase rounded-[2.5rem] text-sm tracking-[0.4em] shadow-2xl transition-all mt-6 ${
+                      isQuotaDepleted
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        : 'aura-bg-gradient text-white shadow-emerald-500/40 hover:brightness-110 active:scale-95'
+                    }`}
+                  >
+                    Create Signal
+                  </button>
+                  {isQuotaDepleted && (
+                    <p className="text-xs text-amber-600 mt-2">
+                      Monthly signal limit reached. Resets on {selectedSubscription?.endDate ? new Date(selectedSubscription.endDate).toLocaleDateString() : '—'}.
+                    </p>
+                  )}
                   
                   {/* Option to create another ad if slots available */}
                   {selectedSubscription && selectedSubscription.adsUsed < selectedSubscription.adLimit - 1 && (

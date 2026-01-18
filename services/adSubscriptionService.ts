@@ -74,6 +74,35 @@ export const adSubscriptionService = {
     }
   },
 
+  // Get a single active subscription for user (primary plan)
+  async getActiveSubscription(userId: string): Promise<AdSubscription | null> {
+    try {
+      console.log('[AdSubscriptionService] Fetching single active subscription for:', userId);
+      const token = localStorage.getItem('aura_auth_token');
+      
+      const response = await fetchWithTimeout(`${API_BASE_URL}/ad-subscriptions/user/${userId}/active`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        console.warn('[AdSubscriptionService] HTTP error (single active):', response.status);
+        return null;
+      }
+
+      const result = await response.json();
+      const list: AdSubscription[] = result.data || [];
+      return list[0] || null;
+    } catch (error) {
+      console.error('[AdSubscriptionService] Error fetching single active ad subscription:', error);
+      return null;
+    }
+  },
+
   // Get user's active subscriptions with available ad slots
   async getActiveSubscriptions(userId: string): Promise<AdSubscription[]> {
     try {

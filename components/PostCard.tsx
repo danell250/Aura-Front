@@ -102,9 +102,11 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   const [localUserReactions, setLocalUserReactions] = useState<string[]>(post.userReactions || []);
   const [commentReactionsState, setCommentReactionsState] = useState<Record<string, { reactions: Record<string, number>; userReactions: string[] }>>({});
   const [localViewCount, setLocalViewCount] = useState<number>(post.viewCount ?? 0);
+  const [emojiAnchor, setEmojiAnchor] = useState<{ x: number; y: number } | null>(null);
 
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
+  const postEmojiBtnRef = useRef<HTMLButtonElement | null>(null);
   const authorTrustBadge = getTrustBadgeConfig(post.author.trustScore ?? 0);
 
   if (post.isTimeCapsule) {
@@ -124,10 +126,10 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
-        setShowEmojiPicker(prev => (prev ? false : prev));
+        setShowEmojiPicker(false);
       }
       if (commentEmojiPickerRef.current && !commentEmojiPickerRef.current.contains(event.target as Node)) {
-        setActiveCommentEmojiPicker(prev => (prev ? null : prev));
+        setActiveCommentEmojiPicker(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -911,11 +913,29 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
              </button>
            ))}
            <div className="relative">
-              <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-500 transition-all">
+              <button
+                ref={postEmojiBtnRef}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  setEmojiAnchor({ x: rect.left, y: rect.top });
+                  setShowEmojiPicker(v => !v);
+                }}
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-500 transition-all"
+              >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 4v16m8-8H4" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
               </button>
-              {showEmojiPicker && (
-                <div className="absolute bottom-full left-0 mb-4 z-[9999] shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300" ref={emojiPickerRef}>
+              {showEmojiPicker && emojiAnchor && typeof document !== 'undefined' && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    left: Math.min(emojiAnchor.x, window.innerWidth - 340),
+                    top: Math.max(12, emojiAnchor.y - 420),
+                    zIndex: 999999
+                  }}
+                  className="shadow-2xl rounded-2xl overflow-hidden"
+                  ref={emojiPickerRef}
+                >
                   <EmojiPicker 
                     onEmojiClick={handlePostEmojiClick} 
                     theme={document.documentElement.classList.contains('dark') ? Theme.DARK : Theme.LIGHT} 

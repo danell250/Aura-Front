@@ -805,67 +805,67 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
               )}
               {selectedAdId && !loadingDetails && selectedAdAnalytics && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
-                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                       Impressions
                     </p>
-                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">
                       {selectedAdAnalytics.impressions.toLocaleString()}
                     </p>
                   </div>
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
-                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                       Clicks
                     </p>
-                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">
                       {selectedAdAnalytics.clicks.toLocaleString()}
                     </p>
                   </div>
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
-                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                       CTR
                     </p>
-                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">
                       {selectedAdAnalytics.ctr.toFixed(2)}%
                     </p>
                   </div>
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
-                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                       Engagement
                     </p>
-                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">
                       {selectedAdAnalytics.engagement.toLocaleString()}
                     </p>
                   </div>
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
-                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                       Reach
                     </p>
-                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">
                       {selectedAdAnalytics.reach.toLocaleString()}
                     </p>
                   </div>
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
-                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                       Conversions
                     </p>
-                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">
                       {selectedAdAnalytics.conversions.toLocaleString()}
                     </p>
                   </div>
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
-                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                       Spend
                     </p>
-                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">
                       {selectedAdAnalytics.spend.toFixed(2)}
                     </p>
                   </div>
-                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
-                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
                       Last Updated
                     </p>
-                    <p className="mt-2 text-xs font-semibold text-slate-900 dark:text-white">
+                    <p className="text-xs font-semibold text-slate-900 dark:text-white">
                       {new Date(selectedAdAnalytics.lastUpdated).toLocaleString()}
                     </p>
                   </div>

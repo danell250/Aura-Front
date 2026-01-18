@@ -106,12 +106,19 @@ export class PostService {
         method: 'GET'
       });
 
-      const result = await response.json().catch(() => null as any);
-      if (response.ok && result && result.success) {
-        return { success: true, data: result.data };
+      let payload: any = null;
+      try {
+        payload = await response.json();
+      } catch {}
+
+      if (!response.ok || !payload?.success) {
+        return {
+          success: false,
+          error: payload?.error || payload?.message || 'Failed to load insights'
+        };
       }
 
-      return { success: false, error: result?.error || result?.message || 'Failed to load insights' };
+      return { success: true, data: payload.data };
     } catch (error: any) {
       console.error('❌ Error fetching insights:', error);
       return { success: false, error: error?.message || 'Failed to load insights' };
@@ -127,12 +134,19 @@ export class PostService {
         method: 'POST'
       });
 
-      const result = await response.json().catch(() => null as any);
-      if (response.ok && result && result.success) {
-        return { success: true, viewCount: result.data?.viewCount ?? undefined };
+      let payload: any = null;
+      try {
+        payload = await response.json();
+      } catch {}
+
+      if (!response.ok || !payload?.success) {
+        return {
+          success: false,
+          error: payload?.error || payload?.message || 'Failed to increment post views'
+        };
       }
 
-      return { success: false, error: result?.message || 'Failed to increment post views' };
+      return { success: true, viewCount: payload.data?.viewCount ?? undefined };
     } catch (error: any) {
       console.error('❌ Error incrementing post views:', error);
       return { success: false, error: error?.message || 'Failed to increment post views' };
@@ -171,16 +185,20 @@ export class PostService {
         method: 'POST',
         body: JSON.stringify(postData)
       });
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          return { success: true, post: result.data };
-        }
+
+      let payload: any = null;
+      try {
+        payload = await response.json();
+      } catch {}
+
+      if (!response.ok || !payload?.success) {
+        return {
+          success: false,
+          error: payload?.error || payload?.message || 'Failed to create post'
+        };
       }
-      
-      const json = await response.json().catch(() => ({}));
-      return { success: false, error: json.message || 'Failed to create post' };
+
+      return { success: true, post: payload.data };
     } catch (error) {
       console.error('❌ Error creating post:', error);
       return { success: false, error: 'Network error' };

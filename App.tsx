@@ -751,15 +751,17 @@ const App: React.FC = () => {
   };
 
   const handleUpdateProfile = async (updates: Partial<User>) => {
-    const optimisticUser = { ...currentUser, ...updates };
-    if (updates.firstName && updates.lastName) {
-      optimisticUser.name = `${updates.firstName} ${updates.lastName}`;
-    }
+    const nextFirstName = updates.firstName ?? currentUser.firstName;
+    const nextLastName = updates.lastName ?? currentUser.lastName;
+    const nextName = `${nextFirstName || ''} ${nextLastName || ''}`.trim() || currentUser.name;
+
+    const optimisticUser = { ...currentUser, ...updates, name: nextName };
     setCurrentUser(optimisticUser);
     setAllUsers(prev => prev.map(u => (u.id === currentUser.id ? optimisticUser : u)));
 
     try {
-      const updateResult = await UserService.updateUser(currentUser.id, updates);
+      const updatePayload: Partial<User> = { ...updates, name: nextName };
+      const updateResult = await UserService.updateUser(currentUser.id, updatePayload);
       let persistedUser: User | null = null;
       if (updateResult.success && updateResult.user) {
         persistedUser = updateResult.user as User;

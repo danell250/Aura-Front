@@ -417,6 +417,10 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   useEffect(() => {
     if (post.id.startsWith('temp-')) return;
     let cancelled = false;
+
+    // Optimistically increment views locally so posts don't stay at 0
+    setLocalViewCount(prev => (prev || post.viewCount || 0) + 1);
+
     PostService.incrementPostViews(post.id)
       .then(result => {
         if (!cancelled && result.success && typeof result.viewCount === 'number') {
@@ -424,13 +428,16 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
         }
       })
       .catch(() => {});
+
     return () => {
       cancelled = true;
     };
-  }, [post.id]);
+  }, [post.id, post.viewCount]);
 
   useEffect(() => {
-    setLocalViewCount(post.viewCount ?? 0);
+    if (typeof post.viewCount === 'number') {
+      setLocalViewCount(prev => (post.viewCount! > prev ? post.viewCount! : prev));
+    }
   }, [post.viewCount]);
 
   const handleAISuggestion = async () => {

@@ -56,7 +56,9 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
     ctaLink: `https://auraradiance.vercel.app/profile/${currentUser.id}` 
   });
 
-  const isSpecialUser = currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
+  const isSpecialUser =
+    import.meta.env.MODE !== 'production' &&
+    currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
 
   // Debug logging
   useEffect(() => {
@@ -528,42 +530,16 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
       console.log("🔍 Checking subscription for non-special user");
       if (!selectedSubscription) {
         console.log("❌ No subscription selected for non-special user");
-        // For testing purposes, let's allow creating ads without subscription for now
         console.log("⚠️ Allowing ad creation without subscription for testing");
-        // alert("Please select an active subscription to create ads.");
-        // return;
       } else {
-        // Check if subscription has available slots
         if (selectedSubscription.adsUsed >= selectedSubscription.adLimit) {
           console.log("❌ Subscription limit reached");
           alert(`You have reached the limit of ${selectedSubscription.adLimit} ads for this subscription. Please purchase a new package or wait for renewal.`);
           return;
         }
-
-        try {
-          console.log("🎯 Using ad slot from subscription:", selectedSubscription.id);
-          // Use an ad slot from the subscription
-          const updatedSubscription = await adSubscriptionService.useAdSlot(selectedSubscription.id);
-          console.log("✅ Ad slot used successfully, updated subscription:", updatedSubscription);
-          
-          // Update the selected subscription with the new values immediately
-          setSelectedSubscription(updatedSubscription);
-          
-          // Update the active subscriptions list with the updated subscription
-          setActiveSubscriptions(prev =>
-            prev.map(sub => sub.id === updatedSubscription.id ? updatedSubscription : sub)
-          );
-          
-          // Also reload from server to ensure consistency
-          await loadActiveSubscriptions();
-        } catch (error) {
-          console.error("❌ Failed to use ad slot:", error);
-          alert("Failed to use ad slot. Please try again.");
-          return;
-        }
       }
     }
-
+ 
     // Calculate expiry date based on package duration (or never expire for special user)
     const expiryDate = isSpecialUser ? undefined : Date.now() + (selectedPkg.durationDays * 24 * 60 * 60 * 1000);
 
@@ -620,6 +596,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
     try {
       const ok = await onAdCreated(finalAd);
       if (ok) {
+        await loadActiveSubscriptions();
         onClose();
       } else {
         console.warn("❌ Ad creation failed, keeping modal open");

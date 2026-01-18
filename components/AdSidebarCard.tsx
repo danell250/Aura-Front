@@ -10,7 +10,36 @@ interface AdSidebarCardProps {
 
 const AdSidebarCard: React.FC<AdSidebarCardProps> = ({ ad, onCTAClick }) => {
   useEffect(() => {
-    adAnalyticsService.trackImpression(ad.id);
+    if (!ad?.id) return;
+
+    if (typeof window === 'undefined' || !(window as any).IntersectionObserver) {
+      adAnalyticsService.trackImpression(ad.id);
+      return;
+    }
+
+    const elementId = `sidebar-ad-${ad.id}`;
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    let fired = false;
+    const observer = new IntersectionObserver(
+      entries => {
+        const entry = entries[0];
+        if (!entry) return;
+        if (entry.isIntersecting && !fired) {
+          fired = true;
+          adAnalyticsService.trackImpression(ad.id);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.6 }
+    );
+
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+    };
   }, [ad.id]);
   
   const handleCTAClick = (e: React.MouseEvent) => {
@@ -35,7 +64,10 @@ const AdSidebarCard: React.FC<AdSidebarCardProps> = ({ ad, onCTAClick }) => {
   const embedUrl = getEmbedUrl(ad.mediaUrl);
 
   return (
-    <div className="glass rounded-3xl p-4 border border-emerald-100/50 futuristic-shadow relative group">
+    <div
+      id={`sidebar-ad-${ad.id}`}
+      className="glass rounded-3xl p-4 border border-emerald-100/50 futuristic-shadow relative group"
+    >
       <div className="flex items-center gap-2 mb-3">
         <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-50 border border-slate-200/20">
           <img src={ad.ownerAvatar} alt="" className="w-full h-full object-cover" />

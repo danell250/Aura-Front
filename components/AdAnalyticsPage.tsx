@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { User, Ad } from '../types';
 import { adAnalyticsService, AdAnalytics, AdPerformanceMetrics, CampaignPerformance } from '../services/adAnalyticsService';
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
+import { getApiBaseUrl } from '../constants';
+import { io } from 'socket.io-client';
 
 interface AdAnalyticsPageProps {
   currentUser: User;
@@ -12,6 +14,10 @@ interface AdAnalyticsPageProps {
 type AnalyticsTab = 'overview' | 'ads' | 'details';
 
 const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onDeleteAd }) => {
+  const API_BASE_URL = getApiBaseUrl();
+  const SOCKET_BASE_URL = API_BASE_URL.endsWith('/api')
+    ? API_BASE_URL.replace(/\/api$/, '')
+    : API_BASE_URL;
   const card = 'bg-white rounded-2xl border border-slate-200 shadow-sm';
   const cardPad = 'p-5';
   const label =
@@ -33,14 +39,43 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
 
   useEffect(() => {
     if (!currentUser.id) return;
-    setLoadingCampaign(true);
-    setLoadingAds(true);
-    adAnalyticsService.getCampaignPerformance(currentUser.id).then(setCampaignPerformance).finally(() => {
-      setLoadingCampaign(false);
-    });
-    adAnalyticsService.getUserAdPerformance(currentUser.id).then(setAdPerformance).finally(() => {
-      setLoadingAds(false);
-    });
+
+    let cancelled = false;
+    let isRunning = false;
+
+    const load = async () => {
+      if (cancelled || isRunning) return;
+      isRunning = true;
+      try {
+        setLoadingCampaign(true);
+        setLoadingAds(true);
+        const [campaign, performance] = await Promise.all([
+          adAnalyticsService.getCampaignPerformance(currentUser.id),
+          adAnalyticsService.getUserAdPerformance(currentUser.id)
+        ]);
+        if (cancelled) return;
+        setCampaignPerformance(campaign);
+        setAdPerformance(performance);
+      } catch (e) {
+        if (!cancelled) {
+          console.error('[AdAnalyticsPage] Failed to load analytics', e);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingCampaign(false);
+          setLoadingAds(false);
+        }
+        isRunning = false;
+      }
+    };
+
+    load();
+    const id = window.setInterval(load, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
   }, [currentUser.id]);
 
   useEffect(() => {
@@ -67,6 +102,129 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
       setLoadingDetails(false);
     });
   }, [selectedAdId]);
+
+  useEffect(() => {
+    if (!currentUser.id) return;
+
+    const socket = io(SOCKET_BASE_URL, {
+      withCredentials: true,
+      transports: ['websocket', 'polling']
+    });
+
+    const handleAnalyticsUpdate = (payload: { userId: string; stats: { adMetrics?: AdAnalytics } }) => {
+      if (!payload || payload.userId !== currentUser.id) return;
+      const metrics = payload.stats.adMetrics;
+      if (!metrics || !metrics.adId) return;
+
+      setAdPerformance(prev => {
+        const existing = prev.find(p => p.adId === metrics.adId);
+        const ad = ads.find(a => a.id === metrics.adId);
+
+        const impressions = metrics.impressions ?? existing?.impressions ?? 0;
+        const clicks = metrics.clicks ?? existing?.clicks ?? 0;
+        const engagement = metrics.engagement ?? existing?.engagement ?? 0;
+        const spend = metrics.spend ?? existing?.spend ?? 0;
+        const reach = metrics.reach ?? existing?.impressions ?? 0;
+        const ctr = metrics.ctr ?? (impressions > 0 ? (clicks / impressions) * 100 : existing?.ctr ?? 0);
+        const adName = existing?.adName || ad?.headline || (ad as any)?.title || 'Untitled Ad';
+        const status = existing?.status || (ad?.status as any) || 'active';
+        const createdAt = existing?.createdAt || (ad as any)?.timestamp || Date.now();
+
+        const next = existing
+          ? prev.map(p =>
+              p.adId === metrics.adId
+                ? {
+                    ...p,
+                    impressions,
+                    clicks,
+                    engagement,
+                    spend,
+                    ctr,
+                    roi: spend > 0 ? (engagement + clicks) / spend : 0
+                  }
+                : p
+            )
+          : [
+              ...prev,
+              {
+                adId: metrics.adId,
+                adName,
+                status,
+                impressions,
+                clicks,
+                ctr,
+                engagement,
+                spend,
+                roi: spend > 0 ? (engagement + clicks) / spend : 0,
+                createdAt
+              }
+            ];
+
+        if (existing) {
+          const deltaImpressions = impressions - (existing.impressions || 0);
+          const deltaClicks = clicks - (existing.clicks || 0);
+          const deltaEngagement = engagement - (existing.engagement || 0);
+          const deltaSpend = spend - (existing.spend || 0);
+
+          setCampaignPerformance(prevCampaign => {
+            if (!prevCampaign) return prevCampaign;
+            const totalImpressions = prevCampaign.totalImpressions + deltaImpressions;
+            const totalClicks = prevCampaign.totalClicks + deltaClicks;
+            const totalEngagement = prevCampaign.totalEngagement + deltaEngagement;
+            const totalSpend = prevCampaign.totalSpend + deltaSpend;
+            const totalReach = totalImpressions;
+            const averageCTR =
+              totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : prevCampaign.averageCTR;
+
+            return {
+              ...prevCampaign,
+              totalImpressions,
+              totalClicks,
+              totalEngagement,
+              totalSpend,
+              totalReach,
+              averageCTR
+            };
+          });
+        }
+
+        return next;
+      });
+
+      setSelectedAdAnalytics(prev => {
+        if (!prev || prev.adId !== metrics.adId) return prev;
+        const impressions = metrics.impressions ?? prev.impressions;
+        const clicks = metrics.clicks ?? prev.clicks;
+        const engagement = metrics.engagement ?? prev.engagement;
+        const spend = metrics.spend ?? prev.spend;
+        const reach = metrics.reach ?? prev.reach;
+        const conversions = metrics.conversions ?? prev.conversions;
+        const ctr = metrics.ctr ?? (impressions > 0 ? (clicks / impressions) * 100 : prev.ctr);
+        const lastUpdated = metrics.lastUpdated ?? Date.now();
+
+        return {
+          ...prev,
+          impressions,
+          clicks,
+          engagement,
+          spend,
+          reach,
+          conversions,
+          ctr,
+          lastUpdated
+        };
+      });
+    };
+
+    socket.emit('join_user_room', currentUser.id);
+    socket.on('analytics_update', handleAnalyticsUpdate);
+
+    return () => {
+      socket.emit('leave_user_room', currentUser.id);
+      socket.off('analytics_update', handleAnalyticsUpdate);
+      socket.close();
+    };
+  }, [currentUser.id, ads]);
 
   const totalImpressions = campaignPerformance?.totalImpressions ?? adPerformance.reduce((sum, p) => sum + (p.impressions || 0), 0);
   const totalClicks = campaignPerformance?.totalClicks ?? adPerformance.reduce((sum, p) => sum + (p.clicks || 0), 0);

@@ -29,7 +29,36 @@ const AdCard: React.FC<AdCardProps> = React.memo(({ ad, onReact, onShare, onSear
   }, []);
   
   useEffect(() => {
-    adAnalyticsService.trackImpression(ad.id);
+    if (!ad?.id) return;
+
+    if (typeof window === 'undefined' || !(window as any).IntersectionObserver) {
+      adAnalyticsService.trackImpression(ad.id);
+      return;
+    }
+
+    const elementId = `ad-${ad.id}`;
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    let fired = false;
+    const observer = new IntersectionObserver(
+      entries => {
+        const entry = entries[0];
+        if (!entry) return;
+        if (entry.isIntersecting && !fired) {
+          fired = true;
+          adAnalyticsService.trackImpression(ad.id);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.6 }
+    );
+
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+    };
   }, [ad.id]);
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
@@ -109,11 +138,14 @@ const AdCard: React.FC<AdCardProps> = React.memo(({ ad, onReact, onShare, onSear
   const isUniversalTier = ad.subscriptionTier === 'Universal Signal';
 
   return (
-    <div className={`bg-white dark:bg-slate-900 rounded-[2.5rem] border-2 overflow-hidden mb-8 shadow-md relative group transition-all ${
+    <div
+      id={`ad-${ad.id}`}
+      className={`bg-white dark:bg-slate-900 rounded-[2.5rem] border-2 overflow-hidden mb-8 shadow-md relative group transition-all ${
       isUniversalTier 
         ? 'border-amber-400 dark:border-amber-500 shadow-[0_0_20px_rgba(251,191,36,0.2)]' 
         : 'border-emerald-100 dark:border-emerald-900/30'
-    }`}>
+    }`}
+    >
       {isUniversalTier && (
         <div className="absolute top-0 right-0 p-2 z-10">
            <span className="bg-amber-400 text-slate-900 text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Verified Signal</span>

@@ -8,6 +8,8 @@ import { UserService } from '../services/userService';
 import { getTrustBadgeConfig, formatTrustSummary } from '../services/trustService';
 import { uploadService } from '../services/upload';
 import { PostService } from '../services/postService';
+import { getApiBaseUrl } from '../constants';
+import { io } from 'socket.io-client';
 
 const getZodiacSign = (dateString: string) => {
   if (!dateString) return '';
@@ -267,6 +269,11 @@ interface ProfileInsights {
   topPosts: ProfileInsightsTopPost[];
 }
 
+const API_BASE_URL = getApiBaseUrl();
+const SOCKET_BASE_URL = API_BASE_URL.endsWith('/api')
+  ? API_BASE_URL.replace(/\/api$/, '')
+  : API_BASE_URL;
+
 interface ProfileViewProps {
    user: User;
    posts: Post[];
@@ -327,6 +334,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
+  const analyticsSocketRef = useRef<any | null>(null);
 
   useEffect(() => {
     if (!isSelf) {
@@ -374,6 +382,33 @@ const ProfileView: React.FC<ProfileViewProps> = ({
 
     return () => {
       cancelled = true;
+    };
+  }, [isSelf, activeTab, currentUser.id]);
+
+  useEffect(() => {
+    if (!isSelf) return;
+    if (activeTab !== 'insights') return;
+
+    const socket = io(SOCKET_BASE_URL, {
+      withCredentials: true,
+      transports: ['websocket', 'polling']
+    });
+
+    analyticsSocketRef.current = socket;
+
+    const handleAnalyticsUpdate = (payload: { userId: string; stats: ProfileInsights }) => {
+      if (!payload || payload.userId !== currentUser.id) return;
+      setInsights(payload.stats);
+    };
+
+    socket.emit('join_user_room', currentUser.id);
+    socket.on('analytics_update', handleAnalyticsUpdate);
+
+    return () => {
+      socket.emit('leave_user_room', currentUser.id);
+      socket.off('analytics_update', handleAnalyticsUpdate);
+      socket.close();
+      analyticsSocketRef.current = null;
     };
   }, [isSelf, activeTab, currentUser.id]);
 

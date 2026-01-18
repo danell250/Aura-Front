@@ -92,6 +92,8 @@ export interface MediaItem {
 export interface Post {
   id: string;
   author: User;
+  authorId?: string;
+  ownerId?: string;
   content: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'document';
@@ -106,6 +108,8 @@ export interface Post {
   isBoosted?: boolean;
   hashtags?: string[];
    viewCount?: number;
+  visibility?: 'public' | 'acquaintances' | 'private';
+  isBirthdayPost?: boolean;
   // Time Capsule fields
   isTimeCapsule?: boolean;
   unlockDate?: number; // timestamp when the post becomes visible
@@ -121,6 +125,12 @@ export interface Post {
     originalUrl?: string;
     hashtags?: string[];
   };
+  isSystemPost?: boolean;
+  systemType?: 'birthday' | string;
+  visibility?: 'public' | 'acquaintances' | 'private';
+  isBirthdayPost?: boolean;
+  birthdayYear?: number;
+  sharedAt?: string;
 }
 
 export type AdPlacement = 'feed' | 'left' | 'right';
@@ -183,7 +193,7 @@ export interface AdSubscription {
 
 export interface Notification {
   id: string;
-  type: 'reaction' | 'comment' | 'link' | 'credit_received' | 'boost_received' | 'connection_request' | 'acquaintance_request' | 'acquaintance_accepted' | 'acquaintance_rejected' | 'profile_view' | 'share' | 'like' | 'message' | 'time_capsule_unlocked';
+  type: 'reaction' | 'comment' | 'link' | 'credit_received' | 'boost_received' | 'connection_request' | 'acquaintance_request' | 'acquaintance_accepted' | 'acquaintance_rejected' | 'profile_view' | 'share' | 'like' | 'message' | 'time_capsule_unlocked' | 'birthday';
   fromUser: User;
   message: string;
   timestamp: number;

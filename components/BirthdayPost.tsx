@@ -35,10 +35,11 @@ interface BirthdayPostProps {
   reactions?: Record<string, number>;
   userReactions?: string[];
   key?: React.Key;
+  onShare: (mode: 'public' | 'acquaintances' | 'private') => void;
 }
 
 const BirthdayPost: React.FC<BirthdayPostProps> = ({ 
-  birthdayUser, quirkyWish, onReact, onComment, currentUser, onViewProfile, birthdayPostId, reactions = {}, userReactions = []
+  birthdayUser, quirkyWish, onReact, onComment, currentUser, onViewProfile, birthdayPostId, reactions = {}, userReactions = [], onShare
 }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -105,6 +106,29 @@ const BirthdayPost: React.FC<BirthdayPostProps> = ({
             "{quirkyWish}"
           </p>
         </div>
+
+        {currentUser.id === birthdayUser.id && (
+          <div className="flex flex-wrap items-center gap-3 mb-8 justify-center">
+            <button
+              onClick={() => onShare('public')}
+              className="px-6 py-3 rounded-xl bg-emerald-600 text-white text-[11px] font-black uppercase tracking-[0.18em] shadow-lg hover:brightness-110 active:scale-95 transition-all"
+            >
+              Share To Feed
+            </button>
+            <button
+              onClick={() => onShare('acquaintances')}
+              className="px-6 py-3 rounded-xl bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.18em] shadow-md hover:brightness-110 active:scale-95 transition-all"
+            >
+              Share To Acquaintances
+            </button>
+            <button
+              onClick={() => onShare('private')}
+              className="px-6 py-3 rounded-xl bg-white/80 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 text-[11px] font-black uppercase tracking-[0.18em] border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all"
+            >
+              Keep Private
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-3 mb-4">
           {Object.entries(reactions).map(([emoji, count]) => (

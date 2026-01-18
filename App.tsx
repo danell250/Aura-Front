@@ -1034,6 +1034,32 @@ const App: React.FC = () => {
     }
   };
 
+  const handleShareBirthdayPost = async (announcementId: string, mode: 'public' | 'acquaintances' | 'private') => {
+    const announcement = birthdayAnnouncements.find(b => b.id === announcementId);
+    if (!announcement || !currentUser?.id) return;
+
+    const visibility = mode === 'public' ? 'public' : mode === 'acquaintances' ? 'acquaintances' : 'private';
+    const content = announcement.wish || `It is my birthday today.`;
+
+    try {
+      const result = await PostService.createPost({
+        content,
+        energy: EnergyType.CELEBRATING,
+        authorId: currentUser.id,
+        isBirthdayPost: true,
+        visibility
+      } as any);
+
+      if (result.success && result.post) {
+        const createdPost: Post = result.post;
+        setPosts(prev => [createdPost, ...prev]);
+        setBirthdayAnnouncements(prev => prev.filter(b => b.id !== announcementId));
+      }
+    } catch (error) {
+      console.error('Failed to create birthday post:', error);
+    }
+  };
+
   const handleDeletePost = useCallback(async (postId: string) => {
     const previousPosts = posts;
     setPosts(prev => prev.filter(p => p.id !== postId));
@@ -2191,8 +2217,7 @@ const App: React.FC = () => {
                </div>
             ) : (
               processedFeedItems.map((item) => {
-                /* Fix: Wrap handleReact to satisfy BirthdayPost's onReact signature requiring only 2 arguments while passing targetType: 'post' internally. */
-                if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} />;
+                if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onShare={(mode) => handleShareBirthdayPost(item.id, mode)} />;
                 return 'content' in item 
                   ? (
                     <PostCard

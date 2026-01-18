@@ -56,6 +56,7 @@ const ActionButton = ({ icon, label, onClick, color, isSpecial }: any) => (
 const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreateAd, currentUser, allUsers }) => {
   const [content, setContent] = useState('');
   const [isProcessingMedia, setIsProcessingMedia] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingType, setProcessingType] = useState<'image' | 'video' | 'document' | null>(null);
   const [mediaPreview, setMediaPreview] = useState<{ url: string, type: 'image' | 'video' | 'document', name?: string } | null>(null);
@@ -141,7 +142,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
   };
 
   const handleSubmit = async () => {
-    if ((!content.trim() && !mediaPreview && selectedMediaItems.length === 0) || isProcessingMedia) return;
+    if ((!content.trim() && !mediaPreview && selectedMediaItems.length === 0) || isProcessingMedia || isSubmitting) return;
 
     let finalMediaUrl = mediaPreview?.url;
     let finalMediaType = mediaPreview?.type;
@@ -198,20 +199,25 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
     );
     const taggedUserIds = permissionResults.filter((id): id is string => id !== null);
 
-    await onPost({
-      content,
-      mediaUrl: finalMediaUrl,
-      mediaType: finalMediaType,
-      taggedUserIds,
-      documentName: mediaPreview?.name,
-      energy: selectedEnergy,
-      mediaItems: finalMediaItems
-    });
+    setIsSubmitting(true);
+    try {
+      await onPost({
+        content,
+        mediaUrl: finalMediaUrl,
+        mediaType: finalMediaType,
+        taggedUserIds,
+        documentName: mediaPreview?.name,
+        energy: selectedEnergy,
+        mediaItems: finalMediaItems
+      });
 
-    setContent('');
-    setMediaPreview(null);
-    setSelectedMediaItems([]);
-    setSelectedEnergy(EnergyType.NEUTRAL);
+      setContent('');
+      setMediaPreview(null);
+      setSelectedMediaItems([]);
+      setSelectedEnergy(EnergyType.NEUTRAL);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleRemoveMedia = (id: string) => {
@@ -342,7 +348,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
                 maxLength={500}
                 onSubmit={handleSubmit}
                 submitText="Post"
-                isSubmitting={isProcessingMedia}
+                isSubmitting={isProcessingMedia || isSubmitting}
               />
               {isMentioning && mentionSuggestions.length > 0 && (
                 <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20">

@@ -212,4 +212,33 @@ export class PostService {
       return { success: false, error: 'Network error' };
     }
   }
+
+  /**
+   * Update an existing post
+   */
+  static async updatePost(postId: string, updates: Partial<Post>): Promise<{ success: boolean; post?: Post; error?: string }> {
+    try {
+      const response = await apiFetch(`/posts/${postId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates)
+      });
+
+      let payload: any = null;
+      try {
+        payload = await response.json();
+      } catch {}
+
+      if (!response.ok || !payload?.success) {
+        return {
+          success: false,
+          error: payload?.error || payload?.message || 'Failed to update post'
+        };
+      }
+
+      return { success: true, post: payload.data };
+    } catch (error) {
+      console.error('❌ Error updating post:', error);
+      return { success: false, error: 'Network error' };
+    }
+  }
 }

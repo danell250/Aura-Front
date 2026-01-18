@@ -103,6 +103,9 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   const [commentReactionsState, setCommentReactionsState] = useState<Record<string, { reactions: Record<string, number>; userReactions: string[] }>>({});
   const [localViewCount, setLocalViewCount] = useState<number>(post.viewCount ?? 0);
   const [emojiAnchor, setEmojiAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const commentEmojiPickerRef = useRef<HTMLDivElement>(null);
@@ -193,6 +196,12 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   useEffect(() => {
     setCommentReactionsState({});
   }, [post.id]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setEditContent(post.content);
+    }
+  }, [post.content, isEditing]);
 
   const handleInstantReaction = useCallback((emoji: string) => {
     const { newReactions, newUserReactions } = optimisticAdd(
@@ -763,15 +772,29 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
             )}
             <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">{new Date(post.timestamp).toLocaleDateString()}</span>
             {post.author.id === currentUser.id && (
-              <button 
-                onClick={() => onDeletePost && onDeletePost(post.id)} 
-                className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
-                title="Delete Post"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    setIsEditing(true);
+                    setEditContent(post.content);
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-emerald-500 transition-colors shrink-0"
+                  title="Edit Post"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                <button 
+                  onClick={() => onDeletePost && onDeletePost(post.id)} 
+                  className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
+                  title="Delete Post"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -838,11 +861,60 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
           </div>
         )}
 
-        <div className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed mb-6 whitespace-pre-wrap font-medium tracking-tight break-words overflow-hidden w-full">
-          <span className="align-middle inline-block leading-[1.4] max-w-full">
-            {renderContent(post.content)}
-          </span>
-        </div>
+        {isEditing ? (
+          <div className="mb-6">
+            <textarea
+              value={editContent}
+              onChange={e => setEditContent(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all resize-none min-h-[80px] dark:text-white font-medium"
+            />
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditContent(post.content);
+                }}
+                disabled={isSavingEdit}
+                className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!editContent.trim() || isSavingEdit) return;
+                  setIsSavingEdit(true);
+                  try {
+                    const result = await PostService.updatePost(post.id, { content: editContent });
+                    if (result.success && result.post) {
+                      if (onSyncPost) {
+                        onSyncPost(result.post);
+                      }
+                      setIsEditing(false);
+                    } else {
+                      alert(result.error || 'Failed to update post');
+                    }
+                  } catch {
+                    alert('Failed to update post');
+                  } finally {
+                    setIsSavingEdit(false);
+                  }
+                }}
+                disabled={isSavingEdit || !editContent.trim()}
+                className="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                {isSavingEdit ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed mb-6 whitespace-pre-wrap font-medium tracking-tight break-words overflow-hidden w-full">
+            <span className="align-middle inline-block leading-[1.4] max-w-full">
+              {renderContent(post.content)}
+            </span>
+          </div>
+        )}
 
         {hasMediaItems && currentMediaUrl ? (
           <div className="rounded-2xl overflow-hidden mb-6 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-inner min-h-[100px] flex flex-col items-center justify-center relative group/carousel">

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
-pdfjs.GlobalWorkerOptions.workerSrc =
-  `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 interface PDFViewerProps {
   url: string;
@@ -101,11 +103,6 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
         <div className="max-w-full overflow-x-auto flex justify-center">
           <Document
             file={{ url }}
-            options={{
-              cMapUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/web/cmaps/`,
-              cMapPacked: true,
-              standardFontDataUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/web/standard_fonts/`
-            }}
             onLoadSuccess={handleDocumentLoadSuccess}
             onLoadError={handleDocumentLoadError}
             loading={

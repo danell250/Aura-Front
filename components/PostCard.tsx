@@ -417,11 +417,23 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   }, [post.id, onSyncPost]);
 
   useEffect(() => {
-    if (post.id.startsWith('temp-')) return;
-    let cancelled = false;
+    // If you want views to count only once per session:
+    const key = `viewed:${post.id}`;
+    if (sessionStorage.getItem(key)) return;
 
-    // Optimistically increment views locally so posts don't stay at 0
-    setLocalViewCount(prev => (prev || post.viewCount || 0) + 1);
+    // For temp posts, show 1 locally but don't hit backend
+    const isTemp = post.id.startsWith('temp-');
+
+    // Always show something locally immediately
+    setLocalViewCount(prev => (prev ?? post.viewCount ?? 0) + 1);
+
+    // Mark as viewed so we don't double-count in this session
+    sessionStorage.setItem(key, '1');
+
+    // Only increment on backend if real ID
+    if (isTemp) return;
+
+    let cancelled = false;
 
     PostService.incrementPostViews(post.id)
       .then(result => {
@@ -434,13 +446,19 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
     return () => {
       cancelled = true;
     };
-  }, [post.id, post.viewCount]);
+  }, [post.id]);
 
   useEffect(() => {
     if (typeof post.viewCount === 'number') {
       setLocalViewCount(prev => (post.viewCount! > prev ? post.viewCount! : prev));
     }
   }, [post.viewCount]);
+
+  useEffect(() => {
+    if (!post.id || post.id.startsWith('temp-')) {
+      console.warn('Post still temp:', post.id);
+    }
+  }, [post.id]);
 
   const handleAISuggestion = async () => {
     if (isSuggesting) return;

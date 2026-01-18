@@ -836,24 +836,24 @@ const App: React.FC = () => {
     }
   };
 
-  const handlePost = async (
-    content: string,
-    mediaUrl?: string,
-    mediaType?: any,
-    taggedUserIds?: string[],
-    documentName?: string,
-    energy?: EnergyType,
-    mediaItems?: MediaItem[]
-  ) => {
+  const handlePost = async (payload: {
+    content: string;
+    mediaUrl?: string;
+    mediaType?: any;
+    taggedUserIds?: string[];
+    documentName?: string;
+    energy?: EnergyType;
+    mediaItems?: MediaItem[];
+  }): Promise<Post> => {
     const optimisticId = `temp-${Date.now()}`;
     const optimisticPost: Post = {
       id: optimisticId,
       author: currentUser,
-      content,
-      mediaUrl,
-      mediaType,
-      mediaItems,
-      energy: energy || EnergyType.NEUTRAL,
+      content: payload.content,
+      mediaUrl: payload.mediaUrl,
+      mediaType: payload.mediaType,
+      mediaItems: payload.mediaItems,
+      energy: payload.energy || EnergyType.NEUTRAL,
       radiance: 0,
       timestamp: Date.now(),
       reactions: {},
@@ -866,22 +866,19 @@ const App: React.FC = () => {
 
     try {
       const result = await PostService.createPost({
-        content,
-        mediaUrl,
-        mediaType,
-        mediaItems,
-        energy,
+        content: payload.content,
+        mediaUrl: payload.mediaUrl,
+        mediaType: payload.mediaType,
+        mediaItems: payload.mediaItems,
+        energy: payload.energy,
         authorId: currentUser.id,
-        taggedUserIds
+        taggedUserIds: payload.taggedUserIds
       });
 
       if (result.success && result.post) {
         const createdPost: Post = result.post;
-        setPosts(prev => {
-          const withoutOptimistic = prev.filter(p => p.id !== optimisticId);
-          return [createdPost, ...withoutOptimistic];
-        });
-        return;
+        setPosts(prev => prev.map(p => (p.id === optimisticId ? createdPost : p)));
+        return createdPost;
       }
 
       setPosts(prev => prev.filter(p => p.id !== optimisticId));
@@ -892,6 +889,7 @@ const App: React.FC = () => {
       setPosts(prev => prev.filter(p => p.id !== optimisticId));
       alert('Failed to create post. Please check your connection and try again.');
     }
+    throw new Error('Failed to create post');
   };
 
   const handleShareOnAura = async (sharedPost: any, originalPost?: any) => {

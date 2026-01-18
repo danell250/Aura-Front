@@ -1,18 +1,27 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { User, EnergyType } from '../types';
+import { User, EnergyType, MediaItem, Post } from '../types';
 import { uploadService } from '../services/upload';
 import Logo from './Logo';
 import TimeCapsuleModal, { TimeCapsuleData } from './TimeCapsuleModal';
 import TimeCapsuleTutorial from './TimeCapsuleTutorial';
 import { Avatar } from './MediaDisplay';
 import { PrivacyService } from '../services/privacyService';
-import { MediaItem } from '../types';
 import ModernTextarea from './ModernTextarea';
 import MediaUploader from './MediaUploader';
 
+interface CreatePostPayload {
+  content: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video' | 'document';
+  taggedUserIds?: string[];
+  documentName?: string;
+  energy?: EnergyType;
+  mediaItems?: MediaItem[];
+}
+
 interface CreatePostProps {
-  onPost: (content: string, mediaUrl?: string, mediaType?: 'image' | 'video' | 'document', taggedUserIds?: string[], documentName?: string, energy?: EnergyType, mediaItems?: MediaItem[]) => void;
+  onPost: (payload: CreatePostPayload) => Promise<Post>;
   onTimeCapsule: (data: TimeCapsuleData) => void;
   onCreateAd?: () => void;
   currentUser: User;
@@ -189,15 +198,15 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
     );
     const taggedUserIds = permissionResults.filter((id): id is string => id !== null);
 
-    onPost(
+    await onPost({
       content,
-      finalMediaUrl,
-      finalMediaType,
+      mediaUrl: finalMediaUrl,
+      mediaType: finalMediaType,
       taggedUserIds,
-      mediaPreview?.name,
-      selectedEnergy,
-      finalMediaItems
-    );
+      documentName: mediaPreview?.name,
+      energy: selectedEnergy,
+      mediaItems: finalMediaItems
+    });
 
     setContent('');
     setMediaPreview(null);

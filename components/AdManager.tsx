@@ -47,14 +47,16 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj';
 const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&vault=true&intent=capture&components=buttons`;
 
-  const [form, setForm] = useState({ 
-    headline: '', 
-    description: '', 
-    mediaUrl: '', 
+  const [form, setForm] = useState({
+    headline: '',
+    description: '',
+    mediaUrl: '',
     mediaType: 'image' as 'image' | 'video',
-    ctaText: 'Explore My Profile', 
-    ctaLink: `https://auraradiance.vercel.app/profile/${currentUser.id}` 
+    ctaText: 'Explore My Profile',
+    ctaLink: `https://auraradiance.vercel.app/profile/${currentUser.id}`
   });
+  const [localMediaPreview, setLocalMediaPreview] = useState<string>('');
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
   const isSpecialUser =
     currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
@@ -490,28 +492,42 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
-    const maxSizeBytes = 10 * 1024 * 1024;
+    const allowedTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'video/mp4',
+      'video/webm'
+    ];
+    const maxSizeBytes = 50 * 1024 * 1024;
 
     if (!allowedTypes.includes(file.type)) {
-      alert('Invalid file type. Allowed: JPG, PNG, WEBP, MP4');
+      alert('Invalid file type. Allowed: JPG, PNG, WEBP, GIF, MP4, WEBM');
       e.target.value = '';
       return;
     }
 
     if (file.size > maxSizeBytes) {
-      alert('File size must be less than 10MB');
+      alert('File size must be less than 50MB');
       e.target.value = '';
       return;
     }
 
+    const localUrl = URL.createObjectURL(file);
+    setLocalMediaPreview(localUrl);
+    setIsUploadingMedia(true);
+
     try {
       const result = await uploadService.uploadFile(file);
-      const type = result.mimetype.startsWith('video') ? 'video' : 'image';
-      setForm({ ...form, mediaUrl: result.url, mediaType: type });
+      const mediaType = result.mimetype.startsWith('video') ? 'video' : 'image';
+      setForm(prev => ({ ...prev, mediaUrl: result.url, mediaType }));
     } catch (error) {
       console.error('Upload failed', error);
       alert('Upload failed');
+      setLocalMediaPreview('');
+    } finally {
+      setIsUploadingMedia(false);
     }
   };
 
@@ -525,6 +541,12 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
     if (!form.headline || !form.description) {
       console.log("❌ Form validation failed: missing headline or description");
       alert("Neural signal incomplete.");
+      return;
+    }
+
+    if (!form.mediaUrl && !localMediaPreview) {
+      console.log("❌ Form validation failed: missing media");
+      alert("Please upload an image, GIF, or video.");
       return;
     }
 
@@ -590,7 +612,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
       ownerEmail: currentUser.email,
       headline: form.headline,
       description: form.description,
-      mediaUrl: form.mediaUrl || 'https://picsum.photos/id/32/800/450',
+      mediaUrl: form.mediaUrl,
       mediaType: form.mediaType,
       ctaText: form.ctaText,
       ctaLink: form.ctaLink,
@@ -1071,9 +1093,18 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                   <div>
                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-3 block ml-1">Visual Signal Asset (GIF/Video/Img)</label>
                      <div onClick={() => fileInputRef.current?.click()} className="w-full p-12 border-4 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem] flex flex-col items-center justify-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/10 transition-all group overflow-hidden shadow-inner bg-slate-50/30 dark:bg-slate-900/40">
-                        {form.mediaUrl ? (
+                        {localMediaPreview || form.mediaUrl ? (
                           <div className="relative w-full aspect-video">
-                             {form.mediaType === 'video' ? <video src={form.mediaUrl} className="w-full h-full object-contain" autoPlay muted loop /> : <img src={form.mediaUrl} className="w-full h-full object-contain" alt="" />}
+                             {form.mediaType === 'video'
+                               ? <video src={localMediaPreview || form.mediaUrl} className="w-full h-full object-contain" autoPlay muted loop playsInline />
+                               : <img src={localMediaPreview || form.mediaUrl} className="w-full h-full object-contain" alt="" />}
+                             {isUploadingMedia && (
+                               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                 <div className="px-4 py-2 rounded-full bg-white/90 text-slate-900 text-[10px] font-black uppercase tracking-widest">
+                                   Uploading…
+                                 </div>
+                               </div>
+                             )}
                           </div>
                         ) : (
                           <div className="text-center group-hover:scale-110 transition-transform">
@@ -1082,7 +1113,13 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                           </div>
                         )}
                      </div>
-                     <input type="file" ref={fileInputRef} hidden accept="image/*,video/*" onChange={handleFileUpload} />
+                     <input
+                       type="file"
+                       ref={fileInputRef}
+                       hidden
+                       accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
+                       onChange={handleFileUpload}
+                     />
                   </div>
                   <div className="grid grid-cols-2 gap-6">
                     <div>

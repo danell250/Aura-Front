@@ -344,62 +344,60 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 mb-8 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
         
         <div className="relative p-6">
-          <div className="flex gap-4">
-            {/* Professional avatar */}
-            <div className="relative shrink-0">
-              <div className="w-12 h-12 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300 hover:shadow-md bg-white dark:bg-gray-800">
-                <Avatar 
-                  src={currentUser.avatar} 
-                  type={currentUser.avatarType} 
-                  name={currentUser.firstName} 
-                  size="custom"
-                  className="w-full h-full"
-                />
-              </div>
-              {/* Status indicator */}
-              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
-            </div>
-            
-            <div className="flex-1 relative">
-              <ModernTextarea
-                value={content}
-                onChange={(val) => handleContentChange({ target: { value: val } } as any)}
-                placeholder={`What's on your mind, ${currentUser.firstName}?`}
-                maxLength={500}
-                onSubmit={handleSubmit}
-                submitText="Post"
-                isSubmitting={isProcessingMedia || isSubmitting}
-              />
-              {isMentioning && mentionSuggestions.length > 0 && (
-                <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20">
-                  {mentionSuggestions.map(user => (
-                    <button
-                      key={user.id}
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        handleSelectMention(user);
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
-                    >
-                      <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
-                        <Avatar
-                          src={user.avatar}
-                          type={user.avatarType}
-                          name={user.firstName}
-                          size="custom"
-                          className="w-full h-full"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-gray-900 dark:text-gray-100 font-medium truncate">{user.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.handle}</div>
-                      </div>
-                    </button>
-                  ))}
+          <div className="relative">
+            <ModernTextarea
+              value={content}
+              onChange={(val) => handleContentChange({ target: { value: val } } as any)}
+              placeholder={`What's on your mind, ${currentUser.firstName}?`}
+              maxLength={500}
+              onSubmit={handleSubmit}
+              submitText="Post"
+              isSubmitting={isProcessingMedia || isSubmitting}
+              compact
+              leftSlot={
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <Avatar
+                      src={currentUser.avatar}
+                      type={currentUser.avatarType}
+                      name={currentUser.firstName}
+                      size="custom"
+                      className="w-full h-full"
+                    />
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
                 </div>
-              )}
-            </div>
+              }
+            />
+            {isMentioning && mentionSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-20">
+                {mentionSuggestions.map(user => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelectMention(user);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
+                  >
+                    <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                      <Avatar
+                        src={user.avatar}
+                        type={user.avatarType}
+                        name={user.firstName}
+                        size="custom"
+                        className="w-full h-full"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-gray-900 dark:text-gray-100 font-medium truncate">{user.name}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.handle}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
         {/* Professional energy selector */}

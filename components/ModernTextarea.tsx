@@ -10,6 +10,8 @@ interface ModernTextareaProps {
   onSubmit?: () => void;
   submitText?: string;
   isSubmitting?: boolean;
+  compact?: boolean;
+  leftSlot?: React.ReactNode;
 }
 
 const ModernTextarea: React.FC<ModernTextareaProps> = ({
@@ -20,6 +22,8 @@ const ModernTextarea: React.FC<ModernTextareaProps> = ({
   onSubmit,
   submitText = 'Post',
   isSubmitting = false,
+  compact = false,
+  leftSlot,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -127,26 +131,40 @@ const ModernTextarea: React.FC<ModernTextareaProps> = ({
     <div className="w-full">
       <div
         className={[
-          'relative rounded-[28px] border px-4 pt-3 pb-4 bg-white/80 dark:bg-slate-900/80 shadow-[0_18px_44px_rgba(15,23,42,0.18)]',
+          'relative rounded-[28px] border bg-white/80 dark:bg-slate-900/80 shadow-[0_18px_44px_rgba(15,23,42,0.18)]',
           'transition-all duration-300',
           'border-slate-200 dark:border-slate-700',
-          'focus-within:border-emerald-500 focus-within:shadow-[0_0_0_1px_rgba(16,185,129,0.55),0_22px_60px_rgba(16,185,129,0.25)]'
+          'focus-within:border-emerald-500 focus-within:shadow-[0_0_0_1px_rgba(16,185,129,0.55),0_22px_60px_rgba(16,185,129,0.25)]',
+          compact ? 'px-4 pt-3 pb-3' : 'px-4 pt-3 pb-4',
         ].join(' ')}
       >
         <div className="pointer-events-none absolute -inset-px rounded-[30px] opacity-0 blur-2xl bg-gradient-to-r from-emerald-400/40 via-teal-400/30 to-sky-400/40 transition-opacity duration-300 focus-within:opacity-100" />
 
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          aria-label={placeholder || 'Post content'}
-          aria-invalid={isOverLimit}
-          className="relative z-10 w-full bg-transparent border-0 focus:outline-none focus:ring-0 resize-none text-base sm:text-lg leading-relaxed text-slate-900 dark:text-slate-50 placeholder-slate-400 dark:placeholder-slate-500 min-h-[96px] max-h-[400px]"
-        />
+        <div className="relative z-10 flex items-start gap-3">
+          {leftSlot && (
+            <div className="shrink-0 pt-0.5">
+              {leftSlot}
+            </div>
+          )}
+          {leftSlot && <div className="w-px self-stretch bg-slate-200/70 dark:bg-slate-700/70" />}
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            aria-label={placeholder || 'Post content'}
+            aria-invalid={isOverLimit}
+            className={[
+              'w-full bg-transparent border-0 focus:outline-none focus:ring-0 resize-none',
+              'leading-relaxed text-slate-900 dark:text-slate-50 placeholder-slate-400 dark:placeholder-slate-500',
+              compact ? 'text-sm sm:text-base min-h-[56px]' : 'text-base sm:text-lg min-h-[96px]',
+              'max-h-[400px]',
+            ].join(' ')}
+          />
+        </div>
 
-        <div className="mt-3 flex items-center justify-between gap-3">
+        <div className={compact ? 'mt-2 flex items-center justify-between gap-3' : 'mt-3 flex items-center justify-between gap-3'}>
           <div className="flex items-center gap-2">
             <button
               ref={emojiButtonRef}

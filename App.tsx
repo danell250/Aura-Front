@@ -38,12 +38,16 @@ import { adSubscriptionService } from './services/adSubscriptionService';
 import { apiFetch } from './utils/api';
 import { refreshAccessToken } from './utils/tokenRefresh';
 import { PrivacyService } from './services/privacyService';
+import { io } from 'socket.io-client';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';
 const ADS_KEY = 'aura_ads_data';
 const USERS_KEY = 'aura_all_users';
 const API_BASE_URL = getApiBaseUrl();
+const SOCKET_BASE_URL = API_BASE_URL.endsWith('/api')
+  ? API_BASE_URL.replace(/\/api$/, '')
+  : API_BASE_URL;
 const AURA_SUPPORT_EMAIL = 'aurasocialradiate@gmail.com';
 
 const isProfileComplete = (user: User | null | undefined) => {
@@ -720,6 +724,25 @@ const App: React.FC = () => {
     return () => {
       es.removeEventListener('post_view', onPostView as any);
       es.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    const socket = io(SOCKET_BASE_URL, {
+      withCredentials: true,
+      transports: ['websocket', 'polling']
+    });
+
+    const handlePostView = (payload: { postId: string; viewCount: number }) => {
+      if (!payload || !payload.postId) return;
+      setPosts(prev => prev.map(p => (p.id === payload.postId ? { ...p, viewCount: payload.viewCount } : p)));
+    };
+
+    socket.on('post_view', handlePostView);
+
+    return () => {
+      socket.off('post_view', handlePostView);
+      socket.close();
     };
   }, []);
 

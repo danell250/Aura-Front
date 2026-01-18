@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 
-// Use CDN for better compatibility - this matches the exact version automatically
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Use the stable worker URL that matches our installed version
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
 
 interface PDFViewerProps {
   url: string;
@@ -89,9 +91,9 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
           <Document
             file={{ url }}
             options={{
-              cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+              cMapUrl: 'https://unpkg.com/pdfjs-dist@4.4.168/cmaps/',
               cMapPacked: true,
-              standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
+              standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@4.4.168/standard_fonts/',
             }}
             onLoadSuccess={handleDocumentLoadSuccess}
             onLoadError={handleDocumentLoadError}

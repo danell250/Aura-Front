@@ -505,6 +505,10 @@ const App: React.FC = () => {
     setAllUsers(ensureAuraSupportUser(usersToProcess));
 
     const urlParams = new URLSearchParams(window.location.search);
+    const tokenParam = urlParams.get('token');
+    if (tokenParam) {
+      localStorage.setItem('aura_auth_token', tokenParam);
+    }
     const hasTokenParam = urlParams.has('token');
 
     let wasAuthenticated = false;
@@ -553,7 +557,19 @@ const App: React.FC = () => {
 
           wasAuthenticated = true;
           ensureProfileCompletion(user);
-          navigateToView({ type: 'feed' });
+
+          const path = window.location.pathname || '/';
+          const isLanding =
+            path === '/' ||
+            path === '/login' ||
+            path === '/feed' ||
+            path === '';
+
+          if (isLanding) {
+            navigateToView({ type: 'feed' });
+          } else {
+            syncViewFromLocation();
+          }
         } else {
           const savedSession = localStorage.getItem(STORAGE_KEY);
           const savedToken = localStorage.getItem('aura_auth_token');
@@ -778,7 +794,13 @@ const App: React.FC = () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedUser));
       syncBirthdays();
       ensureProfileCompletion(mergedUser);
-      navigateToView({ type: 'feed' });
+
+      const path = window.location.pathname || '/';
+      if (path === '/login' || path === '/' || path === '') {
+        navigateToView({ type: 'feed' });
+      } else {
+        syncViewFromLocation();
+      }
       return;
     }
 
@@ -805,7 +827,13 @@ const App: React.FC = () => {
     localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
     syncBirthdays();
     ensureProfileCompletion(newUser);
-    navigateToView({ type: 'feed' });
+
+    const path = window.location.pathname || '/';
+    if (path === '/login' || path === '/' || path === '') {
+      navigateToView({ type: 'feed' });
+    } else {
+      syncViewFromLocation();
+    }
   };
 
   const handleUpdateProfile = async (updates: Partial<User>) => {

@@ -1888,6 +1888,11 @@ const App: React.FC = () => {
     [currentUser?.id]
   );
 
+  const handleSearchTag = (tag: string) => {
+    const normalized = tag.replace(/^#+/, '').trim();
+    setSearchQuery(normalized ? `#${normalized}` : '');
+  };
+
   const processedFeedItems = useMemo(() => {
     const searchLower = searchQuery.toLowerCase();
     const hashtagTerm = searchLower.startsWith('#') ? searchLower.slice(1) : searchLower;
@@ -2035,7 +2040,7 @@ const App: React.FC = () => {
       unreadMessageCount={unreadMessageCount}
       messagePulse={messagePulse}
       unreadNotificationCount={unreadNotificationCount}
-      onSearchTag={setSearchQuery}
+      onSearchTag={handleSearchTag}
       isNotificationSoundEnabled={isNotificationSoundEnabled}
       onToggleNotificationSound={setIsNotificationSoundEnabled}
       onRefreshNotifications={fetchNotifications}

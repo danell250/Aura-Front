@@ -293,7 +293,7 @@ const Layout: React.FC<LayoutProps> = ({
             ads={ads} 
             onHashtagClick={(hashtag) => {
               if (onSearchTag) {
-                onSearchTag(`#${hashtag}`);
+                onSearchTag(hashtag);
               }
             }}
           />

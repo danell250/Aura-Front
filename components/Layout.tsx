@@ -208,7 +208,7 @@ const Layout: React.FC<LayoutProps> = ({
       </div>
 
       <div className="flex-1 max-w-[1400px] w-full mx-auto px-3 sm:px-4 py-6 sm:py-8 flex flex-col lg:flex-row gap-6 lg:gap-8">
-        <aside className="hidden lg:flex flex-col w-64 space-y-6 sticky top-24 self-start max-h-[calc(100vh-7rem)] overflow-y-auto no-scrollbar pb-10">
+        <aside className="hidden lg:flex flex-col w-64 space-y-6 sticky top-20 self-start max-h-[calc(100vh-7rem)] overflow-y-auto no-scrollbar pb-10">
           <button
             onClick={() => onViewProfile(currentUser.id)}
             className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-emerald-400/60 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-all cursor-pointer shadow-sm"
@@ -246,7 +246,7 @@ const Layout: React.FC<LayoutProps> = ({
 
         <main className="flex-1 min-w-0 max-w-full lg:max-w-3xl mx-auto lg:mx-0 w-full">{children}</main>
 
-        <aside className="hidden xl:flex flex-col w-80 space-y-6 sticky top-28 self-start max-h-[calc(100vh-8rem)] sidebar-scroll">
+        <aside className="hidden xl:flex flex-col w-80 space-y-6 sticky top-20 self-start max-h-[calc(100vh-8rem)] sidebar-scroll">
           <div className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
             <div className="flex items-center justify-center gap-2 mb-4">
               <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">

@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import Layout from './components/Layout';
+import Layout 
+  from './components/Layout';
+import AdPlansDashboard from './components/AdPlansDashboard';
 import PostCard from './components/PostCard';
 import CreatePost from './components/CreatePost';
 import BirthdayPost from './components/BirthdayPost';
@@ -186,6 +188,11 @@ const App: React.FC = () => {
       return;
     }
 
+    if (segments[0] === 'ad-manager' || segments[0] === 'ad_manager') {
+      setView({ type: 'ad_manager' });
+      return;
+    }
+
     if (segments[0] === 'profile' && segments[1]) {
       setView({ type: 'profile', targetId: segments[1] });
       return;
@@ -204,10 +211,11 @@ const App: React.FC = () => {
     setView({ type: 'feed' });
   }, []);
 
-  const buildPathFromView = useCallback((nextView: { type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy'; targetId?: string }) => {
+  const buildPathFromView = useCallback((nextView: { type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy' | 'ad_manager'; targetId?: string }) => {
     if (nextView.type === 'feed') return '/feed';
     if (nextView.type === 'acquaintances') return '/acquaintances';
     if (nextView.type === 'data_aura') return '/data-aura';
+    if (nextView.type === 'ad_manager') return '/ad-manager';
     if (nextView.type === 'terms') return '/terms';
     if (nextView.type === 'privacy') return '/privacy';
     if (nextView.type === 'profile' && nextView.targetId) return `/profile/${nextView.targetId}`;
@@ -237,7 +245,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const navigateToView = useCallback((nextView: { type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy'; targetId?: string }) => {
+  const navigateToView = useCallback((nextView: { type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy' | 'ad_manager'; targetId?: string }) => {
     setView(nextView);
     const path = buildPathFromView(nextView);
     const newUrl = path + window.location.search + window.location.hash;
@@ -1283,6 +1291,60 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const handleCancelAd = useCallback(async (id: string) => {
+    setAds(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' as const } : a));
+
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const response = await fetch(`${API_BASE_URL}/ads/${id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: 'cancelled' })
+      });
+
+      if (response.status === 404) {
+        console.log(`[AdManager] Ad ${id} not found on server, keeping local cancellation.`);
+        return;
+      }
+
+      const result = await response.json();
+      if (result.success && result.data) {
+        setAds(prev => prev.map(a => a.id === id ? { ...a, ...result.data } : a));
+      }
+    } catch (e) {
+      console.error('Failed to cancel ad remotely:', e);
+    } finally {
+      setAdSubsRefreshTick(prev => prev + 1);
+    }
+  }, []);
+
+  const handleUpdateAd = useCallback(async (adId: string, updates: Partial<Ad>) => {
+    try {
+      const token = localStorage.getItem('aura_auth_token') || '';
+      const response = await fetch(`${API_BASE_URL}/ads/${adId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updates)
+      });
+      const result = await response.json();
+      if (result.success && result.data) {
+        setAds(prev => prev.map(a => a.id === adId ? { ...a, ...result.data } : a));
+        setAdSubsRefreshTick(prev => prev + 1);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Failed to update ad:', e);
+      return false;
+    }
+  }, []);
+
   const handlePurchaseCredits = (bundle: CreditBundle, orderId: string) => {
     (async () => {
       if (!currentUser?.id) return;
@@ -1938,6 +2000,7 @@ const App: React.FC = () => {
       }}
       currentUser={currentUser} isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode}
       onStartCampaign={() => setIsAdManagerOpen(true)} onViewSettings={() => setIsSettingsOpen(true)} 
+      onViewAdManager={() => navigateToView({ type: 'ad_manager' })}
       onOpenCreditStore={() => setIsCreditStoreOpen(true)}
       posts={posts} users={allUsers} ads={ads} notifications={notifications}
       onGoHome={() => navigateToView({ type: 'feed' })} 
@@ -2073,61 +2136,8 @@ const App: React.FC = () => {
           onDeleteComment={handleDeleteComment}
           onSerendipityMode={handleOpenSerendipity}
           onOpenMessaging={(userId) => navigateToView({ type: 'chat', targetId: userId || '' })}
-          onCancelAd={async (id) => {
-            // Optimistic update
-            setAds(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' as const } : a));
-            
-            try {
-              const token = localStorage.getItem('aura_auth_token') || '';
-              const response = await fetch(`${API_BASE_URL}/ads/${id}/status`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ status: 'cancelled' })
-              });
-              
-              if (response.status === 404) {
-                // Ad doesn't exist on server, consider it successfully cancelled/removed
-                console.log(`[AdManager] Ad ${id} not found on server, keeping local cancellation.`);
-                return;
-              }
-
-              const result = await response.json();
-              if (result.success && result.data) {
-                setAds(prev => prev.map(a => a.id === id ? { ...a, ...result.data } : a));
-              }
-            } catch (e) {
-              // Keep the optimistic update or revert if critical
-              console.error('Failed to cancel ad remotely:', e);
-            } finally {
-              setAdSubsRefreshTick(prev => prev + 1);
-            }
-          }}
-          onUpdateAd={async (adId, updates) => {
-            try {
-              const token = localStorage.getItem('aura_auth_token') || '';
-              const response = await fetch(`${API_BASE_URL}/ads/${adId}`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(updates)
-              });
-              const result = await response.json();
-              if (result.success && result.data) {
-                setAds(prev => prev.map(a => a.id === adId ? { ...a, ...result.data } : a));
-                setAdSubsRefreshTick(prev => prev + 1);
-                return true;
-              }
-              return false;
-            } catch (e) {
-              console.error('Failed to update ad:', e);
-              return false;
-            }
-          }}
+          onCancelAd={handleCancelAd}
+          onUpdateAd={handleUpdateAd}
           onOpenAdManager={() => setIsAdManagerOpen(true)}
         />
       )}
@@ -2154,6 +2164,16 @@ const App: React.FC = () => {
         />
       )}
       {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => navigateToView({ type: 'feed' })} onPurchaseGlow={handlePurchaseGlow} onClearData={() => {}} onViewProfile={(id) => navigateToView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
+      {view.type === 'ad_manager' && (
+        <AdPlansDashboard
+          user={currentUser}
+          ads={ads}
+          onOpenAdManager={() => setIsAdManagerOpen(true)}
+          onCancelAd={handleCancelAd}
+          onUpdateAd={handleUpdateAd}
+          refreshTrigger={adSubsRefreshTick}
+        />
+      )}
       {isSettingsOpen && (
         <SettingsModal
           currentUser={currentUser}
@@ -2212,7 +2232,7 @@ const App: React.FC = () => {
           onGoToAdPlans={() => {
             setIsAdManagerOpen(false);
             setAdSubsRefreshTick(prev => prev + 1);
-            navigateToView({ type: 'profile', targetId: currentUser.id });
+            navigateToView({ type: 'ad_manager' });
           }}
         />
       )}

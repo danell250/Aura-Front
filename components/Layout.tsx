@@ -22,6 +22,7 @@ interface LayoutProps {
   onViewSettings: () => void;
   onViewPrivacy: () => void;
   onStartCampaign: () => void;
+  onViewAdManager: () => void;
   onOpenCreditStore: () => void;
   ads: Ad[];
   posts: Post[];
@@ -49,7 +50,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ 
   children, searchQuery, onSearchChange, onLogout, currentUser,
   onGoHome, onViewProfile, onViewChat, onViewFriends,
-  onViewSettings, onViewPrivacy, onStartCampaign, onOpenCreditStore, ads, posts, users, notifications,
+  onViewSettings, onViewPrivacy, onStartCampaign, onViewAdManager, onOpenCreditStore, ads, posts, users, notifications,
   activeView, isDarkMode, onToggleDarkMode, onSearchResult, onSearchTag, onOpenMessaging,
   onReadNotification, onMarkAllNotificationsRead, onAcceptAcquaintance, onRejectAcquaintance, onNavigateNotification, unreadMessageCount = 0, messagePulse = false, unreadNotificationCount, isNotificationSoundEnabled = true, onToggleNotificationSound, onRefreshNotifications
 }) => {
@@ -233,8 +234,8 @@ const Layout: React.FC<LayoutProps> = ({
           <nav className="space-y-2">
             <NavItem label="Home Feed" onClick={onGoHome} active={activeView === 'feed'} />
             <NavItem label="Credit Hub" onClick={onOpenCreditStore} active={activeView === 'credits'} isAction />
-            <NavItem label="Ad Plans" onClick={onStartCampaign} active={activeView === 'ad_manager'} />
-            <NavItem label="Ad Manager" onClick={onStartCampaign} active={activeView === 'ad_manager'} />
+            <NavItem label="Ad Plans" onClick={onStartCampaign} active={false} />
+            <NavItem label="Ad Manager" onClick={onViewAdManager} active={activeView === 'ad_manager'} />
             <NavItem label="Acquaintances" onClick={onViewFriends} active={activeView === 'acquaintances'} />
             <NavItem label="Privacy & Data" onClick={onViewPrivacy} active={activeView === 'data_aura'} />
           </nav>

@@ -57,7 +57,6 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
   });
 
   const isSpecialUser =
-    import.meta.env.MODE !== 'production' &&
     currentUser.email?.toLowerCase() === 'danelloosthuizen3@gmail.com';
 
   // Debug logging

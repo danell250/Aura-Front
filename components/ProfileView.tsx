@@ -301,9 +301,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="relative h-64 overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <div className="max-w-7xl mx-auto">
+        <div className="relative h-[400px] overflow-hidden">
           <div
             className={`relative w-full h-full ${isSelf ? 'group cursor-pointer' : ''}`}
             onClick={() => {
@@ -319,8 +319,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               }
             />
             {isSelf && (
-              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-black tracking-widest">
-                {isCoverUploading ? 'Uploading...' : 'Tap to update cover'}
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-sm font-medium">
+                {isCoverUploading ? 'Uploading...' : '📷 Edit cover photo'}
               </div>
             )}
           </div>
@@ -331,268 +331,253 @@ const ProfileView: React.FC<ProfileViewProps> = ({
             accept="image/*,video/*"
             onChange={(e) => handleMediaFile(e, 'coverImage')}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 pointer-events-none" />
           <button
             onClick={onBack}
-            className="absolute top-6 left-6 px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 font-medium text-sm"
+            className="absolute top-6 left-6 px-4 py-2 bg-white/90 backdrop-blur-sm text-slate-700 rounded-lg hover:bg-white transition-all font-medium text-sm flex items-center gap-2 shadow-md"
           >
-            ← Back
+            <span>←</span> Back
           </button>
           {isSelf && (
             <button
               type="button"
               onClick={() => coverInputRef.current?.click()}
               disabled={isCoverUploading}
-              className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full bg-white/95 text-[11px] font-black uppercase tracking-widest text-slate-900 shadow-md hover:bg-white disabled:opacity-70 disabled:cursor-not-allowed"
+              className="absolute bottom-4 right-4 px-4 py-2 rounded-lg bg-white text-slate-700 hover:bg-slate-100 font-medium text-sm shadow-md flex items-center gap-2 disabled:opacity-70"
             >
-              {isCoverUploading ? '⏳ Updating' : 'Update Cover'}
+              <span>📷</span>
+              {isCoverUploading ? 'Updating...' : 'Edit cover photo'}
             </button>
           )}
         </div>
 
-        <div className="bg-white dark:bg-slate-900 mx-4 mt-3 relative z-10 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700">
-          <div className="p-6 lg:p-8">
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="relative w-full lg:w-auto flex justify-center lg:justify-start">
-                <div className="w-32 h-32 lg:w-36 lg:h-36 rounded-full border-4 border-white bg-white shadow-xl ring-4 ring-emerald-400/70 overflow-hidden">
-                  <MediaDisplay
-                    url={isSelf ? (localAvatar || user.avatar || '') : (user.avatar || '')}
-                    type={isSelf ? localAvatarType : user.avatarType}
-                    className="w-full h-full object-cover object-center"
-                    fallback={
-                      <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-500 font-bold text-xl">
-                        {user.name ? user.name.charAt(0) : '?'}
-                      </div>
-                    }
-                  />
-                </div>
-                {isSelf && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => avatarInputRef.current?.click()}
-                      disabled={isAvatarUploading}
-                      className="absolute bottom-2 right-2 bg-white rounded-full p-2.5 shadow-lg hover:bg-gray-50 border-2 border-gray-100 disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                      <span className="w-5 h-5 text-gray-700">{isAvatarUploading ? '⏳' : '📸'}</span>
-                    </button>
-                    <input
-                      type="file"
-                      ref={avatarInputRef}
-                      hidden
-                      accept="image/*,video/*"
-                      onChange={(e) => handleMediaFile(e, 'avatar')}
+        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex items-end justify-between -mt-20 pb-4">
+              {/* Left side - Avatar and Name */}
+              <div className="flex items-end gap-4">
+                {/* Avatar */}
+                <div className="relative">
+                  <div className="w-40 h-40 rounded-full border-4 border-white dark:border-slate-900 bg-white shadow-xl overflow-hidden">
+                    <MediaDisplay
+                      url={isSelf ? (localAvatar || user.avatar || '') : (user.avatar || '')}
+                      type={isSelf ? localAvatarType : user.avatarType}
+                      className="w-full h-full object-cover"
+                      fallback={
+                        <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-500 font-bold text-3xl">
+                          {user.name ? user.name.charAt(0) : '?'}
+                        </div>
+                      }
                     />
-                  </>
-                )}
-              </div>
+                  </div>
+                  {isSelf && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={isAvatarUploading}
+                        className="absolute bottom-2 right-2 bg-slate-100 rounded-full p-2 shadow-lg hover:bg-slate-200 border-2 border-white disabled:opacity-70"
+                      >
+                        <span className="text-lg">{isAvatarUploading ? '⏳' : '📷'}</span>
+                      </button>
+                      <input
+                        type="file"
+                        ref={avatarInputRef}
+                        hidden
+                        accept="image/*,video/*"
+                        onChange={(e) => handleMediaFile(e, 'avatar')}
+                      />
+                    </>
+                  )}
+                </div>
 
-              <div className="flex-1 flex flex-col gap-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2 leading-tight">
-                      {user.isCompany && user.companyName ? user.companyName : user.name}
-                    </h1>
-                    {user.isCompany && (
-                      <div className="flex items-center flex-wrap gap-2 mb-2">
-                        <span className="px-2.5 py-1 text-[11px] font-black uppercase tracking-widest rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
-                          Business Profile
-                        </span>
-                        {user.companyWebsite && (
-                          <a
-                            href={user.companyWebsite}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-medium text-emerald-600 dark:text-emerald-400 underline underline-offset-4 decoration-emerald-400/60"
-                          >
-                            {user.companyWebsite}
-                          </a>
-                        )}
-                      </div>
+                {/* Name and Stats */}
+                <div className="mb-2">
+                  <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
+                    {user.isCompany && user.companyName ? user.companyName : user.name}
+                  </h1>
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+                      {user.handle}
+                    </p>
+                    <OnlineStatus userId={user.id} showText={false} size="sm" />
+                    {!isSelf && isAcquaintance && (
+                      <span className="text-xs text-slate-500">• Connected</span>
                     )}
-                    <div className="flex items-center flex-wrap gap-3 mb-2">
-                      <p className="text-emerald-600 dark:text-emerald-400 font-medium">
-                        {user.handle}
-                      </p>
-                      {!isSelf && isAcquaintance && (
-                        <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full text-xs font-medium">
-                          <span>✓</span>
-                          <span>Connected</span>
-                        </div>
-                      )}
-                      {!isSelf && !isAcquaintance && isRequested && (
-                        <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium">
-                          <span>⏳</span>
-                          <span>Requested</span>
-                        </div>
-                      )}
-                      <OnlineStatus userId={user.id} showText={false} size="md" />
-                      {user.isPrivate && (
-                        <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-medium">
-                          <span>🔒</span>
-                          <span>Private</span>
-                        </div>
-                      )}
-                      {trustBadge && (
-                        <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium ${trustBadge.colorClass}`}>
-                          <span className={trustBadge.textClass}>
-                            <span className="mr-1">{trustBadge.icon}</span>
-                            <span>{trustBadge.label}</span>
-                          </span>
-                        </div>
-                      )}
+                  </div>
+                  <div className="flex gap-4 text-sm">
+                    <div>
+                      <span className="font-semibold text-slate-900 dark:text-white">{posts.length}</span>
+                      <span className="text-slate-500 dark:text-slate-400 ml-1">posts</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-slate-900 dark:text-white">{user.acquaintances?.length || 0}</span>
+                      <span className="text-slate-500 dark:text-slate-400 ml-1">acquaintances</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {!isSelf && !isBlocked && onOpenMessaging && (
+                </div>
+              </div>
+
+              {/* Right side - Action Buttons */}
+              <div className="flex items-center gap-2 mb-2">
+                {isSelf ? (
+                  <>
+                    {activeTab === 'insights' ? (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('posts')}
+                        className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium text-sm flex items-center gap-2 shadow-sm"
+                      >
+                        <span>📊</span>
+                        <span>Professional dashboard</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('insights')}
+                        className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium text-sm flex items-center gap-2 shadow-sm"
+                      >
+                        <span>📊</span>
+                        <span>Professional dashboard</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onEditProfile && onEditProfile()}
+                      className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 font-medium text-sm flex items-center gap-2"
+                    >
+                      <span>✏️</span>
+                      <span>Edit</span>
+                    </button>
+                    {onOpenAdManager && (
+                      <button
+                        type="button"
+                        onClick={onOpenAdManager}
+                        className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-medium text-sm flex items-center gap-2 shadow-sm"
+                      >
+                        <span>📢</span>
+                        <span>Advertise</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {!isBlocked && !isAcquaintance && (
+                      <button
+                        onClick={() => onSendConnectionRequest(user.id)}
+                        className={`px-4 py-2 rounded-lg font-medium text-sm shadow-sm flex items-center gap-2 ${isRequested
+                            ? 'bg-slate-200 text-slate-500 hover:bg-slate-300'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                        disabled={isRequested}
+                      >
+                        <span>{isRequested ? '⏳' : '➕'}</span>
+                        <span>{isRequested ? 'Requested' : 'Add friend'}</span>
+                      </button>
+                    )}
+                    {!isBlocked && onOpenMessaging && (
                       <button
                         type="button"
                         onClick={() => onOpenMessaging(user.id)}
-                        className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm"
+                        className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 font-medium text-sm flex items-center gap-2"
                       >
-                        <span className="text-lg">✉️</span>
+                        <span>💬</span>
+                        <span>Message</span>
                       </button>
                     )}
                     <div className="relative">
                       <button
                         type="button"
                         onClick={() => setShowOwnerMenu((open) => !open)}
-                        className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm"
+                        className="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 font-medium text-sm"
                       >
-                        <span className="text-lg">⚙️</span>
+                        ⚙️
                       </button>
                       {showOwnerMenu && (
                         <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20 py-1">
-                          {isSelf ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowOwnerMenu(false);
-                                  onEditProfile && onEditProfile();
-                                }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                              >
-                                <span>✏️</span>
-                                <span>Edit profile</span>
-                              </button>
-                              {onSerendipityMode && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setShowOwnerMenu(false);
-                                    onSerendipityMode();
-                                  }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                                >
-                                  <span>✨</span>
-                                  <span>Serendipity</span>
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowOwnerMenu(false);
-                                  if (isBlocked) {
-                                    handleUnblock();
-                                  } else {
-                                    handleBlock();
-                                  }
-                                }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                              >
-                                <span>{isBlocked ? '🔓' : '⛔'}</span>
-                                <span>{isBlocked ? 'Unblock user' : 'Block user'}</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowOwnerMenu(false);
-                                  setReportOpen(true);
-                                }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                              >
-                                <span>🚩</span>
-                                <span>Report user</span>
-                              </button>
-                            </>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowOwnerMenu(false);
+                              if (isBlocked) {
+                                handleUnblock();
+                              } else {
+                                handleBlock();
+                              }
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          >
+                            <span>{isBlocked ? '🔓' : '⛔'}</span>
+                            <span>{isBlocked ? 'Unblock' : 'Block'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowOwnerMenu(false);
+                              setReportOpen(true);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          >
+                            <span>🚩</span>
+                            <span>Report</span>
+                          </button>
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                {!isSelf && (
-                  <div className="flex flex-col gap-3 max-w-sm">
-                    {!isBlocked && !isAcquaintance && (
-                      <button
-                        onClick={() => onSendConnectionRequest(user.id)}
-                        className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium shadow-md transition-all flex items-center justify-center gap-2 ${
-                          isRequested
-                            ? 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
-                            : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
-                        }`}
-                        disabled={isRequested}
-                      >
-                        <span>{isRequested ? '⏳' : '+'}</span>
-                        <span>{isRequested ? 'Requested' : 'Connect'}</span>
-                      </button>
-                    )}
-                  </div>
+                  </>
                 )}
-
-                <div className="flex gap-8">
-                  <div>
-                    <div className="text-xl font-bold text-slate-900 dark:text-white">{posts.length}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Posts</div>
-                  </div>
-                  <div>
-                    <div className="text-xl font-bold text-slate-900 dark:text-white">{user.acquaintances?.length || 0}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Acquaintances</div>
-                  </div>
-                  <div>
-                    <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{user.trustScore}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Trust Score</div>
-                  </div>
-                </div>
               </div>
             </div>
-          </div>
 
-          <div className="border-t border-slate-200 dark:border-slate-700">
-            <div className="flex px-4 lg:px-8">
+            {/* Badges Row */}
+            {(user.isCompany || user.isPrivate || trustBadge) && (
+              <div className="flex items-center gap-2 pb-3 flex-wrap">
+                {user.isCompany && (
+                  <span className="px-3 py-1 text-xs font-medium rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                    Business Profile
+                  </span>
+                )}
+                {user.isPrivate && (
+                  <span className="px-3 py-1 text-xs font-medium rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                    🔒 Private
+                  </span>
+                )}
+                {trustBadge && (
+                  <span className={`px-3 py-1 text-xs font-medium rounded-full border ${trustBadge.colorClass}`}>
+                    <span className={trustBadge.textClass}>
+                      {trustBadge.icon} {trustBadge.label}
+                    </span>
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Tab Navigation */}
+            <div className="flex border-t border-slate-200 dark:border-slate-700">
               <button
                 onClick={() => setActiveTab('posts')}
-                className={`py-4 px-6 text-sm font-medium transition-all relative ${
-                  activeTab === 'posts'
-                    ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                }`}
+                className={`py-4 px-6 text-sm font-medium transition-all relative ${activeTab === 'posts'
+                    ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
               >
                 Timeline
               </button>
               <button
                 onClick={() => setActiveTab('about')}
-                className={`py-4 px-6 text-sm font-medium transition-all relative ${
-                  activeTab === 'about'
-                    ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                }`}
+                className={`py-4 px-6 text-sm font-medium transition-all relative ${activeTab === 'about'
+                    ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
               >
                 About
               </button>
               {isSelf && (
                 <button
                   onClick={() => setActiveTab('insights')}
-                  className={`py-4 px-6 text-sm font-medium transition-all relative ${
-                    activeTab === 'insights'
-                      ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                  }`}
+                  className={`py-4 px-6 text-sm font-medium transition-all relative ${activeTab === 'insights'
+                      ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
                 >
                   Dashboard
                 </button>

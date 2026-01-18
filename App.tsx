@@ -696,6 +696,33 @@ const App: React.FC = () => {
   useEffect(() => { if (ads.length > 0) localStorage.setItem(ADS_KEY, JSON.stringify(ads)); }, [ads]);
   useEffect(() => { localStorage.setItem(USERS_KEY, JSON.stringify(allUsers)); }, [allUsers]);
 
+  useEffect(() => {
+    const token = localStorage.getItem('aura_auth_token') || '';
+    const url = token
+      ? `${API_BASE_URL}/posts/stream?token=${encodeURIComponent(token)}`
+      : `${API_BASE_URL}/posts/stream`;
+
+    const es = new EventSource(url);
+
+    const onPostView = (e: MessageEvent) => {
+      try {
+        const parsed = JSON.parse(e.data) as { postId: string; viewCount: number };
+        const { postId, viewCount } = parsed;
+        setPosts(prev => prev.map(p => (p.id === postId ? { ...p, viewCount } : p)));
+      } catch {
+      }
+    };
+
+    es.addEventListener('post_view', onPostView as any);
+
+    es.onerror = () => {};
+
+    return () => {
+      es.removeEventListener('post_view', onPostView as any);
+      es.close();
+    };
+  }, []);
+
   const toggleDarkMode = () => {
     setIsDarkMode(prev => {
       const next = !prev;

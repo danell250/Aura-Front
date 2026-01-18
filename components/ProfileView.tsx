@@ -602,7 +602,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
 
                 {/* Name and Stats */}
                 {/* Name and Stats */}
-                <div className="mb-2 mt-16">
+                <div className="mb-2 mt-24">
                   <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
                     {user.isCompany && user.companyName ? user.companyName : user.name}
                   </h1>
@@ -632,14 +632,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               <div className="flex items-center gap-2 mb-2">
                 {isSelf ? (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => onEditProfile && onEditProfile()}
-                      className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 font-medium text-sm flex items-center gap-2"
-                    >
-                      <span>✏️</span>
-                      <span>Edit</span>
-                    </button>
                     <div className="relative">
                       <button
                         type="button"
@@ -676,6 +668,17 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                               <span>Serendipity mode</span>
                             </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowOwnerMenu(false);
+                              setReportOpen(true);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          >
+                            <span>🚩</span>
+                            <span>Report user</span>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -695,16 +698,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                         <span>{isRequested ? 'Requested' : 'Add friend'}</span>
                       </button>
                     )}
-                    {!isBlocked && onOpenMessaging && (
-                      <button
-                        type="button"
-                        onClick={() => onOpenMessaging(user.id)}
-                        className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 font-medium text-sm flex items-center gap-2"
-                      >
-                        <span>💬</span>
-                        <span>Message</span>
-                      </button>
-                    )}
                     <div className="relative">
                       <button
                         type="button"
@@ -715,6 +708,19 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       </button>
                       {showOwnerMenu && (
                         <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-20 py-1">
+                          {onOpenMessaging && !isBlocked && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowOwnerMenu(false);
+                                onOpenMessaging(user.id);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            >
+                              <span>💬</span>
+                              <span>Message</span>
+                            </button>
+                          )}
                           {onSerendipityMode && (
                             <button
                               type="button"

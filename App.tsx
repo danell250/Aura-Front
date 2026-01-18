@@ -112,7 +112,7 @@ const App: React.FC = () => {
   const [isSerendipityLoading, setIsSerendipityLoading] = useState(false);
   const [isProfileCompletionRequired, setIsProfileCompletionRequired] = useState(false);
   
-  const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy', targetId?: string}>({ type: 'feed' });
+  const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy' | 'ad_manager'; targetId?: string}>({ type: 'feed' });
 
   useEffect(() => {
     if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {

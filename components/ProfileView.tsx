@@ -421,25 +421,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               <div className="flex items-center gap-2 mb-2">
                 {isSelf ? (
                   <>
-                    {activeTab === 'insights' ? (
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('posts')}
-                        className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium text-sm flex items-center gap-2 shadow-sm"
-                      >
-                        <span>📊</span>
-                        <span>Professional dashboard</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('insights')}
-                        className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium text-sm flex items-center gap-2 shadow-sm"
-                      >
-                        <span>📊</span>
-                        <span>Professional dashboard</span>
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={() => onEditProfile && onEditProfile()}
@@ -448,16 +429,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       <span>✏️</span>
                       <span>Edit</span>
                     </button>
-                    {onOpenAdManager && (
-                      <button
-                        type="button"
-                        onClick={onOpenAdManager}
-                        className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-medium text-sm flex items-center gap-2 shadow-sm"
-                      >
-                        <span>📢</span>
-                        <span>Advertise</span>
-                      </button>
-                    )}
                   </>
                 ) : (
                   <>

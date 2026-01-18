@@ -55,6 +55,23 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
     setPageInput(e.target.value);
   };
 
+  const handleDocumentLoadError = (error: any) => {
+    console.error('Full PDF Error Object:', error);
+    console.error('Error name:', error?.name);
+    console.error('Error message:', error?.message);
+    console.error('PDF URL being loaded:', url);
+
+    if (typeof window !== 'undefined') {
+      fetch(url, { method: 'HEAD' })
+        .then(res => {
+          console.log('PDF URL Status:', res.status);
+        })
+        .catch(err => {
+          console.error('PDF URL not accessible:', err);
+        });
+    }
+  };
+
   const commitPageInput = () => {
     const value = parseInt(pageInput, 10);
     if (!Number.isNaN(value)) {
@@ -85,14 +102,22 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
       <div className="relative w-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center px-2 py-4 sm:px-4 sm:py-6">
         <div className="max-w-full overflow-x-auto flex justify-center">
           <Document
-            file={url}
+            file={{ url }}
+            options={{
+              cMapUrl: 'https://unpkg.com/pdfjs-dist@5.4.530/cmaps/',
+              cMapPacked: true,
+              standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@5.4.530/standard_fonts/'
+            }}
             onLoadSuccess={handleDocumentLoadSuccess}
-            onLoadError={(error) => console.error('PDF Load Error:', error)}
+            onLoadError={handleDocumentLoadError}
             loading={
               <div className="text-sm text-slate-500 dark:text-slate-400">Loading PDF…</div>
             }
             error={
-              <div className="text-sm text-rose-500">Failed to load PDF.</div>
+              <div className="p-4 text-sm text-rose-500">
+                <p>Failed to load PDF.</p>
+                <p className="text-xs mt-1 break-all">URL: {url}</p>
+              </div>
             }
           >
             <Page

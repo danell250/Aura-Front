@@ -1,5 +1,8 @@
 import { Post, Ad } from '../types';
 
+const normalizeHashtag = (tag: string) =>
+  tag.replace(/^#+/, '').toLowerCase();
+
 export interface TrendingTopic {
   hashtag: string;
   count: number;
@@ -35,11 +38,10 @@ export class TrendingService {
     const previousHashtags = new Map<string, number>();
     const weeklyHashtags = new Map<string, number>();
 
-    // Count hashtags from posts
     posts.forEach(post => {
       if (post.hashtags) {
         post.hashtags.forEach(tag => {
-          const normalizedTag = tag.toLowerCase();
+          const normalizedTag = normalizeHashtag(tag);
           
           if (post.timestamp >= oneDayAgo) {
             recentHashtags.set(normalizedTag, (recentHashtags.get(normalizedTag) || 0) + 1);
@@ -54,11 +56,10 @@ export class TrendingService {
       }
     });
 
-    // Count hashtags from ads (active ones) - weight them higher
     ads.filter(ad => ad.status === 'active').forEach(ad => {
       if (ad.hashtags) {
         ad.hashtags.forEach(tag => {
-          const normalizedTag = tag.toLowerCase();
+          const normalizedTag = normalizeHashtag(tag);
           recentHashtags.set(normalizedTag, (recentHashtags.get(normalizedTag) || 0) + 3); // Weight ads higher
           weeklyHashtags.set(normalizedTag, (weeklyHashtags.get(normalizedTag) || 0) + 3);
         });
@@ -139,7 +140,8 @@ export class TrendingService {
    */
   static isHashtagTrending(hashtag: string, posts: Post[], ads: Ad[]): boolean {
     const trending = this.getTrendingTopics(posts, ads);
-    return trending.some(topic => topic.hashtag.toLowerCase() === hashtag.toLowerCase());
+    const normalized = normalizeHashtag(hashtag);
+    return trending.some(topic => topic.hashtag === normalized);
   }
 
   /**
@@ -151,7 +153,7 @@ export class TrendingService {
     growth: number;
     category: 'rising' | 'hot' | 'steady' | 'none';
   } {
-    const normalizedHashtag = hashtag.toLowerCase();
+    const normalizedHashtag = normalizeHashtag(hashtag);
     const now = Date.now();
     const oneDayAgo = now - (24 * 60 * 60 * 1000);
     const twoDaysAgo = now - (48 * 60 * 60 * 1000);
@@ -160,9 +162,8 @@ export class TrendingService {
     let recentUses = 0;
     let previousUses = 0;
 
-    // Count from posts
     posts.forEach(post => {
-      if (post.hashtags?.some(tag => tag.toLowerCase() === normalizedHashtag)) {
+      if (post.hashtags?.some(tag => normalizeHashtag(tag) === normalizedHashtag)) {
         totalUses++;
         if (post.timestamp >= oneDayAgo) {
           recentUses++;
@@ -172,9 +173,8 @@ export class TrendingService {
       }
     });
 
-    // Count from ads
     ads.filter(ad => ad.status === 'active').forEach(ad => {
-      if (ad.hashtags?.some(tag => tag.toLowerCase() === normalizedHashtag)) {
+      if (ad.hashtags?.some(tag => normalizeHashtag(tag) === normalizedHashtag)) {
         totalUses += 2; // Weight ads higher
         recentUses += 2;
       }

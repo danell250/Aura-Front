@@ -244,18 +244,51 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
             </div>
           )}
           {!isLoadingOverview && !hasData && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 p-10 text-center">
-              <div className="text-5xl mb-4">📡</div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 p-10 text-center space-y-4">
+              <div className="text-5xl mb-2">📡</div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 No campaign data yet
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
                 Launch a signal to start seeing reach, engagement, and efficiency metrics in real time.
               </p>
+              <div className="pt-2">
+                <button
+                  disabled={!subscription || !canCreate}
+                  onClick={() => {
+                    window.location.href = '/ad-plans';
+                  }}
+                  className={`inline-flex items-center justify-center px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-colors ${
+                    !subscription || !canCreate
+                      ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                      : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                  }`}
+                >
+                  Create Ad
+                </button>
+              </div>
             </div>
           )}
           {hasData && (
             <>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Scan your live signals and launch new ones from the same console.
+                </p>
+                <button
+                  disabled={!subscription || !canCreate}
+                  onClick={() => {
+                    window.location.href = '/ad-plans';
+                  }}
+                  className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-[0.18em] transition-colors ${
+                    !subscription || !canCreate
+                      ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                      : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                  }`}
+                >
+                  Create Ad
+                </button>
+              </div>
               {primaryAd && (
                 <div className="sticky top-4 z-20">
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-[0_25px_70px_-40px_rgba(0,0,0,0.35)] overflow-hidden">
@@ -727,19 +760,6 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                 </p>
               )}
             </div>
-            <button
-              disabled={!subscription || !canCreate}
-              onClick={() => {
-                window.location.href = '/ad-plans';
-              }}
-              className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-[0.18em] transition-colors ${
-                !subscription || !canCreate
-                  ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                  : 'bg-emerald-500 text-white hover:bg-emerald-600'
-              }`}
-            >
-              Create Ad
-            </button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

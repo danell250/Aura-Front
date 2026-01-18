@@ -191,7 +191,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   useEffect(() => {
     setLocalReactions(post.reactions || {});
     setLocalUserReactions(post.userReactions || []);
-  }, [post.id, post.reactions, post.userReactions]);
+  }, [post.id]);
 
   useEffect(() => {
     setCommentReactionsState({});

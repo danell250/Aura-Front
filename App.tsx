@@ -1568,7 +1568,14 @@ const App: React.FC = () => {
         const result = await response.json().catch(() => null);
         if (response.ok && result && result.success && result.data) {
           const updatedPost: Post = result.data;
-          setPosts(prev => prev.map(p => p.id === postId ? updatedPost : p));
+          setPosts(prev => prev.map(p => {
+            if (p.id !== postId) return p;
+            return {
+              ...p,
+              reactions: updatedPost.reactions,
+              userReactions: updatedPost.userReactions
+            };
+          }));
         } else {
           if (previousPost) {
             setPosts(prev => prev.map(p => p.id === postId ? previousPost! : p));

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+// Use CDN for better compatibility - this matches the exact version automatically
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface PDFViewerProps {
   url: string;
@@ -56,20 +54,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
   };
 
   const handleDocumentLoadError = (error: any) => {
-    console.error('Full PDF Error Object:', error);
-    console.error('Error name:', error?.name);
-    console.error('Error message:', error?.message);
-    console.error('PDF URL being loaded:', url);
-
-    if (typeof window !== 'undefined') {
-      fetch(url, { method: 'HEAD' })
-        .then(res => {
-          console.log('PDF URL Status:', res.status);
-        })
-        .catch(err => {
-          console.error('PDF URL not accessible:', err);
-        });
-    }
+    console.error('PDF Load Error:', error);
   };
 
   const commitPageInput = () => {
@@ -103,6 +88,11 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ url, initialPage = 1, scale = 1.5
         <div className="max-w-full overflow-x-auto flex justify-center">
           <Document
             file={{ url }}
+            options={{
+              cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+              cMapPacked: true,
+              standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
+            }}
             onLoadSuccess={handleDocumentLoadSuccess}
             onLoadError={handleDocumentLoadError}
             loading={

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Layout 
   from './components/Layout';
-import AdPlansDashboard from './components/AdPlansDashboard';
+import AdAnalyticsPage from './components/AdAnalyticsPage';
 import PostCard from './components/PostCard';
 import CreatePost from './components/CreatePost';
 import BirthdayPost from './components/BirthdayPost';
@@ -187,8 +187,8 @@ const App: React.FC = () => {
       setView({ type: 'data_aura' });
       return;
     }
-
-    if (segments[0] === 'ad-manager' || segments[0] === 'ad_manager') {
+  
+    if ((segments[0] === 'ad-manager' || segments[0] === 'ad_manager') || (segments[0] === 'ads' && segments[1] === 'analytics')) {
       setView({ type: 'ad_manager' });
       return;
     }
@@ -215,7 +215,7 @@ const App: React.FC = () => {
     if (nextView.type === 'feed') return '/feed';
     if (nextView.type === 'acquaintances') return '/acquaintances';
     if (nextView.type === 'data_aura') return '/data-aura';
-    if (nextView.type === 'ad_manager') return '/ad-manager';
+    if (nextView.type === 'ad_manager') return '/ads/analytics';
     if (nextView.type === 'terms') return '/terms';
     if (nextView.type === 'privacy') return '/privacy';
     if (nextView.type === 'profile' && nextView.targetId) return `/profile/${nextView.targetId}`;
@@ -2165,13 +2165,9 @@ const App: React.FC = () => {
       )}
       {view.type === 'data_aura' && <DataAuraView currentUser={currentUser} allUsers={allUsers} posts={posts.filter(p => p.author.id === currentUser.id)} onBack={() => navigateToView({ type: 'feed' })} onPurchaseGlow={handlePurchaseGlow} onClearData={() => {}} onViewProfile={(id) => navigateToView({ type: 'profile', targetId: id })} onOpenCreditStore={() => setIsCreditStoreOpen(true)} />}
       {view.type === 'ad_manager' && (
-        <AdPlansDashboard
-          user={currentUser}
+        <AdAnalyticsPage
+          currentUser={currentUser}
           ads={ads}
-          onOpenAdManager={() => setIsAdManagerOpen(true)}
-          onCancelAd={handleCancelAd}
-          onUpdateAd={handleUpdateAd}
-          refreshTrigger={adSubsRefreshTick}
         />
       )}
       {isSettingsOpen && (

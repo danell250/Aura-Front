@@ -14,7 +14,8 @@ type AnalyticsTab = 'overview' | 'ads' | 'details';
 const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onDeleteAd }) => {
   const card = 'bg-white rounded-2xl border border-slate-200 shadow-sm';
   const cardPad = 'p-5';
-  const label = 'text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500';
+  const label =
+    'text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.14em] sm:tracking-[0.18em] text-slate-500 whitespace-nowrap';
   const value = 'mt-2 text-2xl font-black text-slate-900';
   const sub = 'mt-1 text-xs text-slate-500';
 
@@ -44,7 +45,16 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
 
   useEffect(() => {
     if (!currentUser.id) return;
-    adSubscriptionService.getActiveSubscription(currentUser.id).then(setSubscription);
+
+    (async () => {
+      try {
+        const sub = await adSubscriptionService.getActiveSubscription(currentUser.id);
+        setSubscription(sub);
+      } catch (e) {
+        console.error('[AdAnalyticsPage] Failed to load active subscription', e);
+        setSubscription(null);
+      }
+    })();
   }, [currentUser.id]);
 
   useEffect(() => {
@@ -66,6 +76,8 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
   const averageCTR = campaignPerformance?.averageCTR ?? (adPerformance.length > 0 ? adPerformance.reduce((sum, p) => sum + (p.ctr || 0), 0) / adPerformance.length : 0);
   const activeAdsCount = campaignPerformance?.activeAds ?? adPerformance.filter(p => p.status === 'active').length;
   const performanceScore = campaignPerformance?.performanceScore ?? 0;
+  const remainingAds = subscription ? subscription.adLimit - subscription.adsUsed : null;
+  const canCreate = remainingAds !== null && remainingAds > 0;
 
   const ctrRatio = averageCTR > 1 ? averageCTR / 100 : averageCTR;
   const formattedAverageCTR = (ctrRatio * 100).toFixed(2);
@@ -89,6 +101,40 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
     const topMetric = [...adPerformance].sort((a, b) => b.impressions - a.impressions)[0];
     return ads.find(a => a.id === topMetric.adId) || null;
   }, [ads, adPerformance, currentUser.id]);
+
+  const adSummaries = useMemo(() => {
+    const metricsById = new Map(adPerformance.map(m => [m.adId, m]));
+    const myAds = ads.filter(a => a.ownerId === currentUser.id);
+
+    return myAds.map(ad => {
+      const m = metricsById.get(ad.id);
+      return {
+        id: ad.id,
+        headline: ad.headline || 'Untitled Signal',
+        status: (m?.status || ad.status || 'active') as 'active' | 'paused' | 'completed',
+        createdAt: m?.createdAt ?? Date.now(),
+        impressions: m?.impressions ?? 0,
+        clicks: m?.clicks ?? 0,
+        ctr: m?.ctr ?? 0,
+        engagement: m?.engagement ?? 0,
+        spend: m?.spend ?? 0,
+        roi: m?.roi ?? 0
+      };
+    });
+  }, [ads, adPerformance, currentUser.id]);
+
+  const overviewSummaries = useMemo(() => {
+    let list = adSummaries;
+    if (statusFilter !== 'all') {
+      list = list.filter(x => x.status === statusFilter);
+    }
+
+    return [...list].sort((a, b) => {
+      const aValue = (a as any)[sortBy] ?? 0;
+      const bValue = (b as any)[sortBy] ?? 0;
+      return bValue - aValue;
+    });
+  }, [adSummaries, sortBy, statusFilter]);
 
   const visibleAdPerformance = useMemo(() => {
     let list = adPerformance;
@@ -139,16 +185,25 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                 running
               </span>
             </div>
-              {subscription && (
-                <div className="text-right">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                    {subscription.packageName}
-                  </p>
-                  <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">
-                    {subscription.adsUsed}/{subscription.adLimit} ads used
-                  </p>
-                </div>
-              )}
+            {subscription ? (
+              <div className="text-right">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                  {subscription.packageName}
+                </p>
+                <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">
+                  {subscription.adsUsed}/{subscription.adLimit} ads used
+                </p>
+              </div>
+            ) : (
+              <div className="text-right">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                  No active plan
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Purchase a plan to unlock quota
+                </p>
+              </div>
+            )}
             {campaignPerformance?.daysToNextExpiry != null && (
               <p className="text-[11px] font-semibold text-slate-500">
                 Next expiry in <span className="font-bold">{campaignPerformance.daysToNextExpiry}</span> days
@@ -382,6 +437,104 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                 </div>
               </div>
 
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-[0.2em]">
+                      All Signals Summary
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Every ad you’ve posted — scan performance at a glance.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                      className="border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-200"
+                    >
+                      <option value="impressions">Impressions</option>
+                      <option value="clicks">Clicks</option>
+                      <option value="ctr">CTR</option>
+                      <option value="spend">Spend</option>
+                      <option value="roi">ROI</option>
+                    </select>
+                  </div>
+                </div>
+
+                {overviewSummaries.length === 0 ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-300">
+                    No ads found.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {overviewSummaries.map(ad => (
+                      <div
+                        key={ad.id}
+                        className="rounded-2xl border border-slate-200 dark:border-slate-700 p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                              {ad.headline}
+                            </p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                              {new Date(ad.createdAt).toLocaleDateString()} • {ad.status}
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              setSelectedAdId(ad.id);
+                              setActiveTab('details');
+                            }}
+                            className="shrink-0 px-3 py-2 rounded-xl bg-emerald-500 text-white text-[11px] font-black uppercase tracking-[0.18em] hover:bg-emerald-600"
+                          >
+                            View
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-3 mt-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 whitespace-nowrap">
+                              Impr
+                            </p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white">
+                              {ad.impressions.toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 whitespace-nowrap">
+                              Clicks
+                            </p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white">
+                              {ad.clicks.toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 whitespace-nowrap">
+                              CTR
+                            </p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white">
+                              {ad.ctr.toFixed(2)}%
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 whitespace-nowrap">
+                              Eng
+                            </p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white">
+                              {ad.engagement.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className={`${card} ${cardPad}`}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500">
@@ -558,175 +711,205 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
       )}
 
       {activeTab === 'details' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-[0.2em]">
-                  Single Signal Analytics
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Choose an ad from the list to see its detailed performance.
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                Monthly quota
+              </p>
+              {subscription ? (
+                <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                  {remainingAds} remaining <span className="text-slate-500 font-medium">of {subscription.adLimit}</span>
                 </p>
-              </div>
-              {selectedAd && (
-                <span className="text-[11px] px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
-                  {selectedAd.headline}
-                </span>
+              ) : (
+                <p className="mt-1 text-sm text-slate-500">
+                  No active plan found.
+                </p>
               )}
             </div>
-            {subscription && (
-              <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-5 text-white mb-2">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">
-                      {subscription.packageName}
-                    </p>
-                    <h3 className="text-xl font-black">
-                      Ad Usage This Month
-                    </h3>
-                    <p className="text-sm text-emerald-100">
-                      Your plan resets on {subscription.endDate ? new Date(subscription.endDate).toLocaleDateString() : '—'}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm uppercase tracking-widest text-emerald-100">
-                      Remaining
-                    </p>
-                    <p className="text-4xl font-black">
-                      {subscription.adLimit - subscription.adsUsed}
-                      <span className="text-lg font-semibold ml-1">/ {subscription.adLimit}</span>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div className="mt-4 w-full bg-emerald-700/40 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-white h-2 rounded-full transition-all"
-                    style={{
-                      width: `${Math.min(100, (subscription.adsUsed / subscription.adLimit) * 100)}%`
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-            {!selectedAdId && (
-              <div className="py-8 text-sm text-slate-500 dark:text-slate-300">
-                Select an ad from the table to inspect its metrics.
-              </div>
-            )}
-            {selectedAdId && loadingDetails && (
-              <div className="py-8 text-sm text-slate-500 dark:text-slate-300">
-                Loading analytics for the selected ad...
-              </div>
-            )}
-            {selectedAdId && !loadingDetails && selectedAdAnalytics && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
-                    Impressions
-                  </p>
-                  <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-                    {selectedAdAnalytics.impressions.toLocaleString()}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
-                    Clicks
-                  </p>
-                  <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-                    {selectedAdAnalytics.clicks.toLocaleString()}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
-                    CTR
-                  </p>
-                  <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-                    {selectedAdAnalytics.ctr.toFixed(2)}%
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
-                    Engagement
-                  </p>
-                  <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-                    {selectedAdAnalytics.engagement.toLocaleString()}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
-                    Reach
-                  </p>
-                  <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-                    {selectedAdAnalytics.reach.toLocaleString()}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
-                    Conversions
-                  </p>
-                  <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-                    {selectedAdAnalytics.conversions.toLocaleString()}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
-                    Spend
-                  </p>
-                  <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-                    {selectedAdAnalytics.spend.toFixed(2)}
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
-                    Last Updated
-                  </p>
-                  <p className="mt-2 text-xs font-semibold text-slate-900 dark:text-white">
-                    {new Date(selectedAdAnalytics.lastUpdated).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            )}
+            <button
+              disabled={!subscription || !canCreate}
+              onClick={() => {
+                window.location.href = '/ad-plans';
+              }}
+              className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-[0.18em] transition-colors ${
+                !subscription || !canCreate
+                  ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                  : 'bg-emerald-500 text-white hover:bg-emerald-600'
+              }`}
+            >
+              Create Ad
+            </button>
           </div>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
-            <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-3">
-              Pick a signal
-            </h4>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {visibleAdPerformance.length === 0 && (
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  No tracked ads available.
-                </p>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-[0.2em]">
+                    Single Signal Analytics
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Choose an ad from the list to see its detailed performance.
+                  </p>
+                </div>
+                {selectedAd && (
+                  <span className="text-[11px] px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+                    {selectedAd.headline}
+                  </span>
+                )}
+              </div>
+              {subscription && (
+                <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-5 text-white mb-2">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100">
+                        {subscription.packageName}
+                      </p>
+                      <h3 className="text-xl font-black">
+                        Ad Usage This Month
+                      </h3>
+                      <p className="text-sm text-emerald-100">
+                        Your plan resets on {subscription.endDate ? new Date(subscription.endDate).toLocaleDateString() : '—'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm uppercase tracking-widest text-emerald-100">
+                        Remaining
+                      </p>
+                      <p className="text-4xl font-black">
+                        {subscription.adLimit - subscription.adsUsed}
+                        <span className="text-lg font-semibold ml-1">/ {subscription.adLimit}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 w-full bg-emerald-700/40 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-white h-2 rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(100, (subscription.adsUsed / subscription.adLimit) * 100)}%`
+                      }}
+                    />
+                  </div>
+                </div>
               )}
-              {visibleAdPerformance.map(metric => {
-                const ad = ads.find(a => a.id === metric.adId);
-                const isSelected = selectedAdId === metric.adId;
-                return (
-                  <button
-                    key={metric.adId}
-                    className={`w-full text-left px-3 py-2 rounded-xl border text-xs mb-1 transition-colors ${
-                      isSelected
-                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-200'
-                        : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
-                    onClick={() => setSelectedAdId(metric.adId)}
-                  >
-                    <div className="font-semibold truncate">
-                      {metric.adName || ad?.headline || 'Untitled Signal'}
-                    </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between mt-1">
-                      <span>
-                        {metric.impressions.toLocaleString()} views
-                      </span>
-                      <span>
-                        {metric.ctr.toFixed(2)}% CTR
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+              {!selectedAdId && (
+                <div className="py-8 text-sm text-slate-500 dark:text-slate-300">
+                  Select an ad from the table to inspect its metrics.
+                </div>
+              )}
+              {selectedAdId && loadingDetails && (
+                <div className="py-8 text-sm text-slate-500 dark:text-slate-300">
+                  Loading analytics for the selected ad...
+                </div>
+              )}
+              {selectedAdId && !loadingDetails && selectedAdAnalytics && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
+                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                      Impressions
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                      {selectedAdAnalytics.impressions.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
+                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                      Clicks
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                      {selectedAdAnalytics.clicks.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
+                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                      CTR
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                      {selectedAdAnalytics.ctr.toFixed(2)}%
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
+                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                      Engagement
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                      {selectedAdAnalytics.engagement.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
+                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                      Reach
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                      {selectedAdAnalytics.reach.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
+                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                      Conversions
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                      {selectedAdAnalytics.conversions.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
+                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                      Spend
+                    </p>
+                    <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                      {selectedAdAnalytics.spend.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 min-w-0">
+                    <p className={`${label} dark:text-slate-400 overflow-hidden text-ellipsis`}>
+                      Last Updated
+                    </p>
+                    <p className="mt-2 text-xs font-semibold text-slate-900 dark:text-white">
+                      {new Date(selectedAdAnalytics.lastUpdated).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-3">
+                Pick a signal
+              </h4>
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {visibleAdPerformance.length === 0 && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    No tracked ads available.
+                  </p>
+                )}
+                {visibleAdPerformance.map(metric => {
+                  const ad = ads.find(a => a.id === metric.adId);
+                  const isSelected = selectedAdId === metric.adId;
+                  return (
+                    <button
+                      key={metric.adId}
+                      className={`w-full text-left px-3 py-2 rounded-xl border text-xs mb-1 transition-colors ${
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-200'
+                          : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}
+                      onClick={() => setSelectedAdId(metric.adId)}
+                    >
+                      <div className="font-semibold truncate">
+                        {metric.adName || ad?.headline || 'Untitled Signal'}
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between mt-1">
+                        <span>
+                          {metric.impressions.toLocaleString()} views
+                        </span>
+                        <span>
+                          {metric.ctr.toFixed(2)}% CTR
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

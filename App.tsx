@@ -1291,6 +1291,24 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const handleDeleteAd = useCallback(async (id: string) => {
+    const previousAds = ads;
+    setAds(prev => prev.filter(a => a.id !== id));
+    try {
+      const result = await AdService.deleteAd(id);
+      if (!result.success) {
+        setAds(previousAds);
+        alert(result.error || 'Failed to delete ad. Please try again.');
+      } else {
+        setAdSubsRefreshTick(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Failed to delete ad from backend:', error);
+      setAds(previousAds);
+      alert('Failed to delete ad. Please check your connection and try again.');
+    }
+  }, [ads]);
+
   const handleCancelAd = useCallback(async (id: string) => {
     setAds(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' as const } : a));
 
@@ -2168,6 +2186,7 @@ const App: React.FC = () => {
         <AdAnalyticsPage
           currentUser={currentUser}
           ads={ads}
+          onDeleteAd={handleDeleteAd}
         />
       )}
       {isSettingsOpen && (
@@ -2183,21 +2202,7 @@ const App: React.FC = () => {
           currentUser={currentUser}
           ads={ads}
           onAdCreated={handleAdCreated}
-          onAdCancelled={async (id) => {
-            const previousAds = ads;
-            setAds(prev => prev.filter(a => a.id !== id));
-            try {
-              const result = await AdService.deleteAd(id);
-              if (!result.success) {
-                setAds(previousAds);
-                alert(result.error || 'Failed to delete ad. Please try again.');
-              }
-            } catch (error) {
-              console.error('Failed to delete ad from backend:', error);
-              setAds(previousAds);
-              alert('Failed to delete ad. Please check your connection and try again.');
-            }
-          }}
+          onAdCancelled={handleDeleteAd}
           onAdUpdated={async (adId, updates) => {
             try {
               const token = localStorage.getItem('aura_auth_token') || '';

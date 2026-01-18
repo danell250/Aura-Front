@@ -5,11 +5,12 @@ import { adAnalyticsService, AdAnalytics, AdPerformanceMetrics, CampaignPerforma
 interface AdAnalyticsPageProps {
   currentUser: User;
   ads: Ad[];
+  onDeleteAd?: (id: string) => void | Promise<void>;
 }
 
 type AnalyticsTab = 'overview' | 'ads' | 'details';
 
-const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) => {
+const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onDeleteAd }) => {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview');
   const [campaignPerformance, setCampaignPerformance] = useState<CampaignPerformance | null>(null);
   const [adPerformance, setAdPerformance] = useState<AdPerformanceMetrics[]>([]);
@@ -46,7 +47,8 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
 
   const totalImpressions = campaignPerformance?.totalImpressions ?? adPerformance.reduce((sum, p) => sum + (p.impressions || 0), 0);
   const totalClicks = campaignPerformance?.totalClicks ?? adPerformance.reduce((sum, p) => sum + (p.clicks || 0), 0);
-  const totalReach = campaignPerformance?.totalReach ?? adPerformance.reduce((sum, p) => sum + (p.engagement || 0), 0);
+  const totalReach =
+    campaignPerformance?.totalReach ?? 0;
   const totalEngagement = campaignPerformance?.totalEngagement ?? adPerformance.reduce((sum, p) => sum + (p.engagement || 0), 0);
   const totalSpend = campaignPerformance?.totalSpend ?? adPerformance.reduce((sum, p) => sum + (p.spend || 0), 0);
   const averageCTR = campaignPerformance?.averageCTR ?? (adPerformance.length > 0 ? adPerformance.reduce((sum, p) => sum + (p.ctr || 0), 0) / adPerformance.length : 0);
@@ -55,6 +57,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
   const formattedAverageCTR = Number(averageCTR || 0).toFixed(2);
 
   const ctrRatio = averageCTR > 1 ? averageCTR / 100 : averageCTR;
+  const formattedAverageCTR = (ctrRatio * 100).toFixed(2);
   const fatigueIndex = Math.min(100, totalImpressions > 0 ? ((totalImpressions - totalClicks) / Math.max(1, totalImpressions)) * 100 : 0);
   const momentumScore = Math.min(100, activeAdsCount * 10 + (totalClicks / Math.max(1, totalImpressions || 1)) * 50);
   const attentionHalfLifeDays = Math.max(1, Math.round(30 - momentumScore / 2));
@@ -100,7 +103,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-3xl p-8 text-white">
+      <div className="rounded-3xl p-8 border border-slate-200 bg-white shadow-[0_20px_60px_-30px_rgba(0,0,0,0.25)]">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-100 mb-2">
@@ -482,16 +485,28 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
                         <td className="py-3 pr-4">
                           {metric.roi.toFixed(2)}
                         </td>
-                        <td className="py-3 pl-4 text-right">
-                          <button
-                            className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
-                            onClick={() => {
-                              setSelectedAdId(metric.adId);
-                              setActiveTab('details');
-                            }}
-                          >
-                            View
-                          </button>
+                        <td className="py-3 pl-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                              onClick={() => {
+                                setSelectedAdId(metric.adId);
+                                setActiveTab('details');
+                              }}
+                            >
+                              View
+                            </button>
+                            <button
+                              className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline"
+                              onClick={() => {
+                                if (onDeleteAd) {
+                                  onDeleteAd(metric.adId);
+                                }
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

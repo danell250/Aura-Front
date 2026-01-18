@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Notification } from '../types';
 import { Avatar } from './MediaDisplay';
 
@@ -16,6 +16,21 @@ interface NotificationDropdownProps {
 }
 
 const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notifications, onClose, onRead, onAccept, onReject, onNavigate, isSoundEnabled = true, onToggleSound, onMarkAllRead }) => {
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!dropdownRef.current) return;
+      if (!dropdownRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
   const formatDate = (ts: number) => {
     return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric' }).format(ts);
   };
@@ -66,7 +81,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
   };
 
   return (
-    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-[0_20px_50px_-25px_rgba(0,0,0,0.35)] z-[60] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+    <div ref={dropdownRef} className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-[0_20px_50px_-25px_rgba(0,0,0,0.35)] z-[60] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
       <div className="p-4 border-b border-slate-100 flex justify-between items-center">
         <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Notifications</h3>
         <div className="flex items-center gap-2">

@@ -66,7 +66,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
   };
 
   return (
-    <div className="absolute right-0 mt-2 w-80 glass rounded-3xl border border-slate-200/50 shadow-2xl z-[60] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-[0_20px_50px_-25px_rgba(0,0,0,0.35)] z-[60] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
       <div className="p-4 border-b border-slate-100 flex justify-between items-center">
         <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">Notifications</h3>
         <div className="flex items-center gap-2">
@@ -102,7 +102,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ notificatio
             <div 
               key={notif.id} 
               onClick={() => handleNotificationClick(notif)}
-              className={`p-4 flex gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer border-b border-slate-50 dark:border-slate-800 last:border-0 ${!notif.isRead ? 'bg-indigo-50/30 dark:bg-indigo-950/20' : ''}`}
+              className={`p-4 flex gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer border-b border-slate-50 dark:border-slate-800 last:border-0 ${!notif.isRead ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}
             >
               <div className="relative">
                 <Avatar

@@ -72,11 +72,25 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
   const [isMentioning, setIsMentioning] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionSuggestions, setMentionSuggestions] = useState<User[]>([]);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const playSuccessSound = () => {
+    try {
+      const audio = new Audio('/sounds/postconfirmation.mp3');
+      audio.volume = 0.6;
+      audio.play().catch(() => {});
+    } catch {}
+  };
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    window.setTimeout(() => setToast(null), 2200);
+  };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
@@ -211,10 +225,16 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
         mediaItems: finalMediaItems
       });
 
+      playSuccessSound();
+      showToast('success', 'Posted successfully');
+
       setContent('');
       setMediaPreview(null);
       setSelectedMediaItems([]);
       setSelectedEnergy(EnergyType.NEUTRAL);
+    } catch (e) {
+      console.error('[CreatePost] Post failed', e);
+      showToast('error', 'Post failed — try again');
     } finally {
       setIsSubmitting(false);
     }
@@ -529,6 +549,32 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
         currentUser={currentUser}
         allUsers={allUsers}
       />
+
+      {toast && (
+        <div className="fixed top-5 right-5 z-[9999] animate-in fade-in slide-in-from-top-2 duration-200">
+          <div
+            className={`rounded-2xl border shadow-lg px-4 py-3 flex items-center gap-3 bg-white ${
+              toast.type === 'success'
+                ? 'border-emerald-200'
+                : 'border-rose-200'
+            }`}
+          >
+            <div
+              className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-black ${
+                toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'
+              }`}
+            >
+              {toast.type === 'success' ? '✓' : '!'}
+            </div>
+            <div className="min-w-[180px]">
+              <p className="text-sm font-semibold text-slate-900">{toast.message}</p>
+              <p className="text-[11px] text-slate-500">
+                {toast.type === 'success' ? 'Your signal is live.' : 'Please try again.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

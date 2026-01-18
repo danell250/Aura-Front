@@ -2002,49 +2002,88 @@ const App: React.FC = () => {
       return textMatches || hashtagMatches;
     });
     
+    const getPostFeedTimestamp = (post: Post): number => {
+      const boostWeight = post.isBoosted ? 1000 * 60 * 60 * 2 : 0;
+      return post.timestamp + boostWeight;
+    };
+
+    const getAdTierWeight = (ad: Ad): number => {
+      const tier = (ad.subscriptionTier || '').toLowerCase();
+      if (!tier) return 0;
+      if (tier.includes('enterprise') || tier.includes('platinum')) return 1000 * 60 * 60 * 6;
+      if (tier.includes('pro') || tier.includes('gold')) return 1000 * 60 * 60 * 3;
+      if (tier.includes('starter') || tier.includes('basic') || tier.includes('silver')) return 1000 * 60 * 60;
+      return 0;
+    };
+
+    const getAdFeedTimestamp = (ad: Ad): number => {
+      const anyAd = ad as any;
+      const updated = typeof anyAd?.updatedAt === 'number' ? anyAd.updatedAt : undefined;
+      const created = typeof anyAd?.createdAt === 'number' ? anyAd.createdAt : undefined;
+      const ts = typeof anyAd?.timestamp === 'number' ? anyAd.timestamp : undefined;
+      const recency = updated ?? created ?? ts ?? Date.now();
+      const tierWeight = getAdTierWeight(ad);
+      return recency + tierWeight;
+    };
+
     const sortedPosts = [...filteredPosts].sort((a, b) => {
-        if (b.timestamp !== a.timestamp) {
-          return b.timestamp - a.timestamp;
-        }
-        if (a.isBoosted && !b.isBoosted) return -1;
-        if (!a.isBoosted && b.isBoosted) return 1;
-        return 0;
+      const scoreB = getPostFeedTimestamp(b);
+      const scoreA = getPostFeedTimestamp(a);
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
+      return 0;
     });
 
     const combined: (Post | Ad | BirthdayAnnouncement)[] = [];
-    
-    // 1. Birthdays (top)
+
+    if (view.type !== 'feed') {
+      sortedPosts.forEach(post => combined.push(post));
+      return combined;
+    }
+
     if (view.type === 'feed' && activeEnergy === 'all' && activeMediaType === 'all' && !searchQuery) {
       birthdayAnnouncements.forEach(bday => combined.push(bday));
     }
 
-    // 2. Paid Ads (High Advantage) - Show ads regardless of filters
-    if (view.type === 'feed' && activeAds.length > 0) {
-      // Put some ads right at the top
-      const topAdsCount = Math.min(2, activeAds.length);
-      for(let i=0; i < topAdsCount; i++) {
-        combined.push(activeAds[i]);
-      }
-    }
+    type FeedItem = {
+      kind: 'post' | 'ad';
+      feedTimestamp: number;
+      data: Post | Ad;
+    };
 
-    // 3. Posts with interleaved ads
-    let adIdx = (view.type === 'feed') ? Math.min(2, activeAds.length) : 0;
-    sortedPosts.forEach((post, index) => {
-      combined.push(post);
-      // Inject ads every 2 posts for better advantage
-      if (view.type === 'feed' && (index + 1) % 2 === 0 && adIdx < activeAds.length) {
-        combined.push(activeAds[adIdx]);
-        adIdx++;
+    const postItems: FeedItem[] = sortedPosts.map(post => ({
+      kind: 'post',
+      feedTimestamp: getPostFeedTimestamp(post),
+      data: post,
+    }));
+
+    const adItems: FeedItem[] = activeAds.map(ad => ({
+      kind: 'ad',
+      feedTimestamp: getAdFeedTimestamp(ad),
+      data: ad,
+    }));
+
+    const feedItems: FeedItem[] = [...postItems, ...adItems];
+
+    feedItems.sort((a, b) => b.feedTimestamp - a.feedTimestamp);
+
+    const spacedItems: (Post | Ad)[] = [];
+    let itemsSinceLastAd = 3;
+
+    feedItems.forEach(item => {
+      if (item.kind === 'ad') {
+        if (itemsSinceLastAd >= 3 || spacedItems.length === 0) {
+          spacedItems.push(item.data as Ad);
+          itemsSinceLastAd = 0;
+        }
+      } else {
+        spacedItems.push(item.data as Post);
+        itemsSinceLastAd++;
       }
     });
 
-    // Append remaining ads - Show ads regardless of filters
-    if (view.type === 'feed') {
-      while (adIdx < activeAds.length) { 
-        combined.push(activeAds[adIdx]); 
-        adIdx++; 
-      }
-    }
+    spacedItems.forEach(entry => combined.push(entry));
 
     return combined;
   }, [posts, ads, birthdayAnnouncements, view, searchQuery, activeEnergy, activeMediaType]);

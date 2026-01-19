@@ -105,6 +105,46 @@ export const uploadService = {
     const backendHost = backendBase ? backendBase.replace(/\/api\/?$/, '') : '';
     const getUrlEndpoint = backendHost ? `${backendHost}/api/media/upload-url` : '/api/media/upload-url';
 
+    // Helper for local fallback
+    const uploadLocally = async (): Promise<{ url: string; key: string; filename: string; mimetype: string; size: number }> => {
+      console.log('[Upload] Falling back to local upload strategy...');
+      const localUploadEndpoint = backendHost ? `${backendHost}/api/upload` : '/api/upload';
+      
+      const formData = new FormData();
+      formData.append('file', fileForUpload);
+      
+      try {
+        const res = await fetch(localUploadEndpoint, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Local upload failed: ${res.status} ${text}`);
+        }
+
+        const data = await res.json();
+        
+        // Ensure we have a full URL if the backend returns a relative one
+        let finalUrl = data.url;
+        if (finalUrl && finalUrl.startsWith('/') && backendHost) {
+          finalUrl = `${backendHost}${finalUrl}`;
+        }
+
+        return {
+          url: finalUrl,
+          key: data.filename,
+          filename: data.filename,
+          mimetype: data.mimetype,
+          size: fileForUpload.size
+        };
+      } catch (err) {
+        console.error('[Upload] Local upload failed:', err);
+        throw err;
+      }
+    };
+
     console.log('[Upload] Requesting upload URL:', getUrlEndpoint, { userId, fileName: fileForUpload.name, folder });
 
     let r;
@@ -120,47 +160,56 @@ export const uploadService = {
           entityId
         }) 
       });
-    } catch (netErr) {
-      console.error('[Upload] Network error requesting upload URL:', netErr);
-      throw new Error(`Network error: ${netErr instanceof Error ? netErr.message : String(netErr)}`);
-    }
 
-    if (!r.ok) {
-      console.error('[Upload] Failed to get upload URL. Status:', r.status, r.statusText);
-      const text = await r.text();
-      console.error('[Upload] Response body:', text);
-      throw new Error(`Failed to get upload URL: ${r.status} ${r.statusText} - ${text.slice(0, 100)}`);
-    }
-  
-    const data = await r.json(); 
-    if (!data.success) {
-      console.error('[Upload] API returned error:', data);
-      throw new Error(data.error || "Failed to get upload url"); 
-    }
-  
-    console.log('[Upload] Got signed URL, uploading to S3...');
+      // If backend explicitly says S3 is not configured (503)
+      if (r.status === 503) {
+        return uploadLocally();
+      }
 
-    // 2) Upload file directly to S3 
-    const put = await fetch(data.uploadUrl, { 
-      method: "PUT", 
-      headers: { "Content-Type": fileForUpload.type }, 
-      body: fileForUpload 
-    }); 
-  
-    if (!put.ok) {
-      console.error('[Upload] S3 upload failed. Status:', put.status, put.statusText);
-      throw new Error(`S3 upload failed: ${put.status} ${put.statusText}`);
-    }
+      if (!r.ok) {
+        const text = await r.text();
+        console.warn(`[Upload] Failed to get upload URL: ${r.status}. Trying fallback.`);
+        return uploadLocally();
+      }
     
-    console.log('[Upload] S3 upload successful'); 
-  
-    // 3) This is what you save in MongoDB 
-    return { 
-      url: data.objectUrl,
-      key: data.key,
-      filename: data.key,
-      mimetype: fileForUpload.type,
-      size: fileForUpload.size
-    };
+      const data = await r.json(); 
+      if (!data.success) {
+        if (data.error === "S3_NOT_CONFIGURED") {
+           return uploadLocally();
+        }
+        // If other API error, try fallback anyway just in case
+        console.warn('[Upload] API returned error, trying fallback:', data);
+        return uploadLocally();
+      }
+    
+      console.log('[Upload] Got signed URL, uploading to S3...');
+
+      // 2) Upload file directly to S3 
+      const put = await fetch(data.uploadUrl, { 
+        method: "PUT", 
+        headers: { "Content-Type": fileForUpload.type }, 
+        body: fileForUpload 
+      }); 
+    
+      if (!put.ok) {
+        console.error('[Upload] S3 upload failed. Status:', put.status, put.statusText);
+        // Fallback on S3 upload failure (e.g. CORS, Permissions)
+        return uploadLocally();
+      }
+      
+      console.log('[Upload] S3 upload successful'); 
+    
+      // 3) This is what you save in MongoDB 
+      return { 
+        url: data.objectUrl,
+        key: data.key,
+        filename: data.key,
+        mimetype: fileForUpload.type,
+        size: fileForUpload.size
+      };
+    } catch (netErr) {
+      console.error('[Upload] Network/S3 error requesting upload URL:', netErr);
+      return uploadLocally();
+    }
   }
 };

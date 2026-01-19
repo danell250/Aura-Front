@@ -271,3 +271,252 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
             </div>
           </div>
         </div>
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Performance Trend Chart */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Performance Trend</h3>
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                  <span className="text-gray-600">Impressions</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-teal-500 rounded-full"></div>
+                  <span className="text-gray-600">Clicks</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-gray-600">Engagement</span>
+                </div>
+              </div>
+            </div>
+            <div className="h-64 flex items-end justify-between gap-2">
+              {campaignData?.trendData.map((data, index) => {
+                const maxValue = Math.max(...campaignData.trendData.map(d => Math.max(d.impressions, d.clicks * 10, d.engagement * 5)));
+                const impressionHeight = (data.impressions / maxValue) * 100;
+                const clickHeight = (data.clicks * 10 / maxValue) * 100;
+                const engagementHeight = (data.engagement * 5 / maxValue) * 100;
+                
+                return (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full flex items-end gap-1 h-48">
+                      <div 
+                        className="flex-1 bg-gradient-to-t from-emerald-400 to-emerald-500 rounded-t-sm hover:brightness-110 transition-all cursor-pointer relative group" 
+                        style={{ height: `${impressionHeight}%` }}
+                      >
+                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          {data.impressions.toLocaleString()}
+                        </div>
+                      </div>
+                      <div 
+                        className="flex-1 bg-gradient-to-t from-teal-400 to-teal-500 rounded-t-sm hover:brightness-110 transition-all cursor-pointer relative group" 
+                        style={{ height: `${clickHeight}%` }}
+                      >
+                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          {data.clicks.toLocaleString()}
+                        </div>
+                      </div>
+                      <div 
+                        className="flex-1 bg-gradient-to-t from-green-400 to-green-500 rounded-t-sm hover:brightness-110 transition-all cursor-pointer relative group" 
+                        style={{ height: `${engagementHeight}%` }}
+                      >
+                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          {data.engagement.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500 font-medium">
+                      {new Date(data.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Campaign Distribution */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Campaign Distribution</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 bg-emerald-500 rounded-full"></div>
+                  <span className="font-medium text-gray-900">Social Media</span>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-gray-900">45%</div>
+                  <div className="text-xs text-gray-600">$89,450</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 bg-teal-500 rounded-full"></div>
+                  <span className="font-medium text-gray-900">Display Ads</span>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-gray-900">32%</div>
+                  <div className="text-xs text-gray-600">$63,680</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                  <span className="font-medium text-gray-900">Search Ads</span>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-gray-900">23%</div>
+                  <div className="text-xs text-gray-600">$45,770</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Donut Chart Visualization */}
+            <div className="mt-6 flex justify-center">
+              <div className="relative w-32 h-32">
+                <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#e5e7eb"
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="2"
+                    strokeDasharray="45, 100"
+                  />
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#14b8a6"
+                    strokeWidth="2"
+                    strokeDasharray="32, 100"
+                    strokeDashoffset="-45"
+                  />
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="2"
+                    strokeDasharray="23, 100"
+                    strokeDashoffset="-77"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Detailed Analytics Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Campaign Performance Details</h3>
+              <button className="px-4 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors">
+                Export Data
+              </button>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-gray-50 to-green-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Campaign</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Impressions</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Clicks</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">CTR</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Spend</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ROI</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {[
+                  { name: 'Summer Product Launch', status: 'Active', impressions: 45680, clicks: 2340, ctr: 5.12, spend: 1250, roi: 340 },
+                  { name: 'Brand Awareness Q4', status: 'Active', impressions: 38920, clicks: 1890, ctr: 4.86, spend: 980, roi: 285 },
+                  { name: 'Holiday Special Offer', status: 'Paused', impressions: 52340, clicks: 2680, ctr: 5.12, spend: 1450, roi: 420 },
+                  { name: 'New Customer Acquisition', status: 'Active', impressions: 29870, clicks: 1560, ctr: 5.22, spend: 750, roi: 310 },
+                  { name: 'Retargeting Campaign', status: 'Active', impressions: 18450, clicks: 1120, ctr: 6.07, spend: 560, roi: 380 }
+                ].map((campaign, index) => (
+                  <tr key={index} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{campaign.name}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        campaign.status === 'Active' 
+                          ? 'bg-emerald-100 text-emerald-800' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {campaign.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-900 font-medium">{campaign.impressions.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-gray-900 font-medium">{campaign.clicks.toLocaleString()}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-emerald-600 font-semibold">{campaign.ctr}%</span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-900 font-medium">${campaign.spend.toLocaleString()}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-green-600 font-semibold">{campaign.roi}%</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Bottom Insights */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl p-6 text-white">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h4 className="text-lg font-semibold">Top Performer</h4>
+            </div>
+            <p className="text-2xl font-bold mb-2">Holiday Special Offer</p>
+            <p className="text-emerald-100 text-sm">420% ROI • 52.3K impressions</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl p-6 text-white">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h4 className="text-lg font-semibold">Best CTR</h4>
+            </div>
+            <p className="text-2xl font-bold mb-2">6.07%</p>
+            <p className="text-teal-100 text-sm">Retargeting Campaign</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500 to-teal-600 rounded-xl p-6 text-white">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+              </div>
+              <h4 className="text-lg font-semibold">Cost Efficiency</h4>
+            </div>
+            <p className="text-2xl font-bold mb-2">$0.45</p>
+            <p className="text-green-100 text-sm">Average cost per click</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdAnalyticsPage;

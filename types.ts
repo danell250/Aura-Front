@@ -6,8 +6,10 @@ export interface User {
   name: string;
   handle: string;
   avatar: string;
+  avatarKey?: string;
   avatarType?: 'image' | 'video';
   coverImage?: string; 
+  coverKey?: string;
   coverType?: 'image' | 'video';
   bio?: string;
   dob?: string;

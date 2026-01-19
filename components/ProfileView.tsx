@@ -457,9 +457,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({
       const result = await uploadService.uploadFile(file, 'avatars');
       const isVideo = file.type.startsWith('video/') || /\.mp4$/i.test(file.name);
       const typeProp = field === 'avatar' ? 'avatarType' : 'coverType';
+      const keyProp = field === 'avatar' ? 'avatarKey' : 'coverKey';
       const updates: Partial<User> = {
         [field]: result.url,
-        [typeProp]: isVideo ? 'video' : 'image'
+        [typeProp]: isVideo ? 'video' : 'image',
+        [keyProp]: result.filename
       } as any;
 
       if (field === 'avatar') {

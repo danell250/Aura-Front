@@ -25,6 +25,11 @@ export const fetchWithCredentials = async (url: string, options: RequestInit = {
   // Merge with any existing headers
   Object.assign(headers, options.headers || {});
   
+  // If body is FormData, delete Content-Type to let browser set boundary
+  if (options.body instanceof FormData) {
+    delete headers['Content-Type'];
+  }
+  
   let response = await fetch(url, {
     ...options,
     credentials: 'include' as RequestCredentials,

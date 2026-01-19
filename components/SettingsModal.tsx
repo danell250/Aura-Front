@@ -4,6 +4,7 @@ import { User } from '../types';
 import { COUNTRIES, INDUSTRIES } from '../constants';
 import { uploadService } from '../services/upload';
 import { apiFetch } from '../utils/api';
+import { UserService } from '../services/userService';
 
 interface SettingsModalProps {
   currentUser: User;
@@ -104,63 +105,55 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
     }
     
     try {
-      // Upload file to backend
-      console.log('Starting upload...');
-      const uploadResult = await uploadService.uploadFile(file);
-      console.log('Upload successful:', uploadResult);
-      
-      // Consistent detection logic
+      // Optimistic update
+      const previewUrl = URL.createObjectURL(file);
       const isVideoFile = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
       const type = isVideoFile ? 'video' : 'image';
-      
       const typeProperty = field === 'avatar' ? 'avatarType' : 'coverType';
-      
-      // Update form with persistent URL
+
       setForm(prev => ({ 
         ...prev, 
-        [field]: uploadResult.url, 
+        [field]: previewUrl, 
         [typeProperty]: type 
       }));
-      console.log('Form updated with persistent URL:', { [field]: uploadResult.url, [typeProperty]: type });
+
+      // Upload file to backend via new specialized endpoint
+      console.log('Starting optimized upload...');
       
-      // Immediately update parent component to persist the change
-      const updates: Partial<User> = {
-        [field]: uploadResult.url,
-        [typeProperty]: type
-      };
-      onUpdate(updates);
+      const formData = new FormData();
+      // Map field name to backend expectation ('profile' or 'cover')
+      const backendField = field === 'avatar' ? 'profile' : 'cover';
+      formData.append(backendField, file);
+
+      const result = await UserService.uploadProfileImages(formData);
+      
+      if (result.success && result.user) {
+        console.log('Upload successful:', result.user);
+        
+        // Update form with real URL from backend
+        setForm(prev => ({ 
+          ...prev, 
+          [field]: result.user![field], 
+          [typeProperty]: result.user![typeProperty] 
+        }));
+        
+        // Propagate update to parent
+        onUpdate({
+          [field]: result.user![field],
+          [typeProperty]: result.user![typeProperty]
+        });
+      } else {
+        throw new Error(result.error || 'Upload failed');
+      }
       
     } catch (error) {
       console.error('Upload failed:', error);
-      
-      // For fallback, create a data URL that can be base64 encoded and saved
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        const isVideoFile = file.type.startsWith('video/') || file.name.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null;
-        const type = isVideoFile ? 'video' : 'image';
-        
-        const typeProperty = field === 'avatar' ? 'avatarType' : 'coverType';
-        
-        // Use data URL for fallback (this can be saved to localStorage)
-        setForm(prev => ({ 
-          ...prev, 
-          [field]: dataUrl, 
-          [typeProperty]: type 
-        }));
-        console.log('Fallback form updated with data URL:', { [field]: dataUrl, [typeProperty]: type });
-        
-        // Immediately update parent with data URL
-        const updates: Partial<User> = {
-          [field]: dataUrl,
-          [typeProperty]: type
-        };
-        onUpdate(updates);
-      };
-      reader.readAsDataURL(file);
+      alert('Upload failed. Please try again.');
+      // Revert optimistic update if needed, or handle error gracefully
     } finally {
       // Clear uploading state
       setUploadingField(null);
+      e.target.value = ''; // Reset input
     }
   };
 

@@ -9,7 +9,7 @@ interface MetaTagsProps {
 }
 
 export const useMetaTags = ({ 
-  title = 'Aura | Connect & Radiate', 
+  title = 'Aura', 
   description = 'Establish your professional frequency on Aura, the world\'s most elegant social network. Connect, radiate, and broadcast your professional pulse.',
   image = 'https://auraradiance.vercel.app/og-image.jpg',
   url = 'https://auraradiance.vercel.app',

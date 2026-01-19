@@ -265,7 +265,7 @@ const App: React.FC = () => {
       lastName: 'Support',
       name: 'Aura Support',
       handle: '@aurasupport',
-      avatar: '/og-image.svg',
+      avatar: '/og-image.jpg',
       avatarType: 'image',
       bio: 'Aura Support',
       email: AURA_SUPPORT_EMAIL,

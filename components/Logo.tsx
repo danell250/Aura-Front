@@ -62,9 +62,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', showText = true, size = 'md
               Social
             </span>
           </div>
-          <p className="mt-1 text-[9px] font-medium tracking-[0.22em] uppercase text-slate-400 dark:text-slate-500">
-            Connect & Radiate
-          </p>
+          {/* Connect & Radiate text removed */}
         </div>
       )}
     </div>

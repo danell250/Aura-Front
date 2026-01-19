@@ -191,7 +191,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
 
     const finalForm = {
       ...form,
-      handle: normalizedHandle || originalHandleRef.current
+      handle: normalizedHandle || originalHandleRef.current,
+      // Ensure we don't save blob URLs to the backend if the user clicks Save after a failed upload
+      avatar: form.avatar?.startsWith('blob:') ? currentUser.avatar : form.avatar,
+      coverImage: form.coverImage?.startsWith('blob:') ? currentUser.coverImage : form.coverImage
     };
 
     onUpdate(finalForm);

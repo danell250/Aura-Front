@@ -105,21 +105,41 @@ export const uploadService = {
     const backendHost = backendBase ? backendBase.replace(/\/api\/?$/, '') : '';
     const getUrlEndpoint = backendHost ? `${backendHost}/api/media/upload-url` : '/api/media/upload-url';
 
-    const r = await fetch(getUrlEndpoint, { 
-      method: "POST", 
-      headers: { "Content-Type": "application/json" }, 
-      body: JSON.stringify({ 
-        userId, 
-        fileName: fileForUpload.name, 
-        contentType: fileForUpload.type, 
-        folder,
-        entityId
-      }) 
-    }); 
+    console.log('[Upload] Requesting upload URL:', getUrlEndpoint, { userId, fileName: fileForUpload.name, folder });
+
+    let r;
+    try {
+      r = await fetch(getUrlEndpoint, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          userId, 
+          fileName: fileForUpload.name, 
+          contentType: fileForUpload.type, 
+          folder,
+          entityId
+        }) 
+      });
+    } catch (netErr) {
+      console.error('[Upload] Network error requesting upload URL:', netErr);
+      throw new Error(`Network error: ${netErr instanceof Error ? netErr.message : String(netErr)}`);
+    }
+
+    if (!r.ok) {
+      console.error('[Upload] Failed to get upload URL. Status:', r.status, r.statusText);
+      const text = await r.text();
+      console.error('[Upload] Response body:', text);
+      throw new Error(`Failed to get upload URL: ${r.status} ${r.statusText} - ${text.slice(0, 100)}`);
+    }
   
     const data = await r.json(); 
-    if (!data.success) throw new Error(data.error || "Failed to get upload url"); 
+    if (!data.success) {
+      console.error('[Upload] API returned error:', data);
+      throw new Error(data.error || "Failed to get upload url"); 
+    }
   
+    console.log('[Upload] Got signed URL, uploading to S3...');
+
     // 2) Upload file directly to S3 
     const put = await fetch(data.uploadUrl, { 
       method: "PUT", 
@@ -127,7 +147,12 @@ export const uploadService = {
       body: fileForUpload 
     }); 
   
-    if (!put.ok) throw new Error("S3 upload failed"); 
+    if (!put.ok) {
+      console.error('[Upload] S3 upload failed. Status:', put.status, put.statusText);
+      throw new Error(`S3 upload failed: ${put.status} ${put.statusText}`);
+    }
+    
+    console.log('[Upload] S3 upload successful'); 
   
     // 3) This is what you save in MongoDB 
     return { 

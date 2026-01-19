@@ -20,6 +20,13 @@ interface AdAnalyticsPageProps {
 type AnalyticsTab = 'overview' | 'ads' | 'details';
 
 const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = [], onDeleteAd }) => {
+  const n = (v: any, fallback = 0) => {
+    const x = Number(v);
+    return Number.isFinite(x) ? x : fallback;
+  };
+
+  const fixed = (v: any, digits = 2) => n(v, 0).toFixed(digits);
+
   const API_BASE_URL = getApiBaseUrl();
   const SOCKET_BASE_URL = API_BASE_URL.endsWith('/api')
     ? API_BASE_URL.replace(/\/api$/, '')
@@ -53,12 +60,14 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
     let cancelled = false;
     let isRunning = false;
 
-    const load = async () => {
+    const load = async (showLoading = false) => {
       if (cancelled || isRunning) return;
       isRunning = true;
       try {
-        setLoadingCampaign(true);
-        setLoadingAds(true);
+        if (showLoading) {
+          setLoadingCampaign(true);
+          setLoadingAds(true);
+        }
         const [campaign, performance] = await Promise.all([
           adAnalyticsService.getCampaignPerformance(currentUser.id),
           adAnalyticsService.getUserAdPerformance(currentUser.id)
@@ -71,7 +80,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
           console.error('[AdAnalyticsPage] Failed to load analytics', e);
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && showLoading) {
           setLoadingCampaign(false);
           setLoadingAds(false);
         }
@@ -79,14 +88,17 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
       }
     };
 
-    load();
-    const id = window.setInterval(load, 4000);
+    load(true);
+
+    if (selectedAdId) return;
+
+    const id = window.setInterval(() => load(false), 30000);
 
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [currentUser.id]);
+  }, [currentUser.id, selectedAdId]);
 
   useEffect(() => {
     if (!currentUser.id) return;
@@ -107,10 +119,28 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
       setSelectedAdAnalytics(null);
       return;
     }
-    setLoadingDetails(true);
-    adAnalyticsService.getAdAnalytics(selectedAdId).then(setSelectedAdAnalytics).finally(() => {
-      setLoadingDetails(false);
-    });
+
+    let cancelled = false;
+
+    const loadOne = async (isInitial = false) => {
+      if (isInitial) setLoadingDetails(true);
+      try {
+        const data = await adAnalyticsService.getAdAnalytics(selectedAdId);
+        if (!cancelled) setSelectedAdAnalytics(data);
+      } catch (e) {
+        console.error('[AdAnalyticsPage] Failed to load single ad analytics', e);
+      } finally {
+        if (isInitial && !cancelled) setLoadingDetails(false);
+      }
+    };
+
+    loadOne(true);
+    const id = window.setInterval(() => loadOne(false), 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
   }, [selectedAdId]);
 
   useEffect(() => {
@@ -266,7 +296,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
   const canCreate = remainingAds !== null && remainingAds > 0;
 
   const ctrRatio = averageCTR > 1 ? averageCTR / 100 : averageCTR;
-  const formattedAverageCTR = (ctrRatio * 100).toFixed(2);
+  const formattedAverageCTR = fixed(ctrRatio * 100);
   const fatigueIndex = Math.min(100, totalImpressions > 0 ? ((totalImpressions - totalClicks) / Math.max(1, totalImpressions)) * 100 : 0);
   const momentumScore = Math.min(100, activeAdsCount * 10 + (totalClicks / Math.max(1, totalImpressions || 1)) * 50);
   const attentionHalfLifeDays = Math.max(1, Math.round(30 - momentumScore / 2));
@@ -332,7 +362,18 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
       const bValue = (b[sortBy] as number | undefined) ?? 0;
       return bValue - aValue;
     });
-    return sorted;
+
+    // Normalize payload at the boundary to prevent undefined crashes
+    return sorted.map(item => ({
+      ...item,
+      impressions: item.impressions ?? 0,
+      clicks: item.clicks ?? 0,
+      ctr: item.ctr ?? 0,
+      engagement: item.engagement ?? 0,
+      spend: item.spend ?? 0,
+      roi: item.roi ?? 0,
+      createdAt: item.createdAt || Date.now()
+    }));
   }, [adPerformance, sortBy, statusFilter]);
 
   const selectedAd = useMemo(() => {
@@ -533,7 +574,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                     Impressions
                   </p>
                   <p className={value}>
-                    {(totalImpressions || 0).toLocaleString()}
+                    {n(totalImpressions).toLocaleString()}
                   </p>
                   <p className={sub}>
                     Total views across all ads
@@ -544,7 +585,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                     Clicks
                   </p>
                   <p className={value}>
-                    {(totalClicks || 0).toLocaleString()}
+                    {n(totalClicks).toLocaleString()}
                   </p>
                   <p className={sub}>
                     Interactions with your calls to action
@@ -571,7 +612,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                     Engagement
                   </p>
                   <p className={value}>
-                    {(totalEngagement || 0).toLocaleString()}
+                    {n(totalEngagement).toLocaleString()}
                   </p>
                   <p className={sub}>
                     Reactions, comments, and shares
@@ -590,7 +631,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                     </span>
                   </div>
                   <p className="text-3xl font-black text-slate-900">
-                    {totalSpend.toFixed(2)}
+                    {fixed(totalSpend)}
                   </p>
                   <p className={sub}>
                     Approximate total signal spend
@@ -601,7 +642,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                     Reach
                   </p>
                   <p className="text-3xl font-black text-slate-900">
-                    {(totalReach || 0).toLocaleString()}
+                    {n(totalReach).toLocaleString()}
                   </p>
                   <p className={sub}>
                     Estimated unique people touched by your ads
@@ -783,7 +824,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                               border: '1px solid #e2e8f0',
                               boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                             }}
-                            formatter={(value: number) => [`${value.toFixed(2)} credits`, 'Spend']}
+                            formatter={(value: number) => [`${fixed(value)} credits`, 'Spend']}
                           />
                           <Legend 
                             verticalAlign="bottom" 
@@ -863,7 +904,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                               Impr
                             </p>
                             <p className="text-lg font-black text-slate-900 dark:text-white">
-                              {(ad.impressions || 0).toLocaleString()}
+                              {n(ad.impressions).toLocaleString()}
                             </p>
                           </div>
                           <div>
@@ -871,7 +912,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                               Clicks
                             </p>
                             <p className="text-lg font-black text-slate-900 dark:text-white">
-                              {ad.clicks.toLocaleString()}
+                              {n(ad.clicks).toLocaleString()}
                             </p>
                           </div>
                           <div>
@@ -879,7 +920,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                               CTR
                             </p>
                             <p className="text-lg font-black text-slate-900 dark:text-white">
-                              {ad.ctr.toFixed(2)}%
+                              {fixed(ad.ctr)}%
                             </p>
                           </div>
                           <div>
@@ -887,7 +928,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                               Eng
                             </p>
                             <p className="text-lg font-black text-slate-900 dark:text-white">
-                              {ad.engagement.toLocaleString()}
+                              {n(ad.engagement).toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -1022,22 +1063,22 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                           </span>
                         </td>
                         <td className="py-3 pr-4">
-                          {(metric.impressions || 0).toLocaleString()}
+                          {n(metric.impressions).toLocaleString()}
                         </td>
                         <td className="py-3 pr-4">
-                          {(metric.clicks || 0).toLocaleString()}
+                          {n(metric.clicks).toLocaleString()}
                         </td>
                         <td className="py-3 pr-4">
-                          {(metric.ctr || 0).toFixed(2)}%
+                          {fixed(metric.ctr)}%
                         </td>
                         <td className="py-3 pr-4">
-                          {(metric.engagement || 0).toLocaleString()}
+                          {n(metric.engagement).toLocaleString()}
                         </td>
                         <td className="py-3 pr-4">
-                          {(metric.spend || 0).toFixed(2)}
+                          {fixed(metric.spend)}
                         </td>
                         <td className="py-3 pr-4">
-                          {(metric.roi || 0).toFixed(2)}
+                          {fixed(metric.roi)}
                         </td>
                         <td className="py-3 pl-4">
                           <div className="flex items-center justify-end gap-2">
@@ -1159,7 +1200,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                       Impressions
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {(selectedAdAnalytics.impressions || 0).toLocaleString()}
+                      {n(selectedAdAnalytics.impressions).toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -1167,7 +1208,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                       Clicks
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {(selectedAdAnalytics.clicks || 0).toLocaleString()}
+                      {n(selectedAdAnalytics.clicks).toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -1175,7 +1216,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                       CTR
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {(selectedAdAnalytics.ctr || 0).toFixed(2)}%
+                      {fixed(selectedAdAnalytics.ctr)}%
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -1183,7 +1224,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                       Engagement
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {(selectedAdAnalytics.engagement || 0).toLocaleString()}
+                      {n(selectedAdAnalytics.engagement).toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -1191,7 +1232,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                       Reach
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {(selectedAdAnalytics.reach || 0).toLocaleString()}
+                      {n(selectedAdAnalytics.reach).toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -1199,7 +1240,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                       Conversions
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {(selectedAdAnalytics.conversions || 0).toLocaleString()}
+                      {n(selectedAdAnalytics.conversions).toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -1207,7 +1248,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                       Spend
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {selectedAdAnalytics.spend.toFixed(2)}
+                      {fixed(selectedAdAnalytics?.spend)}
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -1215,7 +1256,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                       Last Updated
                     </p>
                     <p className="text-xs font-semibold text-slate-900 dark:text-white">
-                      {new Date(selectedAdAnalytics.lastUpdated).toLocaleString()}
+                      {selectedAdAnalytics?.lastUpdated ? new Date(selectedAdAnalytics.lastUpdated).toLocaleString() : '—'}
                     </p>
                   </div>
                 </div>
@@ -1249,10 +1290,10 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                       </div>
                       <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between mt-1">
                         <span>
-                          {metric.impressions.toLocaleString()} views
+                          {n(metric.impressions).toLocaleString()} views
                         </span>
                         <span>
-                          {metric.ctr.toFixed(2)}% CTR
+                          {fixed(metric.ctr)}% CTR
                         </span>
                       </div>
                     </button>

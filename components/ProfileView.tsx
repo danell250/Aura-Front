@@ -484,7 +484,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
         }
       }
     } catch (err) {
-      alert('Upload failed');
+      console.error('Upload error:', err);
+      alert(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       if (field === 'avatar') {
         setIsAvatarUploading(false);
@@ -929,7 +930,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-8">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">About</h3>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-base">
-                  {user.bio || 'No bio available.'}
+                  {typeof user.bio === 'string' ? user.bio : (user.bio ? JSON.stringify(user.bio) : 'No bio available.')}
                 </p>
               </div>
 

@@ -11,7 +11,6 @@ const TrendingTopics: React.FC<TrendingTopicsProps> = ({
   className = ''
 }) => {
   const [trendingTopics, setTrendingTopics] = useState<TrendingTopic[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchTrends = async () => {
@@ -20,8 +19,6 @@ const TrendingTopics: React.FC<TrendingTopicsProps> = ({
         setTrendingTopics(topics);
       } catch (error) {
         console.error('Failed to fetch trending topics', error);
-      } finally {
-        setLoading(false);
       }
     };
 

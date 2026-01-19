@@ -5,9 +5,10 @@ import { adAnalyticsService, CampaignPerformance } from '../services/adAnalytics
 interface AdAnalyticsPageProps {
   currentUser: User;
   ads: Ad[];
+  onDeleteAd: (id: string) => Promise<void>;
 }
 
-const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) => {
+const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onDeleteAd }) => {
   const [campaignData, setCampaignData] = useState<CampaignPerformance | null>(null);
   const [selectedTimeframe, setSelectedTimeframe] = useState<'7d' | '30d' | '90d'>('30d');
   const [loading, setLoading] = useState(true);
@@ -98,6 +99,22 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
     );
   }
 
+  if (!campaignData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 font-medium">Failed to load analytics data.</p>
+          <button
+            onClick={loadAnalyticsData}
+            className="mt-4 px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg font-medium hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -140,7 +157,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
               <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+12.5%</span>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-1">
-              {campaignData?.totalImpressions.toLocaleString() || '0'}
+              {campaignData.totalImpressions.toLocaleString()}
             </h3>
             <p className="text-gray-600 text-sm font-medium">Total Impressions</p>
           </div>
@@ -155,7 +172,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
               <span className="text-xs font-medium text-teal-600 bg-teal-50 px-2 py-1 rounded-full">+8.3%</span>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-1">
-              {campaignData?.totalClicks.toLocaleString() || '0'}
+              {campaignData.totalClicks.toLocaleString()}
             </h3>
             <p className="text-gray-600 text-sm font-medium">Total Clicks</p>
           </div>
@@ -170,7 +187,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
               <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">+15.2%</span>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-1">
-              {campaignData?.averageCTR.toFixed(2) || '0.00'}%
+              {campaignData.averageCTR.toFixed(2)}%
             </h3>
             <p className="text-gray-600 text-sm font-medium">Click-Through Rate</p>
           </div>
@@ -185,7 +202,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
               <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+5.7%</span>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-1">
-              ${campaignData?.totalSpend.toLocaleString() || '0'}
+              {campaignData.totalSpend.toLocaleString()}
             </h3>
             <p className="text-gray-600 text-sm font-medium">Total Spend</p>
           </div>
@@ -198,19 +215,19 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
             <h3 className="text-lg font-semibold text-gray-900 mb-6">Performance Score</h3>
             <div className="flex justify-center">
               <ProgressRing
-                percentage={campaignData?.performanceScore || 0}
+                percentage={campaignData.performanceScore}
                 size={140}
                 strokeWidth={10}
                 label="Overall Score"
-                value={`${campaignData?.performanceScore || 0}`}
+                value={`${campaignData.performanceScore}`}
                 color="emerald"
               />
             </div>
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                {(campaignData?.performanceScore || 0) >= 80 ? 'Excellent' : 
-                 (campaignData?.performanceScore || 0) >= 60 ? 'Good' : 
-                 (campaignData?.performanceScore || 0) >= 40 ? 'Average' : 'Needs Improvement'}
+                {campaignData.performanceScore >= 80 ? 'Excellent' : 
+                 campaignData.performanceScore >= 60 ? 'Good' : 
+                 campaignData.performanceScore >= 40 ? 'Average' : 'Needs Improvement'}
               </p>
             </div>
           </div>
@@ -221,7 +238,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Reach</span>
-                <span className="text-sm font-bold text-gray-900">{campaignData?.totalReach.toLocaleString()}</span>
+                <span className="text-sm font-bold text-gray-900">{campaignData.totalReach.toLocaleString()}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-gradient-to-r from-emerald-500 to-green-500 h-2 rounded-full" style={{ width: '75%' }}></div>
@@ -229,7 +246,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
               
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Engagement</span>
-                <span className="text-sm font-bold text-gray-900">{campaignData?.totalEngagement.toLocaleString()}</span>
+                <span className="text-sm font-bold text-gray-900">{campaignData.totalEngagement.toLocaleString()}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-gradient-to-r from-teal-500 to-emerald-500 h-2 rounded-full" style={{ width: '68%' }}></div>
@@ -237,7 +254,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
               
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Active Ads</span>
-                <span className="text-sm font-bold text-gray-900">{campaignData?.activeAds || 0}</span>
+                <span className="text-sm font-bold text-gray-900">{campaignData.activeAds}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-gradient-to-r from-green-500 to-teal-500 h-2 rounded-full" style={{ width: '85%' }}></div>
@@ -293,7 +310,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
               </div>
             </div>
             <div className="h-64 flex items-end justify-between gap-2">
-              {campaignData?.trendData.map((data, index) => {
+              {campaignData.trendData.map((data, index) => {
                 const maxValue = Math.max(...campaignData.trendData.map(d => Math.max(d.impressions, d.clicks * 10, d.engagement * 5)));
                 const impressionHeight = (data.impressions / maxValue) * 100;
                 const clickHeight = (data.clicks * 10 / maxValue) * 100;
@@ -512,6 +529,55 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads }) =
             </div>
             <p className="text-2xl font-bold mb-2">$0.45</p>
             <p className="text-green-100 text-sm">Average cost per click</p>
+          </div>
+        </div>
+
+        {/* Active Ads Management */}
+        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900">Quick Management</h3>
+            <p className="text-sm text-gray-500 mt-1">Manage your active ads directly from analytics</p>
+          </div>
+          <div className="p-6">
+            {ads.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No active ads found.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {ads.map(ad => (
+                  <div key={ad.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-bold text-gray-900 truncate pr-2">{ad.headline}</h4>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          ad.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {ad.status.charAt(0).toUpperCase() + ad.status.slice(1)}
+                        </span>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to delete this ad?')) {
+                            onDeleteAd(ad.id);
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded transition-colors"
+                        title="Delete Ad"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 line-clamp-2 mb-3">{ad.description}</p>
+                    <div className="text-xs text-gray-400">
+                      ID: {ad.id.slice(0, 8)}...
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

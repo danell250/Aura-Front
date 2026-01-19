@@ -119,7 +119,7 @@ const App: React.FC = () => {
   
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy' | 'ad_manager'; targetId?: string}>({ type: 'feed' });
 
-  usePageTitle();
+  usePageTitle(view.type);
 
   useEffect(() => {
     if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {

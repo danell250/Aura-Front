@@ -17,7 +17,7 @@ declare global {
 interface AdManagerProps {
   currentUser: User;
   ads: Ad[];
-  onAdCreated: (ad: Ad) => Promise<boolean>;
+  onAdCreated: (ad: Ad) => Promise<boolean | { success: boolean; error?: string }>;
   onAdCancelled: (adId: string) => void;
   onAdUpdated?: (adId: string, updates: Partial<Ad>) => Promise<boolean>;
   onClose: () => void;
@@ -625,13 +625,23 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
     };
 
     try {
-      const ok = await onAdCreated(finalAd);
-      if (ok) {
+      const result = await onAdCreated(finalAd);
+      const success = typeof result === 'object' ? result.success : result;
+      const error = typeof result === 'object' ? result.error : undefined;
+
+      if (success) {
         await loadActiveSubscriptions();
         onClose();
       } else {
         console.warn("❌ Ad creation failed, keeping modal open");
-        alert("Failed to publish ad. Please try again.");
+        if (error && (error.includes('Plan limit reached') || error.includes('limit reached'))) {
+            if (confirm(`${error}\n\nWould you like to view upgrade options?`)) {
+                if (onGoToAdPlans) onGoToAdPlans();
+                else window.location.href = '/ad-plans';
+            }
+        } else {
+            alert(error || "Failed to publish ad. Please try again.");
+        }
       }
     } catch (err) {
       console.error("❌ Error during ad creation:", err);

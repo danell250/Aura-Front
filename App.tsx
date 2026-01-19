@@ -1382,14 +1382,18 @@ const App: React.FC = () => {
         // Replace local ad with data from backend
         setAds(prev => prev.map(a => a.id === ad.id ? { ...result.data, status: 'active' } : a));
         setAdSubsRefreshTick(prev => prev + 1);
-        return true;
+        return { success: true };
       } else {
         console.error('Failed to create ad on backend:', result.error);
-        return false;
+        // Revert optimistic update
+        setAds(prev => prev.filter(a => a.id !== newAd.id));
+        return { success: false, error: result.error };
       }
     } catch (error) {
       console.error('Failed to save ad to backend:', error);
-      return false;
+      // Revert optimistic update
+      setAds(prev => prev.filter(a => a.id !== newAd.id));
+      return { success: false, error: 'Network error occurred' };
     }
   }, []);
 

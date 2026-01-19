@@ -289,8 +289,6 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
 
           <TrendingTopics 
-            posts={posts} 
-            ads={ads} 
             onHashtagClick={(hashtag) => {
               if (onSearchTag) {
                 onSearchTag(hashtag);

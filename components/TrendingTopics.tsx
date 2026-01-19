@@ -1,23 +1,42 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TrendingService, TrendingTopic } from '../services/trendingService';
-import { Post, Ad } from '../types';
 
 interface TrendingTopicsProps {
-  posts: Post[];
-  ads: Ad[];
-  onHashtagClick: (hashtag: string) => void;
+  onHashtagClick?: (hashtag: string) => void;
   className?: string;
 }
 
 const TrendingTopics: React.FC<TrendingTopicsProps> = ({
-  posts,
-  ads,
   onHashtagClick,
   className = ''
 }) => {
-  const trendingTopics = useMemo(() => {
-    return TrendingService.getTrendingTopics(posts, ads);
-  }, [posts, ads]);
+  const [trendingTopics, setTrendingTopics] = useState<TrendingTopic[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTrends = async () => {
+      try {
+        const topics = await TrendingService.fetchTrendingTopics();
+        setTrendingTopics(topics);
+      } catch (error) {
+        console.error('Failed to fetch trending topics', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrends();
+    
+    // Refresh every 2 minutes to keep it relatively fresh
+    const interval = setInterval(fetchTrends, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleHashtagClick = (hashtag: string) => {
+    if (onHashtagClick) {
+      onHashtagClick(hashtag);
+    }
+  };
 
   const getCategoryIndicator = (category: TrendingTopic['category']) => {
     switch (category) {

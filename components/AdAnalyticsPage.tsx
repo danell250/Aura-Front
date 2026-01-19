@@ -6,6 +6,10 @@ import { getApiBaseUrl } from '../constants';
 import { io } from 'socket.io-client';
 import Ring from './analytics/Ring';
 import MiniBars from './analytics/MiniBars';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
+  BarChart, Bar, PieChart, Pie, Cell, Legend 
+} from 'recharts';
 
 interface AdAnalyticsPageProps {
   currentUser: User;
@@ -631,6 +635,170 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                 />
               </div>
 
+              {/* Advanced Analytics Charts */}
+              {campaignPerformance?.trendData && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Trend Line Chart */}
+                  <div className={`${card} ${cardPad} col-span-1 lg:col-span-2`}>
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-[0.2em]">Performance Trends</h3>
+                        <p className="text-xs text-slate-500 mt-1">Impressions vs Clicks over time</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                          <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Impressions</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                          <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Clicks</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={campaignPerformance.trendData as any[]}>
+                          <defs>
+                            <linearGradient id="colorImpressions" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis 
+                            dataKey="date" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{fontSize: 10, fill: '#64748b'}} 
+                            dy={10}
+                          />
+                          <YAxis 
+                            yAxisId="left"
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{fontSize: 10, fill: '#64748b'}} 
+                            dx={-10}
+                          />
+                          <YAxis 
+                            yAxisId="right" 
+                            orientation="right" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{fontSize: 10, fill: '#64748b'}} 
+                            dx={10}
+                          />
+                          <RechartsTooltip 
+                            contentStyle={{
+                              backgroundColor: '#fff', 
+                              borderRadius: '12px', 
+                              border: '1px solid #e2e8f0',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                            }}
+                            itemStyle={{fontSize: '12px', fontWeight: 600}}
+                            labelStyle={{fontSize: '11px', color: '#64748b', marginBottom: '8px'}}
+                          />
+                          <Area 
+                            yAxisId="left"
+                            type="monotone" 
+                            dataKey="impressions" 
+                            stroke="#10b981" 
+                            strokeWidth={2}
+                            fillOpacity={1} 
+                            fill="url(#colorImpressions)" 
+                          />
+                          <Area 
+                            yAxisId="right"
+                            type="monotone" 
+                            dataKey="clicks" 
+                            stroke="#3b82f6" 
+                            strokeWidth={2}
+                            fillOpacity={1} 
+                            fill="url(#colorClicks)" 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Top Ads Bar Chart */}
+                  <div className={`${card} ${cardPad}`}>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-[0.2em] mb-6">Top Performing Ads</h3>
+                    <div className="h-[250px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={adPerformance.slice(0, 5)} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+                          <XAxis type="number" hide />
+                          <YAxis 
+                            dataKey="adName" 
+                            type="category" 
+                            width={80} 
+                            tick={{fontSize: 10, fill: '#64748b'}} 
+                            axisLine={false} 
+                            tickLine={false}
+                          />
+                          <RechartsTooltip 
+                            cursor={{fill: '#f1f5f9'}}
+                            contentStyle={{
+                              backgroundColor: '#fff', 
+                              borderRadius: '12px', 
+                              border: '1px solid #e2e8f0',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                            }}
+                          />
+                          <Bar dataKey="engagement" name="Engagement" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={20} />
+                          <Bar dataKey="clicks" name="Clicks" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Spend Distribution Donut */}
+                  <div className={`${card} ${cardPad}`}>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-[0.2em] mb-6">Spend Distribution</h3>
+                    <div className="h-[250px] w-full flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={adPerformance.slice(0, 5) as any[]}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="spend"
+                          >
+                            {adPerformance.slice(0, 5).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'][index % 5]} />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip 
+                            contentStyle={{
+                              backgroundColor: '#fff', 
+                              borderRadius: '12px', 
+                              border: '1px solid #e2e8f0',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                            }}
+                            formatter={(value: number) => [`${value.toFixed(2)} credits`, 'Spend']}
+                          />
+                          <Legend 
+                            verticalAlign="bottom" 
+                            height={36} 
+                            iconType="circle"
+                            iconSize={8}
+                            formatter={(value) => <span className="text-xs text-slate-500 ml-1">{value}</span>}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
@@ -991,7 +1159,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                       Impressions
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {selectedAdAnalytics.impressions.toLocaleString()}
+                      {(selectedAdAnalytics.impressions || 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -999,7 +1167,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                       Clicks
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {selectedAdAnalytics.clicks.toLocaleString()}
+                      {(selectedAdAnalytics.clicks || 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -1007,7 +1175,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                       CTR
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {selectedAdAnalytics.ctr.toFixed(2)}%
+                      {(selectedAdAnalytics.ctr || 0).toFixed(2)}%
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -1015,7 +1183,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                       Engagement
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {selectedAdAnalytics.engagement.toLocaleString()}
+                      {(selectedAdAnalytics.engagement || 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -1023,7 +1191,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                       Reach
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {selectedAdAnalytics.reach.toLocaleString()}
+                      {(selectedAdAnalytics.reach || 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">
@@ -1031,7 +1199,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                       Conversions
                     </p>
                     <p className="text-xl font-bold text-slate-900 dark:text-white">
-                      {selectedAdAnalytics.conversions.toLocaleString()}
+                      {(selectedAdAnalytics.conversions || 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 flex flex-col gap-2 min-w-0">

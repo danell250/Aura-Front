@@ -87,6 +87,9 @@ export enum EnergyType {
 export interface MediaItem {
   url: string;
   type: 'image' | 'video';
+  key?: string;
+  mimeType?: string;
+  size?: number;
   caption?: string;
   headline?: string;
 }
@@ -99,6 +102,9 @@ export interface Post {
   content: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'document';
+  mediaKey?: string;
+  mediaMimeType?: string;
+  mediaSize?: number;
   mediaItems?: MediaItem[];
   energy: EnergyType;
   radiance: number; 
@@ -148,6 +154,9 @@ export interface Ad {
   description: string;
   mediaUrl: string;
   mediaType?: 'image' | 'video';
+  mediaKey?: string;
+  mediaMimeType?: string;
+  mediaSize?: number;
   ctaText: string;
   ctaLink: string;
   isSponsored: true;

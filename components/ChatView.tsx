@@ -265,14 +265,19 @@ const ChatView: React.FC<ChatViewProps> = ({
 
       for (const file of attachments) {
         try {
-          const result = await uploadService.uploadFile(file, 'posts');
+          // Use 'chat' folder and currentUser.id as entityId for consistent S3 keys: chat/{userId}/{uuid}
+          const result = await uploadService.uploadFile(file, 'chat', currentUser.id);
           const messageType = result.mimetype.startsWith('image') ? 'image' : 'file';
           const response = await MessageService.sendMessage(
             currentUser.id,
             activeContact.id,
             file.name,
             messageType,
-            result.url
+            result.url,
+            undefined,
+            result.key,
+            result.mimetype,
+            result.size
           );
           if (response.success) {
             createdMessages.push(response.data);

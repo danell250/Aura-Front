@@ -377,7 +377,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
 
                             setUploadingMedia(true);
                             try {
-                              const result = await uploadService.uploadFile(file, 'posts');
+                              const result = await uploadService.uploadFile(file, 'ads', editingAd.id);
                               const mt = result.mimetype;
                               const asType: 'image' | 'video' = mt.startsWith('video') ? 'video' : 'image';
                               setEditForm({ ...editForm, mediaUrl: result.url, mediaType: asType });

@@ -29,7 +29,17 @@ export class MessageService {
   }
 
   // Send a new message
-  static async sendMessage(senderId: string, receiverId: string, text: string, messageType = 'text', mediaUrl?: string, replyTo?: string) {
+  static async sendMessage(
+    senderId: string, 
+    receiverId: string, 
+    text: string, 
+    messageType = 'text', 
+    mediaUrl?: string, 
+    replyTo?: string,
+    mediaKey?: string,
+    mediaMimeType?: string,
+    mediaSize?: number
+  ) {
     try {
       const response = await apiFetch('/messages', {
         method: 'POST',
@@ -39,6 +49,9 @@ export class MessageService {
           text,
           messageType,
           mediaUrl,
+          mediaKey,
+          mediaMimeType,
+          mediaSize,
           replyTo
         }),
       });

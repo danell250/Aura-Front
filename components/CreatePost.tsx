@@ -11,9 +11,13 @@ import ModernTextarea from './ModernTextarea';
 import MediaUploader from './MediaUploader';
 
 interface CreatePostPayload {
+  id?: string;
   content: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'document';
+  mediaKey?: string;
+  mediaMimeType?: string;
+  mediaSize?: number;
   taggedUserIds?: string[];
   documentName?: string;
   energy?: EnergyType;
@@ -59,7 +63,14 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingType, setProcessingType] = useState<'image' | 'video' | 'document' | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<{ url: string, type: 'image' | 'video' | 'document', name?: string } | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<{ 
+    url: string; 
+    type: 'image' | 'video' | 'document'; 
+    name?: string;
+    key?: string;
+    mimeType?: string;
+    size?: number;
+  } | null>(null);
   const [selectedMediaItems, setSelectedMediaItems] = useState<SelectedMedia[]>([]);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedEnergy, setSelectedEnergy] = useState<EnergyType>(EnergyType.NEUTRAL);
@@ -73,6 +84,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionSuggestions, setMentionSuggestions] = useState<User[]>([]);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Generate a consistent ID for the post to ensure S3 keys match
+  const [draftPostId, setDraftPostId] = useState(() => `post-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -158,8 +172,14 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
   const handleSubmit = async () => {
     if ((!content.trim() && !mediaPreview && selectedMediaItems.length === 0) || isProcessingMedia || isSubmitting) return;
 
+    // Use the draft ID to ensure S3 keys match
+    const postId = draftPostId;
+
     let finalMediaUrl = mediaPreview?.url;
     let finalMediaType = mediaPreview?.type;
+    let finalMediaKey: string | undefined;
+    let finalMediaMime: string | undefined;
+    let finalMediaSize: number | undefined;
     let finalMediaItems: MediaItem[] | undefined = undefined;
 
     if (selectedMediaItems.length > 0) {
@@ -174,10 +194,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
 
         const uploadedItems = await Promise.all(
           selectedMediaItems.map(async (item) => {
-            const result = await uploadService.uploadFile(item.file, 'posts');
+            const result = await uploadService.uploadFile(item.file, 'posts', postId);
             return {
               url: result.url,
               type: item.type,
+              key: result.key,
+              mimeType: result.mimetype,
+              size: result.size,
               caption: item.caption
             };
           })
@@ -189,6 +212,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
         if (uploadedItems.length > 0) {
           finalMediaUrl = uploadedItems[0].url;
           finalMediaType = uploadedItems[0].type;
+          finalMediaKey = uploadedItems[0].key;
+          finalMediaMime = uploadedItems[0].mimeType;
+          finalMediaSize = uploadedItems[0].size;
         }
       } catch (error) {
         console.error("Upload failed", error);
@@ -216,9 +242,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
     setIsSubmitting(true);
     try {
       await onPost({
+        id: postId,
         content,
         mediaUrl: finalMediaUrl,
         mediaType: finalMediaType,
+        mediaKey: finalMediaKey,
+        mediaMimeType: finalMediaMime,
+        mediaSize: finalMediaSize,
         taggedUserIds,
         documentName: mediaPreview?.name,
         energy: selectedEnergy,
@@ -232,6 +262,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
       setMediaPreview(null);
       setSelectedMediaItems([]);
       setSelectedEnergy(EnergyType.NEUTRAL);
+      // Generate new ID for next post
+      setDraftPostId(`post-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
     } catch (e) {
       console.error('[CreatePost] Post failed', e);
       showToast('error', 'Post failed — try again');
@@ -259,15 +291,24 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
         const file = files[0];
         // Original logic for document
         const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']; 
-        // Note: original code checked image/video types for everything, but passed docInputRef for docs. 
-        // We will just allow it for now or assume validation is less strict here for brevity, 
-        // but let's try to match original validation if possible.
-        // Actually the original code had strict validation.
         
+        if (!allowedTypes.includes(file.type)) {
+             alert(`File ${file.name} has invalid type. Allowed: PDF, DOC, DOCX`);
+             e.target.value = '';
+             return;
+        }
+
         setIsProcessingMedia(true);
         try {
-            const result = await uploadService.uploadFile(file, 'posts');
-            setMediaPreview({ url: result.url, type: 'document', name: file.name });
+            const result = await uploadService.uploadFile(file, 'documents', draftPostId);
+            setMediaPreview({ 
+              url: result.url, 
+              type: 'document', 
+              name: file.name,
+              key: result.key,
+              mimeType: result.mimetype,
+              size: result.size
+            });
         } catch (err) {
             console.error(err);
             alert('Document upload failed');
@@ -546,6 +587,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
         onSubmit={handleTimeCapsuleSubmit}
         currentUser={currentUser}
         allUsers={allUsers}
+        draftPostId={draftPostId}
       />
 
       {toast && (

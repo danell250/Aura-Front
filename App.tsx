@@ -904,6 +904,7 @@ const App: React.FC = () => {
   };
 
   const handlePost = async (payload: {
+    id?: string;
     content: string;
     mediaUrl?: string;
     mediaType?: any;
@@ -912,7 +913,7 @@ const App: React.FC = () => {
     energy?: EnergyType;
     mediaItems?: MediaItem[];
   }): Promise<Post> => {
-    const optimisticId = `temp-${Date.now()}`;
+    const optimisticId = payload.id || `temp-${Date.now()}`;
     const optimisticPost: Post = {
       id: optimisticId,
       author: currentUser,
@@ -933,6 +934,7 @@ const App: React.FC = () => {
 
     try {
       const result = await PostService.createPost({
+        id: payload.id,
         content: payload.content,
         mediaUrl: payload.mediaUrl,
         mediaType: payload.mediaType,

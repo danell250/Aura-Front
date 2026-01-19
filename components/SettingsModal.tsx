@@ -120,12 +120,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
       // Upload file directly to S3
       console.log('Starting S3 upload...');
       
-      const result = await uploadService.uploadFile(file, 'avatars');
+      const folder = field === 'avatar' ? 'avatars' : 'covers';
+      const result = await uploadService.uploadFile(file, folder);
       
       // Update user in backend with new URL
+      const keyProperty = field === 'avatar' ? 'avatarKey' : 'coverKey';
       const updates: Partial<User> = {
           [field]: result.url,
-          [typeProperty]: type
+          [typeProperty]: type,
+          [keyProperty]: result.key
       };
 
       const updateResult = await UserService.updateUser(currentUser.id, updates);
@@ -143,7 +146,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
         // Propagate update to parent
         onUpdate({
           [field]: updateResult.user![field],
-          [typeProperty]: updateResult.user![typeProperty]
+          [typeProperty]: updateResult.user![typeProperty],
+          [keyProperty]: updateResult.user![keyProperty as keyof User]
         });
       } else {
         throw new Error(updateResult.error || 'Upload failed');

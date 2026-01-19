@@ -8,6 +8,7 @@ interface TimeCapsuleModalProps {
   onSubmit: (data: TimeCapsuleData) => void;
   currentUser: User;
   allUsers: User[];
+  draftPostId?: string;
 }
 
 export interface TimeCapsuleData {
@@ -37,7 +38,8 @@ const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
   onClose,
   onSubmit,
   currentUser,
-  allUsers
+  allUsers,
+  draftPostId
 }) => {
   const defaultTimezone = (() => {
     try {
@@ -249,7 +251,7 @@ const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
 
         const uploadedItems = await Promise.all(
           selectedMediaItems.map(async (item) => {
-            const result = await uploadService.uploadFile(item.file, 'posts');
+            const result = await uploadService.uploadFile(item.file, 'posts', draftPostId);
             return {
               url: result.url,
               type: item.type,

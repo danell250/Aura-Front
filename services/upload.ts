@@ -72,23 +72,30 @@ const compressImageForUpload = async (file: File): Promise<File> => {
   });
 };
 
+export type UploadFolder = 'avatars' | 'covers' | 'posts' | 'documents' | 'ads' | 'chat';
+
 export const uploadService = {
-  uploadFile: async (file: File, folder: string = 'posts'): Promise<{ url: string; filename: string; mimetype: string }> => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'application/pdf'];
-    const maxSizeBytes = 10 * 1024 * 1024;
+  uploadFile: async (file: File, folder: UploadFolder = 'posts', entityId?: string): Promise<{ url: string; key: string; filename: string; mimetype: string; size: number }> => {
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif', 
+      'video/mp4', 'video/webm', 
+      'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    const maxSizeBytes = 50 * 1024 * 1024; // 50MB
 
     if (!allowedTypes.includes(file.type)) {
-      throw new Error('Invalid file type. Allowed: JPG, PNG, WEBP, MP4, PDF');
+      throw new Error('Invalid file type. Allowed: Images, Videos, PDFs, Docs');
     }
 
     let fileForUpload = file;
 
-    if (file.type.startsWith('image/')) {
+    // Only compress images if they are large, but let's keep it simple for now or preserve existing logic
+    if (file.type.startsWith('image/') && !file.type.includes('gif')) {
       fileForUpload = await compressImageForUpload(file);
     }
 
     if (fileForUpload.size > maxSizeBytes) {
-      throw new Error('File too large. Max size is 10MB');
+      throw new Error('File too large. Max size is 50MB');
     }
 
     const userId = localStorage.getItem('aura_user_id') || 'anonymous';
@@ -105,7 +112,8 @@ export const uploadService = {
         userId, 
         fileName: fileForUpload.name, 
         contentType: fileForUpload.type, 
-        folder
+        folder,
+        entityId
       }) 
     }); 
   
@@ -123,9 +131,11 @@ export const uploadService = {
   
     // 3) This is what you save in MongoDB 
     return { 
-      url: data.publicUrl as string,
+      url: data.objectUrl,
+      key: data.key,
       filename: data.key,
-      mimetype: fileForUpload.type
+      mimetype: fileForUpload.type,
+      size: fileForUpload.size
     };
   }
 };

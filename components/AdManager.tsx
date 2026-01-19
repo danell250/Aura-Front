@@ -48,10 +48,14 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
 const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&vault=true&intent=capture&components=buttons`;
 
   const [form, setForm] = useState({
+    id: crypto.randomUUID ? crypto.randomUUID() : `ad-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     headline: '',
     description: '',
     mediaUrl: '',
     mediaType: 'image' as 'image' | 'video',
+    mediaKey: '',
+    mediaMimeType: '',
+    mediaSize: 0,
     ctaText: 'Explore My Profile',
     ctaLink: `https://auraradiance.vercel.app/profile/${currentUser.id}`
   });
@@ -519,9 +523,16 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
     setIsUploadingMedia(true);
 
     try {
-      const result = await uploadService.uploadFile(file, 'posts');
+      const result = await uploadService.uploadFile(file, 'ads', form.id);
       const mediaType = result.mimetype.startsWith('video') ? 'video' : 'image';
-      setForm(prev => ({ ...prev, mediaUrl: result.url, mediaType }));
+      setForm(prev => ({ 
+        ...prev, 
+        mediaUrl: result.url, 
+        mediaType,
+        mediaKey: result.key,
+        mediaMimeType: result.mimetype,
+        mediaSize: result.size
+      }));
     } catch (error) {
       console.error('Upload failed', error);
       alert('Upload failed');
@@ -581,6 +592,9 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
           description: form.description,
           mediaUrl: form.mediaUrl,
           mediaType: form.mediaType,
+          mediaKey: form.mediaKey,
+          mediaMimeType: form.mediaMimeType,
+          mediaSize: form.mediaSize,
           ctaText: form.ctaText,
           ctaLink: form.ctaLink
         });
@@ -604,7 +618,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
     }
 
     const finalAd: Ad = {
-      id: `ad-${Date.now()}`,
+      id: form.id,
       ownerId: currentUser.id,
       ownerName: currentUser.name,
       ownerAvatar: currentUser.avatar,
@@ -614,6 +628,9 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
       description: form.description,
       mediaUrl: form.mediaUrl,
       mediaType: form.mediaType,
+      mediaKey: form.mediaKey,
+      mediaMimeType: form.mediaMimeType,
+      mediaSize: form.mediaSize,
       ctaText: form.ctaText,
       ctaLink: form.ctaLink,
       isSponsored: true,
@@ -1175,10 +1192,14 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                       setSelectedSubscription(null);
                       setPaymentVerified(false);
                       setForm({
+                        id: crypto.randomUUID ? crypto.randomUUID() : `ad-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                         headline: '',
                         description: '',
                         mediaUrl: '',
                         mediaType: 'image',
+                        mediaKey: '',
+                        mediaMimeType: '',
+                        mediaSize: 0,
                         ctaText: 'Explore My Profile',
                         ctaLink: `https://auraradiance.vercel.app/profile/${currentUser.id}`
                       });

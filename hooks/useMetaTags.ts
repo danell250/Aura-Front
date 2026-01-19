@@ -47,7 +47,7 @@ export const useMetaTags = ({
     };
 
     // Update basic meta tags
-    document.title = title;
+    // document.title = title; // Removed to avoid overwriting global title logic
     updateMetaTag('description', description);
 
     // Update Open Graph tags

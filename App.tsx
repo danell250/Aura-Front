@@ -118,6 +118,8 @@ const App: React.FC = () => {
   
   const [view, setView] = useState<{type: 'feed' | 'profile' | 'chat' | 'acquaintances' | 'data_aura' | 'terms' | 'privacy' | 'ad_manager'; targetId?: string}>({ type: 'feed' });
 
+  usePageTitle();
+
   useEffect(() => {
     if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
       const httpsUrl = `https://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -447,6 +449,7 @@ const App: React.FC = () => {
 
   const totalUnread = unreadNotificationCount + unreadMessageCount;
 
+  /*
   useEffect(() => {
     const baseTitle = 'Aura';
     if (totalUnread > 0) {
@@ -456,27 +459,12 @@ const App: React.FC = () => {
     }
 
     // Favicon notification logic commented out until favicon files are restored
-    /*
-    const favicon = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
-    if (favicon) {
-      if (totalUnread > 0) {
-        favicon.href = '/favicon-notification.ico';
-      } else {
-        favicon.href = '/favicon.ico';
-      }
-    }
-    */
-
+    // ...
     return () => {
       document.title = baseTitle;
-      /*
-      const resetFavicon = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
-      if (resetFavicon) {
-        resetFavicon.href = '/favicon.ico';
-      }
-      */
     };
   }, [totalUnread]);
+  */
 
   const syncBirthdays = useCallback(async () => {
     try {

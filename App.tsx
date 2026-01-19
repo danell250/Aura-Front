@@ -39,6 +39,7 @@ import { apiFetch } from './utils/api';
 import { refreshAccessToken } from './utils/tokenRefresh';
 import { PrivacyService } from './services/privacyService';
 import { io } from 'socket.io-client';
+import { usePageTitle } from './hooks/usePageTitle';
 
 const STORAGE_KEY = 'aura_user_session';
 const POSTS_KEY = 'aura_posts_data';

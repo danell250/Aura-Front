@@ -56,6 +56,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   const lastMessageIdRef = useRef<string | null>(null);
   const shouldStickToBottomRef = useRef(true);
   const initialUnreadScrollDoneRef = useRef(false);
+  const isArchivingRef = useRef(false);
 
   const auraAdminUser = useMemo(
     () => allUsers.find(u => (u.email || '').toLowerCase() === AURA_ADMIN_EMAIL),
@@ -90,10 +91,13 @@ const ChatView: React.FC<ChatViewProps> = ({
         const data = response.data || [];
         const mapped = mapConversationsWithUnread(data);
         setConversations(mapped);
-        const archivedFromBackend = mapped
-          .filter((conv: any) => conv.isArchived)
-          .map((conv: any) => conv._id as string);
-        setArchivedIds(archivedFromBackend);
+        
+        if (!isArchivingRef.current) {
+          const archivedFromBackend = mapped
+            .filter((conv: any) => conv.isArchived)
+            .map((conv: any) => conv._id as string);
+          setArchivedIds(archivedFromBackend);
+        }
       } catch (error) {
         console.error('Failed to load conversations:', error);
       }
@@ -370,6 +374,8 @@ const ChatView: React.FC<ChatViewProps> = ({
 
   const handleArchive = async () => {
     if (!activeContact) return;
+    
+    isArchivingRef.current = true;
     const isArchived = archivedIds.includes(activeContact.id);
     setArchivedIds(prev =>
       isArchived ? prev.filter(id => id !== activeContact.id) : [...prev, activeContact.id]
@@ -392,6 +398,8 @@ const ChatView: React.FC<ChatViewProps> = ({
       }
     } catch (error) {
       console.error('Failed to update archive state:', error);
+    } finally {
+      isArchivingRef.current = false;
     }
   };
 

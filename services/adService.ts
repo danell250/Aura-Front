@@ -122,4 +122,29 @@ export class AdService {
       return { success: false, error: 'Failed to update ad' };
     }
   }
+
+  /**
+   * Update an ad status by ID
+   */
+  static async updateAdStatus(adId: string, status: 'active' | 'paused' | 'ended' | 'cancelled'): Promise<{ success: boolean; ad?: Ad; error?: string }> {
+    try {
+      const response = await apiFetch(`/ads/${adId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          return { success: true, ad: result.data };
+        }
+      }
+
+      const errorResult = await response.json();
+      return { success: false, error: errorResult.error || 'Failed to update ad status' };
+    } catch (error) {
+      console.error('❌ Error updating ad status:', error);
+      return { success: false, error: 'Failed to update ad status' };
+    }
+  }
 }

@@ -1357,21 +1357,11 @@ const App: React.FC = () => {
 
     // Save to backend
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/ads`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(newAd)
-      });
+      const result = await AdService.createAd(newAd);
 
-      const result = await response.json();
-
-      if (result.success) {
+      if (result.success && result.ad) {
         // Replace local ad with data from backend
-        setAds(prev => prev.map(a => a.id === ad.id ? { ...result.data, status: 'active' } : a));
+        setAds(prev => prev.map(a => a.id === ad.id ? { ...result.ad!, status: 'active' } : a));
         setAdSubsRefreshTick(prev => prev + 1);
         return { success: true };
       } else {
@@ -1410,24 +1400,15 @@ const App: React.FC = () => {
     setAds(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' as const } : a));
 
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/ads/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: 'cancelled' })
-      });
+      const result = await AdService.updateAdStatus(id, 'cancelled');
 
-      if (response.status === 404) {
+      if (!result.success && result.error === 'Ad not found') {
         console.log(`[AdManager] Ad ${id} not found on server, keeping local cancellation.`);
         return;
       }
 
-      const result = await response.json();
-      if (result.success && result.data) {
-        setAds(prev => prev.map(a => a.id === id ? { ...a, ...result.data } : a));
+      if (result.success && result.ad) {
+        setAds(prev => prev.map(a => a.id === id ? { ...a, ...result.ad } : a));
       }
     } catch (e) {
       console.error('Failed to cancel ad remotely:', e);
@@ -1438,18 +1419,9 @@ const App: React.FC = () => {
 
   const handleUpdateAd = useCallback(async (adId: string, updates: Partial<Ad>) => {
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
-      const response = await fetch(`${API_BASE_URL}/ads/${adId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updates)
-      });
-      const result = await response.json();
-      if (result.success && result.data) {
-        setAds(prev => prev.map(a => a.id === adId ? { ...a, ...result.data } : a));
+      const result = await AdService.updateAd(adId, updates);
+      if (result.success && result.ad) {
+        setAds(prev => prev.map(a => a.id === adId ? { ...a, ...result.ad } : a));
         setAdSubsRefreshTick(prev => prev + 1);
         return true;
       }

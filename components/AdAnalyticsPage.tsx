@@ -13,13 +13,13 @@ import {
 
 interface AdAnalyticsPageProps {
   currentUser: User;
-  ads: Ad[];
+  ads?: Ad[];
   onDeleteAd?: (id: string) => void | Promise<void>;
 }
 
 type AnalyticsTab = 'overview' | 'ads' | 'details';
 
-const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onDeleteAd }) => {
+const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = [], onDeleteAd }) => {
   const API_BASE_URL = getApiBaseUrl();
   const SOCKET_BASE_URL = API_BASE_URL.endsWith('/api')
     ? API_BASE_URL.replace(/\/api$/, '')

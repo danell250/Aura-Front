@@ -519,7 +519,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
     setIsUploadingMedia(true);
 
     try {
-      const result = await uploadService.uploadFile(file);
+      const result = await uploadService.uploadFile(file, 'posts');
       const mediaType = result.mimetype.startsWith('video') ? 'video' : 'image';
       setForm(prev => ({ ...prev, mediaUrl: result.url, mediaType }));
     } catch (error) {

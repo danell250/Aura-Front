@@ -174,7 +174,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
 
         const uploadedItems = await Promise.all(
           selectedMediaItems.map(async (item) => {
-            const result = await uploadService.uploadFile(item.file);
+            const result = await uploadService.uploadFile(item.file, 'posts');
             return {
               url: result.url,
               type: item.type,
@@ -266,7 +266,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
         
         setIsProcessingMedia(true);
         try {
-            const result = await uploadService.uploadFile(file);
+            const result = await uploadService.uploadFile(file, 'posts');
             setMediaPreview({ url: result.url, type: 'document', name: file.name });
         } catch (err) {
             console.error(err);

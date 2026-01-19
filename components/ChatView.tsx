@@ -261,7 +261,7 @@ const ChatView: React.FC<ChatViewProps> = ({
 
       for (const file of attachments) {
         try {
-          const result = await uploadService.uploadFile(file);
+          const result = await uploadService.uploadFile(file, 'posts');
           const messageType = result.mimetype.startsWith('image') ? 'image' : 'file';
           const response = await MessageService.sendMessage(
             currentUser.id,

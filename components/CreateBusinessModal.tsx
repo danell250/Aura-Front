@@ -45,7 +45,7 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ onClose, onCr
     }
 
     try {
-      const result = await uploadService.uploadFile(file);
+      const result = await uploadService.uploadFile(file, 'avatars');
       const type = result.mimetype.startsWith('video') ? 'video' : 'image';
       const typeProperty = field === 'logo' ? 'logoType' : 'coverType';
 

@@ -73,7 +73,7 @@ const compressImageForUpload = async (file: File): Promise<File> => {
 };
 
 export const uploadService = {
-  uploadFile: async (file: File): Promise<{ url: string; filename: string; mimetype: string }> => {
+  uploadFile: async (file: File, folder: string = 'posts'): Promise<{ url: string; filename: string; mimetype: string }> => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'application/pdf'];
     const maxSizeBytes = 10 * 1024 * 1024;
 
@@ -91,33 +91,41 @@ export const uploadService = {
       throw new Error('File too large. Max size is 10MB');
     }
 
-    const formData = new FormData();
-    formData.append('file', fileForUpload);
+    const userId = localStorage.getItem('aura_user_id') || 'anonymous';
 
+    // 1) Ask backend for signed URL 
     const backendBase = import.meta.env.VITE_BACKEND_URL;
     const backendHost = backendBase ? backendBase.replace(/\/api\/?$/, '') : '';
-    const uploadUrl = backendHost ? `${backendHost}/api/upload` : '/api/upload';
+    const getUrlEndpoint = backendHost ? `${backendHost}/api/media/upload-url` : '/api/media/upload-url';
 
-    const response = await fetch(uploadUrl, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'File upload failed');
-    }
-
-    const result = await response.json();
-    const rawUrl = result?.url as string | undefined;
-    const absoluteUrl =
-      rawUrl && backendHost && rawUrl.startsWith('/')
-        ? `${backendHost}${rawUrl}`
-        : rawUrl;
-
-    return {
-      ...result,
-      url: absoluteUrl || rawUrl || '',
+    const r = await fetch(getUrlEndpoint, { 
+      method: "POST", 
+      headers: { "Content-Type": "application/json" }, 
+      body: JSON.stringify({ 
+        userId, 
+        fileName: fileForUpload.name, 
+        contentType: fileForUpload.type, 
+        folder
+      }) 
+    }); 
+  
+    const data = await r.json(); 
+    if (!data.success) throw new Error(data.error || "Failed to get upload url"); 
+  
+    // 2) Upload file directly to S3 
+    const put = await fetch(data.uploadUrl, { 
+      method: "PUT", 
+      headers: { "Content-Type": fileForUpload.type }, 
+      body: fileForUpload 
+    }); 
+  
+    if (!put.ok) throw new Error("S3 upload failed"); 
+  
+    // 3) This is what you save in MongoDB 
+    return { 
+      url: data.publicUrl as string,
+      filename: data.key,
+      mimetype: fileForUpload.type
     };
   }
 };

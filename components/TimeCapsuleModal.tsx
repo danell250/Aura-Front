@@ -249,7 +249,7 @@ const TimeCapsuleModal: React.FC<TimeCapsuleModalProps> = ({
 
         const uploadedItems = await Promise.all(
           selectedMediaItems.map(async (item) => {
-            const result = await uploadService.uploadFile(item.file);
+            const result = await uploadService.uploadFile(item.file, 'posts');
             return {
               url: result.url,
               type: item.type,

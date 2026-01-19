@@ -454,7 +454,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
       } else {
         setIsCoverUploading(true);
       }
-      const result = await uploadService.uploadFile(file);
+      const result = await uploadService.uploadFile(file, 'avatars');
       const isVideo = file.type.startsWith('video/') || /\.mp4$/i.test(file.name);
       const typeProp = field === 'avatar' ? 'avatarType' : 'coverType';
       const updates: Partial<User> = {

@@ -117,33 +117,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
         [typeProperty]: type 
       }));
 
-      // Upload file to backend via new specialized endpoint
-      console.log('Starting optimized upload...');
+      // Upload file directly to S3
+      console.log('Starting S3 upload...');
       
-      const formData = new FormData();
-      // Map field name to backend expectation ('profile' or 'cover')
-      const backendField = field === 'avatar' ? 'profile' : 'cover';
-      formData.append(backendField, file);
+      const result = await uploadService.uploadFile(file, 'avatars');
+      
+      // Update user in backend with new URL
+      const updates: Partial<User> = {
+          [field]: result.url,
+          [typeProperty]: type
+      };
 
-      const result = await UserService.uploadProfileImages(formData);
+      const updateResult = await UserService.updateUser(currentUser.id, updates);
       
-      if (result.success && result.user) {
-        console.log('Upload successful:', result.user);
+      if (updateResult.success && updateResult.user) {
+        console.log('Upload successful:', updateResult.user);
         
         // Update form with real URL from backend
         setForm(prev => ({ 
           ...prev, 
-          [field]: result.user![field], 
-          [typeProperty]: result.user![typeProperty] 
+          [field]: updateResult.user![field], 
+          [typeProperty]: updateResult.user![typeProperty] 
         }));
         
         // Propagate update to parent
         onUpdate({
-          [field]: result.user![field],
-          [typeProperty]: result.user![typeProperty]
+          [field]: updateResult.user![field],
+          [typeProperty]: updateResult.user![typeProperty]
         });
       } else {
-        throw new Error(result.error || 'Upload failed');
+        throw new Error(updateResult.error || 'Upload failed');
       }
       
     } catch (error) {

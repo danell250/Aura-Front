@@ -127,31 +127,6 @@ export class UserService {
     }
   }
 
-  // Upload profile/cover images
-  static async uploadProfileImages(formData: FormData): Promise<{ success: boolean; user?: User; error?: string }> {
-    try {
-      // apiFetch automatically adds Authorization header
-      const response = await apiFetch('/users/me/images', {
-        method: 'POST',
-        // Do NOT set Content-Type header for FormData, browser sets it with boundary
-        body: formData,
-        // Helper to skip default JSON headers if apiFetch adds them
-        headers: {} 
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        return { success: true, user: result.user };
-      } else {
-        const errorData = await response.json();
-        return { success: false, error: errorData.message || 'Failed to upload images' };
-      }
-    } catch (error) {
-      console.error('Error uploading profile images:', error);
-      return { success: false, error: 'Network error' };
-    }
-  }
-
   // Send connection request
   static async sendConnectionRequest(fromUserId: string, toUserId: string): Promise<{ success: boolean; error?: string }> {
     try {

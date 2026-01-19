@@ -43,7 +43,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       <div className={baseClasses} onClick={onClick}>
         <video 
           src={src} 
-          className="w-full h-full object-contain" 
+          className="w-full h-full object-cover" 
           autoPlay 
           loop 
           muted 
@@ -58,7 +58,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       <img 
         src={src} 
         alt={name} 
-        className="w-full h-full object-contain" 
+        className="w-full h-full object-cover" 
         loading="lazy"
       />
     </div>

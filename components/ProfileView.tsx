@@ -725,14 +725,14 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                     {!isBlocked && !isAcquaintance && (
                       <button
                         onClick={() => onSendConnectionRequest(user.id)}
-                        className={`px-4 py-2 rounded-lg font-medium text-sm shadow-sm flex items-center gap-2 ${isRequested
-                            ? 'bg-slate-200 text-slate-500 hover:bg-slate-300'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        className={`px-4 py-2 rounded-lg font-medium text-sm shadow-md transition-all flex items-center gap-2 ${isRequested
+                            ? 'bg-slate-200 text-slate-500 hover:bg-slate-300 cursor-not-allowed'
+                            : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg'
                           }`}
                         disabled={isRequested}
                       >
-                        <span>{isRequested ? '⏳' : '➕'}</span>
-                        <span>{isRequested ? 'Requested' : 'Add friend'}</span>
+                        <span>{isRequested ? '⏳' : '✨'}</span>
+                        <span>{isRequested ? 'Spark Requested' : 'Spark'}</span>
                       </button>
                     )}
                     <div className="relative">

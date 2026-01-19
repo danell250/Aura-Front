@@ -4,6 +4,8 @@ import { adAnalyticsService, AdAnalytics, AdPerformanceMetrics, CampaignPerforma
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
 import { getApiBaseUrl } from '../constants';
 import { io } from 'socket.io-client';
+import Ring from './analytics/Ring';
+import MiniBars from './analytics/MiniBars';
 
 interface AdAnalyticsPageProps {
   currentUser: User;
@@ -36,6 +38,10 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
   const [sortBy, setSortBy] = useState<'impressions' | 'clicks' | 'ctr' | 'spend' | 'roi'>('impressions');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'completed'>('all');
   const [subscription, setSubscription] = useState<AdSubscription | null>(null);
+
+  // History for MiniBars
+  const [impressionHistory, setImpressionHistory] = React.useState<number[]>([]);
+  const lastImpressionsRef = React.useRef<number>(0);
 
   useEffect(() => {
     if (!currentUser.id) return;
@@ -225,6 +231,24 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
       socket.close();
     };
   }, [currentUser.id, ads]);
+
+  // Track impressions for MiniBars
+  useEffect(() => {
+    const currentTotal = campaignPerformance?.totalImpressions ?? adPerformance.reduce((sum, p) => sum + (p.impressions || 0), 0);
+    
+    if (currentTotal === 0) return;
+    
+    if (lastImpressionsRef.current === 0) {
+      lastImpressionsRef.current = currentTotal;
+      return;
+    }
+
+    if (currentTotal > lastImpressionsRef.current) {
+      const delta = currentTotal - lastImpressionsRef.current;
+      setImpressionHistory(prev => [...prev, delta].slice(-15));
+      lastImpressionsRef.current = currentTotal;
+    }
+  }, [campaignPerformance, adPerformance]);
 
   const totalImpressions = campaignPerformance?.totalImpressions ?? adPerformance.reduce((sum, p) => sum + (p.impressions || 0), 0);
   const totalClicks = campaignPerformance?.totalClicks ?? adPerformance.reduce((sum, p) => sum + (p.clicks || 0), 0);
@@ -505,7 +529,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                     Impressions
                   </p>
                   <p className={value}>
-                    {totalImpressions.toLocaleString()}
+                    {(totalImpressions || 0).toLocaleString()}
                   </p>
                   <p className={sub}>
                     Total views across all ads
@@ -516,7 +540,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                     Clicks
                   </p>
                   <p className={value}>
-                    {totalClicks.toLocaleString()}
+                    {(totalClicks || 0).toLocaleString()}
                   </p>
                   <p className={sub}>
                     Interactions with your calls to action
@@ -543,7 +567,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                     Engagement
                   </p>
                   <p className={value}>
-                    {totalEngagement.toLocaleString()}
+                    {(totalEngagement || 0).toLocaleString()}
                   </p>
                   <p className={sub}>
                     Reactions, comments, and shares
@@ -573,59 +597,38 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                     Reach
                   </p>
                   <p className="text-3xl font-black text-slate-900">
-                    {totalReach.toLocaleString()}
+                    {(totalReach || 0).toLocaleString()}
                   </p>
                   <p className={sub}>
                     Estimated unique people touched by your ads
                   </p>
                 </div>
-                <div className={`${card} ${cardPad}`}>
-                  <p className={label}>
-                    Performance Score
-                  </p>
-                  <p className="text-3xl font-black text-slate-900">
-                    {performanceScore.toFixed(0)}
-                  </p>
-                  <p className={sub}>
-                    Composite health indicator across your active campaigns
-                  </p>
-                </div>
+                <Ring
+                  value={averageCTR}
+                  max={5}
+                  label="CTR"
+                  sublabel="Avg Click Rate"
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className={`${card} ${cardPad}`}>
-                  <p className={label}>
-                    Momentum
-                  </p>
-                  <p className={value}>
-                    {momentumScore.toFixed(0)} / 100
-                  </p>
-                  <p className={sub}>
-                    Blend of active signals and fresh engagement.
-                  </p>
-                </div>
-                <div className={`${card} ${cardPad}`}>
-                  <p className={label}>
-                    Fatigue Index
-                  </p>
-                  <p className={value}>
-                    {fatigueIndex.toFixed(0)}%
-                  </p>
-                  <p className={sub}>
-                    Higher values suggest repeated views without action.
-                  </p>
-                </div>
-                <div className={`${card} ${cardPad}`}>
-                  <p className={label}>
-                    Attention Half-Life
-                  </p>
-                  <p className={value}>
-                    {attentionHalfLifeDays} days
-                  </p>
-                  <p className={sub}>
-                    Rough estimate before performance naturally decays.
-                  </p>
-                </div>
+                <Ring
+                  value={momentumScore}
+                  max={100}
+                  label="Momentum"
+                  sublabel="Active & Fresh"
+                />
+                <MiniBars 
+                  data={impressionHistory} 
+                  label="Impression Vel." 
+                  sublabel="Real-time activity" 
+                />
+                <Ring
+                  value={fatigueIndex}
+                  max={100}
+                  label="Fatigue"
+                  sublabel="Creative Decay"
+                />
               </div>
 
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4">
@@ -692,7 +695,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                               Impr
                             </p>
                             <p className="text-lg font-black text-slate-900 dark:text-white">
-                              {ad.impressions.toLocaleString()}
+                              {(ad.impressions || 0).toLocaleString()}
                             </p>
                           </div>
                           <div>
@@ -851,22 +854,22 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                           </span>
                         </td>
                         <td className="py-3 pr-4">
-                          {metric.impressions.toLocaleString()}
+                          {(metric.impressions || 0).toLocaleString()}
                         </td>
                         <td className="py-3 pr-4">
-                          {metric.clicks.toLocaleString()}
+                          {(metric.clicks || 0).toLocaleString()}
                         </td>
                         <td className="py-3 pr-4">
-                          {metric.ctr.toFixed(2)}%
+                          {(metric.ctr || 0).toFixed(2)}%
                         </td>
                         <td className="py-3 pr-4">
-                          {metric.engagement.toLocaleString()}
+                          {(metric.engagement || 0).toLocaleString()}
                         </td>
                         <td className="py-3 pr-4">
-                          {metric.spend.toFixed(2)}
+                          {(metric.spend || 0).toFixed(2)}
                         </td>
                         <td className="py-3 pr-4">
-                          {metric.roi.toFixed(2)}
+                          {(metric.roi || 0).toFixed(2)}
                         </td>
                         <td className="py-3 pl-4">
                           <div className="flex items-center justify-end gap-2">

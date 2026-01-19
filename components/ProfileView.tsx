@@ -8,6 +8,8 @@ import { UserService } from '../services/userService';
 import { getTrustBadgeConfig, formatTrustSummary } from '../services/trustService';
 import { uploadService } from '../services/upload';
 import { PostService } from '../services/postService';
+import Ring from './analytics/Ring';
+import MiniBars from './analytics/MiniBars';
 import { getApiBaseUrl } from '../constants';
 import { io } from 'socket.io-client';
 
@@ -1064,6 +1066,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
 
                 {insights && !insightsLoading && (
                   <>
+                    {/* Row 1: Key Metrics Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
                         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
@@ -1083,53 +1086,63 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                       </div>
                       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
                         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                          Boosted Posts
+                          Total Radiance
                         </p>
-                        <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                          {insights.totals.boostedPosts.toLocaleString()}
+                        <p className="mt-2 text-2xl font-bold text-amber-500">
+                          {insights.totals.totalRadiance.toLocaleString()}
                         </p>
                       </div>
                       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
                         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                          Total Radiance
+                          Credits Balance
                         </p>
-                        <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                          {insights.totals.totalRadiance.toLocaleString()}
+                        <p className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                          {insights.credits.balance.toLocaleString()}
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-5">
-                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                          Credits
-                        </p>
-                        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                          Balance:{' '}
-                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                            {insights.credits.balance.toLocaleString()} credits
-                          </span>
-                        </p>
-                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                          Spent on boosts:{' '}
-                          <span className="font-semibold text-slate-900 dark:text-white">
-                            {insights.credits.spent.toLocaleString()} credits
-                          </span>
-                        </p>
-                      </div>
+                    {/* Row 2: Visual Analytics (Rings + MiniBars) */}
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <Ring
+                        value={insights.totals.boostedPosts}
+                        max={insights.totals.totalPosts || 1}
+                        label="Boost Ratio"
+                        sublabel="Posts boosted"
+                      />
+                      <Ring
+                        value={insights.totals.totalRadiance}
+                        max={insights.totals.totalViews || 1} // Rough proxy for rate
+                        label="Radiance Rate"
+                        sublabel="Sparkle per view"
+                      />
+                      <Ring
+                        value={insights.credits.spent}
+                        max={(insights.credits.balance + insights.credits.spent) || 100}
+                        label="Credit Usage"
+                        sublabel="Lifetime spend"
+                      />
+                      <MiniBars
+                        data={insights.topPosts.map(p => p.views).slice(0, 7)}
+                        label="Momentum"
+                        sublabel="Top posts views"
+                      />
+                    </div>
 
+                    {/* Row 3: Top Posts List */}
+                    <div className="mt-8">
                       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-5">
                         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">
-                          Top Posts
+                          Top Performing Posts
                         </p>
                         {insights.topPosts.length === 0 ? (
                           <p className="text-sm text-slate-600 dark:text-slate-400">
                             Your top-performing posts will appear here.
                           </p>
                         ) : (
-                          <ul className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {insights.topPosts.map(post => (
-                              <li
+                              <div
                                 key={post.id}
                                 className="flex items-start justify-between gap-3 rounded-lg bg-white/70 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 px-3 py-2.5"
                               >
@@ -1153,9 +1166,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                                     ✨ {post.radiance.toLocaleString()}
                                   </span>
                                 </div>
-                              </li>
+                              </div>
                             ))}
-                          </ul>
+                          </div>
                         )}
                       </div>
                     </div>

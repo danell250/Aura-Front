@@ -157,7 +157,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
               <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+12.5%</span>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-1">
-              {campaignData.totalImpressions.toLocaleString()}
+              {(campaignData.totalImpressions || 0).toLocaleString()}
             </h3>
             <p className="text-gray-600 text-sm font-medium">Total Impressions</p>
           </div>
@@ -172,7 +172,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
               <span className="text-xs font-medium text-teal-600 bg-teal-50 px-2 py-1 rounded-full">+8.3%</span>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-1">
-              {campaignData.totalClicks.toLocaleString()}
+              {(campaignData.totalClicks || 0).toLocaleString()}
             </h3>
             <p className="text-gray-600 text-sm font-medium">Total Clicks</p>
           </div>
@@ -187,7 +187,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
               <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">+15.2%</span>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-1">
-              {campaignData.averageCTR.toFixed(2)}%
+              {(campaignData.averageCTR || 0).toFixed(2)}%
             </h3>
             <p className="text-gray-600 text-sm font-medium">Click-Through Rate</p>
           </div>
@@ -202,7 +202,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
               <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+5.7%</span>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-1">
-              {campaignData.totalSpend.toLocaleString()}
+              {(campaignData.totalSpend || 0).toLocaleString()}
             </h3>
             <p className="text-gray-600 text-sm font-medium">Total Spend</p>
           </div>
@@ -238,7 +238,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Reach</span>
-                <span className="text-sm font-bold text-gray-900">{campaignData.totalReach.toLocaleString()}</span>
+                <span className="text-sm font-bold text-gray-900">{(campaignData.totalReach || 0).toLocaleString()}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-gradient-to-r from-emerald-500 to-green-500 h-2 rounded-full" style={{ width: '75%' }}></div>
@@ -246,7 +246,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
               
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Engagement</span>
-                <span className="text-sm font-bold text-gray-900">{campaignData.totalEngagement.toLocaleString()}</span>
+                <span className="text-sm font-bold text-gray-900">{(campaignData.totalEngagement || 0).toLocaleString()}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-gradient-to-r from-teal-500 to-emerald-500 h-2 rounded-full" style={{ width: '68%' }}></div>
@@ -254,7 +254,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
               
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Active Ads</span>
-                <span className="text-sm font-bold text-gray-900">{campaignData.activeAds}</span>
+                <span className="text-sm font-bold text-gray-900">{campaignData.activeAds || 0}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-gradient-to-r from-green-500 to-teal-500 h-2 rounded-full" style={{ width: '85%' }}></div>
@@ -324,7 +324,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                         style={{ height: `${impressionHeight}%` }}
                       >
                         <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                          {data.impressions.toLocaleString()}
+                          {(data.impressions || 0).toLocaleString()}
                         </div>
                       </div>
                       <div 
@@ -332,7 +332,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                         style={{ height: `${clickHeight}%` }}
                       >
                         <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                          {data.clicks.toLocaleString()}
+                          {(data.clicks || 0).toLocaleString()}
                         </div>
                       </div>
                       <div 
@@ -340,7 +340,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads, onD
                         style={{ height: `${engagementHeight}%` }}
                       >
                         <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                          {data.engagement.toLocaleString()}
+                          {(data.engagement || 0).toLocaleString()}
                         </div>
                       </div>
                     </div>

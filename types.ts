@@ -134,10 +134,8 @@ export interface Post {
     hashtags?: string[];
   };
   isSystemPost?: boolean;
-  systemType?: 'birthday' | string;
+  systemType?: string;
   visibility?: 'public' | 'acquaintances' | 'private';
-  isBirthdayPost?: boolean;
-  birthdayYear?: number;
   sharedAt?: string;
 }
 
@@ -204,7 +202,11 @@ export interface AdSubscription {
 
 export interface Notification {
   id: string;
-  type: 'reaction' | 'comment' | 'link' | 'credit_received' | 'boost_received' | 'connection_request' | 'acquaintance_request' | 'acquaintance_accepted' | 'acquaintance_rejected' | 'profile_view' | 'share' | 'like' | 'message' | 'time_capsule_unlocked' | 'birthday';
+  type: 'reaction' | 'comment' | 'link' | 'credit_received' | 'boost_received' | 'connection_request' | 'acquaintance_request' | 'acquaintance_accepted' | 'acquaintance_rejected' | 'profile_view'
+  | 'share'
+  | 'like'
+  | 'message'
+  | 'time_capsule_unlocked';
   fromUser: User;
   message: string;
   timestamp: number;

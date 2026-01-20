@@ -5,7 +5,6 @@ import Layout
 import AdAnalyticsPage from './components/AdAnalyticsPage';
 import PostCard from './components/PostCard';
 import CreatePost from './components/CreatePost';
-import BirthdayPost from './components/BirthdayPost';
 import AdCard from './components/AdCard';
 import Login from './components/Login';
 import CompleteProfile from './components/CompleteProfile';
@@ -95,7 +94,6 @@ const App: React.FC = () => {
   const [allUsers, setAllUsers] = useState<User[]>(MOCK_USERS);
   const [posts, setPosts] = useState<Post[]>([]);
   const [ads, setAds] = useState<Ad[]>([]);
-  const [birthdayAnnouncements, setBirthdayAnnouncements] = useState<BirthdayAnnouncement[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -467,27 +465,6 @@ const App: React.FC = () => {
   }, [totalUnread]);
   */
 
-  const syncBirthdays = useCallback(async () => {
-    try {
-      const response = await apiFetch('/birthdays/today', {
-        method: 'GET'
-      });
-      if (!response.ok) {
-        setBirthdayAnnouncements([]);
-        return;
-      }
-      const result = await response.json();
-      if (result.success && Array.isArray(result.data)) {
-        setBirthdayAnnouncements(result.data);
-      } else {
-        setBirthdayAnnouncements([]);
-      }
-    } catch (error) {
-      console.error('Error syncing birthdays from backend:', error);
-      setBirthdayAnnouncements([]);
-    }
-  }, []);
-
   useEffect(() => {
     const savedUsers = localStorage.getItem(USERS_KEY);
     const usersToProcess = savedUsers ? JSON.parse(savedUsers) : MOCK_USERS;
@@ -596,10 +573,7 @@ const App: React.FC = () => {
       setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
       const savedAds = localStorage.getItem(ADS_KEY);
       setAds(savedAds ? JSON.parse(savedAds) : INITIAL_ADS);
-      if (wasAuthenticated) {
-        syncBirthdays();
-      }
-
+      
       if (localStorage.getItem('aura_theme') === 'dark') {
         setIsDarkMode(true);
         document.documentElement.classList.add('dark');
@@ -609,7 +583,7 @@ const App: React.FC = () => {
         setLoading(false);
       }, 1000);
     })();
-  }, [syncViewFromLocation, navigateToView, syncBirthdays, ensureAuraSupportUser]);
+  }, [syncViewFromLocation, navigateToView, ensureAuraSupportUser]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -623,9 +597,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      syncBirthdays();
+      // Removed syncBirthdays call
     }
-  }, [isAuthenticated, syncBirthdays]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -781,7 +755,6 @@ const App: React.FC = () => {
       setCurrentUser(mergedUser);
       setIsAuthenticated(true);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedUser));
-      syncBirthdays();
       ensureProfileCompletion(mergedUser);
 
       const path = window.location.pathname || '/';
@@ -814,7 +787,6 @@ const App: React.FC = () => {
     setIsAuthenticated(true);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
     localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-    syncBirthdays();
     ensureProfileCompletion(newUser);
 
     const path = window.location.pathname || '/';
@@ -1022,32 +994,6 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Failed to share post on Aura:', error);
       setPosts(prev => prev.filter(p => p.id !== optimisticId));
-    }
-  };
-
-  const handleShareBirthdayPost = async (announcementId: string, mode: 'public' | 'acquaintances' | 'private') => {
-    const announcement = birthdayAnnouncements.find(b => b.id === announcementId);
-    if (!announcement || !currentUser?.id) return;
-
-    const visibility = mode === 'public' ? 'public' : mode === 'acquaintances' ? 'acquaintances' : 'private';
-    const content = announcement.wish || `It is my birthday today.`;
-
-    try {
-      const result = await PostService.createPost({
-        content,
-        energy: EnergyType.CELEBRATING,
-        authorId: currentUser.id,
-        isBirthdayPost: true,
-        visibility
-      } as any);
-
-      if (result.success && result.post) {
-        const createdPost: Post = result.post;
-        setPosts(prev => [createdPost, ...prev]);
-        setBirthdayAnnouncements(prev => prev.filter(b => b.id !== announcementId));
-      }
-    } catch (error) {
-      console.error('Failed to create birthday post:', error);
     }
   };
 
@@ -2035,15 +1981,11 @@ const App: React.FC = () => {
       return 0;
     });
 
-    const combined: (Post | Ad | BirthdayAnnouncement)[] = [];
+    const combined: (Post | Ad)[] = [];
 
     if (view.type !== 'feed') {
       sortedPosts.forEach(post => combined.push(post));
       return combined;
-    }
-
-    if (view.type === 'feed' && activeEnergy === 'all' && activeMediaType === 'all' && !searchQuery) {
-      birthdayAnnouncements.forEach(bday => combined.push(bday));
     }
 
     type FeedItem = {
@@ -2086,7 +2028,7 @@ const App: React.FC = () => {
     spacedItems.forEach(entry => combined.push(entry));
 
     return combined;
-  }, [posts, ads, birthdayAnnouncements, view, searchQuery, activeEnergy, activeMediaType]);
+  }, [posts, ads, view, searchQuery, activeEnergy, activeMediaType]);
 
   useEffect(() => {
     (window as any).handleAcceptConnection = handleAcceptConnection;
@@ -2184,7 +2126,6 @@ const App: React.FC = () => {
                </div>
             ) : (
               processedFeedItems.map((item) => {
-                if ('wish' in item) return <BirthdayPost key={item.id} birthdayUser={item.user} quirkyWish={item.wish} birthdayPostId={item.id} reactions={item.reactions} userReactions={item.userReactions} onReact={(postId, reaction) => handleReact(postId, reaction, 'post')} onComment={handleComment} currentUser={currentUser} onViewProfile={(id) => setView({ type: 'profile', targetId: id })} onShare={(mode) => handleShareBirthdayPost(item.id, mode)} />;
                 return 'content' in item 
                   ? (
                     <PostCard

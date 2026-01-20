@@ -37,22 +37,6 @@ export const geminiService = {
     }
   },
 
-  async generateQuirkyBirthdayWish(name: string, bio: string = "") {
-    try {
-      const response = await fetch(`${BACKEND_URL}/birthday`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, bio }),
-      });
-      if (!response.ok) throw new Error('Backend error');
-      const data = await response.json();
-      return data.text || `Another rotation around the sun completed, ${name}. Your frequency is undeniable. Stay weird! 🌀🎸🍰`;
-    } catch (error) {
-      console.error("Birthday Error:", error);
-      return `Universal sync complete: ${name} is officially one orbit older. Energy levels at maximum! 🚀✨🎂`;
-    }
-  },
-
   async analyzeDataAura(userData: any, posts: any[]) {
     try {
       const response = await fetch(`${BACKEND_URL}/analyze`, {

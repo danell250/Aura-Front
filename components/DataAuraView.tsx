@@ -166,7 +166,6 @@ const DataAuraView: React.FC<DataAuraViewProps> = ({
         ['Trust Score', `${currentUser.trustScore} / 100`],
         ['Aura Credits', String(currentUser.auraCredits)],
         ['Account Type', currentUser.isCompany ? 'Business' : 'Personal'],
-        ['Date of Birth', currentUser.dob ? new Date(currentUser.dob).toLocaleDateString() : 'N/A'],
         ['Active Glow', currentUser.activeGlow || 'None'],
         ['Total Posts', String(posts.length)],
         ['Acquaintances', String(currentUser.acquaintances?.length || 0)],

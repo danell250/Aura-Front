@@ -5,6 +5,7 @@ import { COUNTRIES, INDUSTRIES } from '../constants';
 import { uploadService } from '../services/upload';
 import { apiFetch } from '../utils/api';
 import { UserService } from '../services/userService';
+import { getZodiacSign } from '../utils/dateUtils';
 
 interface SettingsModalProps {
   currentUser: User;
@@ -56,26 +57,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ currentUser, onUpdate, on
       return 'Handle can only use letters, numbers, underscores and hyphens.';
     }
     return null;
-  };
-
-  const getZodiacSign = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return "Aries ♈";
-    if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return "Taurus ♉";
-    if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return "Gemini ♊";
-    if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return "Cancer ♋";
-    if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return "Leo ♌";
-    if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return "Virgo ♍";
-    if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return "Libra ♎";
-    if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return "Scorpio ♏";
-    if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return "Sagittarius ♐";
-    if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return "Capricorn ♑";
-    if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return "Aquarius ♒";
-    if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return "Pisces ♓";
-    return "";
   };
 
   const [resetState, setResetState] = useState<'idle' | 'sending' | 'sent'>('idle');

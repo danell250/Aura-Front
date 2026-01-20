@@ -12,6 +12,7 @@ import Ring from './analytics/Ring';
 import MiniBars from './analytics/MiniBars';
 import { getApiBaseUrl } from '../constants';
 import { io } from 'socket.io-client';
+import { getZodiacSign } from '../utils/dateUtils';
 
 const getCountryFlag = (countryName: string): string => {
   if (!countryName) return '📍';

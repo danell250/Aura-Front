@@ -12,6 +12,35 @@ import { linkService } from '../services/linkService';
 import TimeCapsuleCard from './TimeCapsuleCard';
 import { useOptimisticReactions } from '../hooks/useOptimisticReactions';
 
+// Media view tracking configuration
+const VIEW_THRESHOLD = 0.6; // 60% visible
+const VIEW_DURATION = 400; // 400ms
+
+// Session-based view deduplication
+const viewedMediaItems = new Set<string>(); // "postId:mediaId"
+const SESSION_DURATION = 30 * 60 * 1000; // 30 minutes
+const sessionTimestamps = new Map<string, number>();
+
+const trackMediaView = async (postId: string, mediaId: string) => {
+  const key = `${postId}:${mediaId}`;
+  const now = Date.now();
+  const lastViewed = sessionTimestamps.get(key);
+
+  // Dedupe per session (30 mins)
+  if (lastViewed && (now - lastViewed < SESSION_DURATION)) {
+    return;
+  }
+
+  viewedMediaItems.add(key);
+  sessionTimestamps.set(key, now);
+  
+  await PostService.updateMediaMetrics(postId, mediaId, 'views');
+};
+
+const trackMediaClick = async (postId: string, mediaId: string) => {
+  await PostService.updateMediaMetrics(postId, mediaId, 'clicks');
+};
+
 const AutoplayVideo: React.FC<{ src: string; className?: string }> = ({ src, className = '' }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -934,8 +963,58 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
               </div>
             )}
 
-            <div className="w-full relative">
-              {renderMedia(currentMediaUrl, currentMediaType, "w-full h-auto max-h-[600px] object-contain")}
+            <div 
+              className="w-full relative" 
+              ref={el => {
+                // View tracking logic
+                if (el && hasMediaItems && post.mediaItems[currentMediaIndex]) {
+                  const mediaId = post.mediaItems[currentMediaIndex].id;
+                  
+                  // Setup IntersectionObserver for view tracking
+                  const observer = new IntersectionObserver(
+                    (entries) => {
+                      entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                          // Start timer if > 60% visible
+                          if (!el.dataset.viewStartTime) {
+                            el.dataset.viewStartTime = Date.now().toString();
+                            
+                            // Set timeout for view duration
+                            const timerId = setTimeout(() => {
+                              trackMediaView(post.id, mediaId);
+                            }, VIEW_DURATION);
+                            
+                            el.dataset.viewTimerId = timerId.toString();
+                          }
+                        } else {
+                          // Clear timer if visibility lost
+                          if (el.dataset.viewTimerId) {
+                            clearTimeout(parseInt(el.dataset.viewTimerId));
+                            delete el.dataset.viewTimerId;
+                            delete el.dataset.viewStartTime;
+                          }
+                        }
+                      });
+                    },
+                    { threshold: VIEW_THRESHOLD }
+                  );
+                  
+                  observer.observe(el);
+                  
+                  // Cleanup function attached to element for when it unmounts/changes
+                  (el as any)._observer = observer;
+                }
+              }}
+            >
+              <div onClick={() => {
+                if (hasMediaItems && post.mediaItems[currentMediaIndex]) {
+                  trackMediaClick(post.id, post.mediaItems[currentMediaIndex].id);
+                } else if (currentMediaUrl) {
+                  // Legacy single media click tracking (optional)
+                }
+              }}>
+                {renderMedia(currentMediaUrl, currentMediaType, "w-full h-auto max-h-[600px] object-contain")}
+              </div>
 
               {post.mediaItems.length > 1 && (
                 <div className="absolute left-3 top-3 px-2 py-1 rounded-full bg-black/60 text-white text-xs font-medium z-10">

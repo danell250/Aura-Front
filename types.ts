@@ -84,7 +84,15 @@ export enum EnergyType {
   THINKING_OUT_LOUD = '🤔 Thinking out loud'
 }
 
+export interface MediaItemMetrics {
+  views: number;
+  clicks: number;
+  saves: number;
+  dwellMs: number;
+}
+
 export interface MediaItem {
+  id: string;
   url: string;
   type: 'image' | 'video';
   key?: string;
@@ -92,6 +100,8 @@ export interface MediaItem {
   size?: number;
   caption?: string;
   headline?: string;
+  order?: number;
+  metrics?: MediaItemMetrics;
 }
 
 export interface Post {

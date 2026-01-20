@@ -3,6 +3,32 @@ import { apiFetch } from '../utils/api';
 
 export class PostService {
   /**
+   * Update media item metrics
+   */
+  static async updateMediaMetrics(
+    postId: string, 
+    mediaId: string, 
+    metric: 'views' | 'clicks' | 'saves' | 'dwellMs',
+    value: number = 1
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await apiFetch(`/posts/${postId}/media/${mediaId}/metrics`, {
+        method: 'POST',
+        body: JSON.stringify({ metric, value })
+      });
+      
+      const json = await response.json().catch(() => ({}));
+      if (response.ok && json.success) {
+        return { success: true };
+      }
+      return { success: false, error: json.error || 'Failed to update media metrics' };
+    } catch (error: any) {
+      console.error('❌ Error updating media metrics:', error);
+      return { success: false, error: error.message || 'Network error' };
+    }
+  }
+
+  /**
    * Search posts by query string
    */
   static async searchPosts(queryStr: string): Promise<{ success: boolean; posts?: Post[]; error?: string }> {

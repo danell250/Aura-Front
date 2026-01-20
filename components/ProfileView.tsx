@@ -1027,7 +1027,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                           Total Posts
                         </p>
                         <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                          {insights.totals.totalPosts.toLocaleString()}
+                          {(insights.totals?.totalPosts || 0).toLocaleString()}
                         </p>
                       </div>
                       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
@@ -1035,7 +1035,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                           Total Views
                         </p>
                         <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                          {insights.totals.totalViews.toLocaleString()}
+                          {(insights.totals?.totalViews || 0).toLocaleString()}
                         </p>
                       </div>
                       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
@@ -1043,7 +1043,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                           Total Radiance
                         </p>
                         <p className="mt-2 text-2xl font-bold text-amber-500">
-                          {insights.totals.totalRadiance.toLocaleString()}
+                          {(insights.totals?.totalRadiance || 0).toLocaleString()}
                         </p>
                       </div>
                       <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-4">
@@ -1051,7 +1051,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                           Credits Balance
                         </p>
                         <p className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                          {insights.credits.balance.toLocaleString()}
+                          {(insights.credits?.balance || 0).toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -1059,20 +1059,20 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                     {/* Row 2: Visual Analytics (Rings + MiniBars) */}
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <Ring
-                        value={insights.totals.boostedPosts}
-                        max={insights.totals.totalPosts || 1}
+                        value={insights.totals?.boostedPosts || 0}
+                        max={insights.totals?.totalPosts || 1}
                         label="Boost Ratio"
                         sublabel="Posts boosted"
                       />
                       <Ring
-                        value={insights.totals.totalRadiance}
-                        max={insights.totals.totalViews || 1} // Rough proxy for rate
+                        value={insights.totals?.totalRadiance || 0}
+                        max={insights.totals?.totalViews || 1} // Rough proxy for rate
                         label="Radiance Rate"
                         sublabel="Sparkle per view"
                       />
                       <Ring
-                        value={insights.credits.spent}
-                        max={(insights.credits.balance + insights.credits.spent) || 100}
+                        value={insights.credits?.spent || 0}
+                        max={((insights.credits?.balance || 0) + (insights.credits?.spent || 0)) || 100}
                         label="Credit Usage"
                         sublabel="Lifetime spend"
                       />
@@ -1114,10 +1114,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                                     Views
                                   </span>
                                   <span className="text-sm font-bold text-slate-900 dark:text-white">
-                                    {post.views.toLocaleString()}
+                                    {(post.views || 0).toLocaleString()}
                                   </span>
                                   <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">
-                                    ✨ {post.radiance.toLocaleString()}
+                                    ✨ {(post.radiance || 0).toLocaleString()}
                                   </span>
                                 </div>
                               </div>

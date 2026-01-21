@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { User, Ad } from '../types';
-import { adAnalyticsService, AdAnalytics, AdPerformanceMetrics, CampaignPerformance } from '../services/adAnalyticsService';
+import { adAnalyticsService, AdAnalytics, AdPerformanceMetrics, CampaignPerformance, normalizeAnalytics } from '../services/adAnalyticsService';
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
 import { getApiBaseUrl } from '../constants';
 import { io } from 'socket.io-client';
@@ -18,12 +18,8 @@ interface AdAnalyticsPageProps {
 type AnalyticsTab = 'overview' | 'ads' | 'details';
 
 const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = [], onDeleteAd }) => {
-  const n = (v: any, fallback = 0) => {
-    const x = Number(v);
-    return Number.isFinite(x) ? x : fallback;
-  };
-
-  const fixed = (v: any, digits = 2) => n(v, 0).toFixed(digits);
+  const n = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const fixed = (v: any, d = 2) => n(v).toFixed(d);
 
   const API_BASE_URL = getApiBaseUrl();
   const SOCKET_BASE_URL = API_BASE_URL.endsWith('/api')
@@ -41,6 +37,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
   const [sortBy, setSortBy] = useState<'impressions' | 'clicks' | 'ctr' | 'spend' | 'conversions' | 'cpa' | 'lastUpdated'>('impressions');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [subscription, setSubscription] = useState<AdSubscription | null>(null);
+  const [trendMetric, setTrendMetric] = useState<'volume' | 'spend'>('volume');
   const hasLoadedRef = React.useRef<boolean>(false);
 
   // Reset load state on user change
@@ -153,19 +150,22 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
 
     const handleAnalyticsUpdate = (payload: { userId: string; stats: { adMetrics?: AdAnalytics } }) => {
       if (!payload || payload.userId !== currentUser.id) return;
-      const metrics = payload.stats.adMetrics;
-      if (!metrics || !metrics.adId) return;
+      
+      const rawMetrics = payload.stats.adMetrics;
+      if (!rawMetrics || !rawMetrics.adId) return;
+      
+      const metrics = normalizeAnalytics(rawMetrics);
 
       setAdPerformance(prev => {
         const existing = prev.find(p => p.adId === metrics.adId);
         const ad = ads.find(a => a.id === metrics.adId);
 
-        const impressions = metrics.impressions ?? existing?.impressions ?? 0;
-        const clicks = metrics.clicks ?? existing?.clicks ?? 0;
-        const engagement = metrics.engagement ?? existing?.engagement ?? 0;
-        const spend = metrics.spend ?? existing?.spend ?? 0;
-        // const reach = metrics.reach ?? 0; // Not in AdPerformanceMetrics interface yet
-        const ctr = metrics.ctr ?? (impressions > 0 ? (clicks / impressions) * 100 : existing?.ctr ?? 0);
+        const impressions = metrics.impressions;
+        const clicks = metrics.clicks;
+        const engagement = metrics.engagement;
+        const spend = metrics.spend;
+        // const reach = metrics.reach; // Not in AdPerformanceMetrics interface yet
+        const ctr = metrics.ctr;
         const adName = existing?.adName || ad?.headline || (ad as any)?.title || 'Untitled Ad';
         const status = existing?.status || (ad?.status as any) || 'active';
         const createdAt = existing?.createdAt || (ad as any)?.timestamp || Date.now();
@@ -231,16 +231,18 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
 
       setSelectedAdAnalytics(prev => {
         if (!prev || prev.adId !== metrics.adId) return prev;
+        // Since metrics is normalized and guaranteed to be a full object, 
+        // we can safe-update. Note: metrics has 0 for missing fields.
         return {
           ...prev,
-          impressions: metrics.impressions ?? prev.impressions,
-          clicks: metrics.clicks ?? prev.clicks,
-          engagement: metrics.engagement ?? prev.engagement,
-          spend: metrics.spend ?? prev.spend,
-          reach: metrics.reach ?? prev.reach,
-          conversions: metrics.conversions ?? prev.conversions,
-          ctr: metrics.ctr ?? prev.ctr,
-          lastUpdated: metrics.lastUpdated ?? Date.now()
+          impressions: metrics.impressions,
+          clicks: metrics.clicks,
+          engagement: metrics.engagement,
+          spend: metrics.spend,
+          reach: metrics.reach,
+          conversions: metrics.conversions,
+          ctr: metrics.ctr,
+          lastUpdated: metrics.lastUpdated
         };
       });
     };
@@ -337,12 +339,12 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
 
   // --- Components ---
 
-  const KPICard = ({ label, value, subValue, prefix = '', suffix = '' }: any) => (
+  const KPICard = ({ label, value, subValue, prefix = '', suffix = '', digits = 2 }: any) => (
     <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
       <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">{label}</p>
       <div>
         <p className="text-xl font-black text-slate-900 dark:text-white">
-          {prefix}{typeof value === 'number' ? fixed(value, 2) : value}{suffix}
+          {prefix}{typeof value === 'number' ? fixed(value, digits) : value}{suffix}
         </p>
         {subValue && <p className="text-xs text-slate-400 mt-1">{subValue}</p>}
       </div>
@@ -365,159 +367,170 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
 
   // --- Render Sections ---
 
-  const renderOverview = () => (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* KPI Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <KPICard label="Impressions" value={n(overviewMetrics.impressions)} suffix="" digits={0} />
-        <KPICard label="Reach" value={n(overviewMetrics.reach)} suffix="" digits={0} />
-        <KPICard label="Clicks" value={n(overviewMetrics.clicks)} suffix="" digits={0} />
-        <KPICard label="CTR" value={overviewMetrics.ctr} suffix="%" />
-        <KPICard label="Spend" value={overviewMetrics.spend} prefix="$" />
-        <KPICard label="CPC" value={overviewMetrics.cpc} prefix="$" />
-        <KPICard label="CPM" value={overviewMetrics.cpm} prefix="$" />
-        <KPICard label="Conversions" value={overviewMetrics.conversions} digits={0} />
-        <KPICard label="CPA" value={overviewMetrics.cpa} prefix="$" />
-        <KPICard label="CVR" value={overviewMetrics.cvr} suffix="%" />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Trend Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-6">Performance Trend</h3>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={campaignPerformance?.trendData || []}>
-                <defs>
-                  <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorClick" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748B'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748B'}} />
-                <RechartsTooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                />
-                <Area type="monotone" dataKey="impressions" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" />
-                <Area type="monotone" dataKey="clicks" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorClick)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+  const renderDashboard = () => (
+    <div className="space-y-8">
+      {/* 1. Campaign Overview (KPI Strip) */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Campaign Overview</h3>
+          <p className="text-xs text-slate-400">
+            Updated {campaignPerformance?.lastUpdated ? new Date(campaignPerformance.lastUpdated).toLocaleTimeString() : 'just now'}
+          </p>
         </div>
-
-        {/* Breakdown Chart */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-6">Spend Distribution</h3>
-          <div className="flex-1 min-h-[200px]">
-             <ResponsiveContainer width="100%" height="100%">
-               <PieChart>
-                 <Pie
-                   data={adPerformance.filter(p => p.spend > 0).slice(0, 5)}
-                   dataKey="spend"
-                   nameKey="adName"
-                   cx="50%"
-                   cy="50%"
-                   innerRadius={60}
-                   outerRadius={80}
-                   paddingAngle={5}
-                 >
-                   {adPerformance.map((entry, index) => (
-                     <Cell key={`cell-${index}`} fill={['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'][index % 5]} />
-                   ))}
-                 </Pie>
-                 <Tooltip />
-                 <Legend verticalAlign="bottom" height={36}/>
-               </PieChart>
-             </ResponsiveContainer>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <KPICard label="Impressions" value={n(overviewMetrics.impressions)} suffix="" digits={0} />
+          <KPICard label="Reach" value={n(overviewMetrics.reach)} suffix="" digits={0} />
+          <KPICard label="Clicks" value={n(overviewMetrics.clicks)} suffix="" digits={0} />
+          <KPICard label="CTR" value={overviewMetrics.ctr} suffix="%" />
+          <KPICard label="Spend" value={overviewMetrics.spend} prefix="$" />
+          <KPICard label="CPC" value={overviewMetrics.cpc} prefix="$" />
+          <KPICard label="CPM" value={overviewMetrics.cpm} prefix="$" />
+          <KPICard label="Conversions" value={overviewMetrics.conversions} digits={0} />
+          <KPICard label="CPA" value={overviewMetrics.cpa} prefix="$" />
+          <KPICard label="CVR" value={overviewMetrics.cvr} suffix="%" />
         </div>
       </div>
-    </div>
-  );
 
-  const renderAdsTable = () => (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden animate-in fade-in duration-500">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
-            <tr>
-              {[
-                { key: 'adName', label: 'Ad Name' },
-                { key: 'status', label: 'Status' },
-                { key: 'impressions', label: 'Impressions' },
-                { key: 'clicks', label: 'Clicks' },
-                { key: 'ctr', label: 'CTR' },
-                { key: 'spend', label: 'Spend' },
-                { key: 'cpc', label: 'CPC' }, // Calculated row-level
-                { key: 'conversions', label: 'Conversions' },
-                { key: 'cpa', label: 'CPA' },
-                { key: 'lastUpdated', label: 'Last Updated' }
-              ].map(col => (
-                <th 
-                  key={col.key}
-                  className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[11px] cursor-pointer hover:text-slate-700 transition-colors"
-                  onClick={() => handleSort(col.key)}
-                >
-                  <div className="flex items-center gap-1">
-                    {col.label}
-                    {sortBy === col.key && (
-                      <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                    )}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {sortedAds.map(ad => {
-              const { ctr, cpc, cpm, cpa, cvr } = calculateExtendedMetrics(
-                ad.impressions || 0,
-                ad.clicks || 0,
-                ad.spend || 0,
-                0, // ad.conversions missing in list
-                0  // ad.reach missing in list
-              );
-              
-              return (
-                <tr 
-                  key={ad.adId} 
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
-                  onClick={() => handleAdClick(ad.adId)}
-                >
-                  <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white max-w-[200px] truncate">
-                    {ad.adName}
-                  </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={ad.status} />
-                  </td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{n(ad.impressions).toLocaleString()}</td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{n(ad.clicks).toLocaleString()}</td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{fixed(ad.ctr)}%</td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fixed(ad.spend)}</td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fixed(cpc)}</td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">0</td> {/* Missing data */}
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fixed(cpa)}</td>
-                  <td className="px-6 py-4 text-slate-500 text-xs">
-                    {new Date(ad.createdAt).toLocaleDateString()}
+      {/* 2. Trends (One Chart Only) */}
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Performance Trends</h3>
+          <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-lg">
+            <button
+              onClick={() => setTrendMetric('volume')}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                trendMetric === 'volume'
+                  ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+              }`}
+            >
+              Volume
+            </button>
+            <button
+              onClick={() => setTrendMetric('spend')}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                trendMetric === 'spend'
+                  ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+              }`}
+            >
+              Spend
+            </button>
+          </div>
+        </div>
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={campaignPerformance?.trendData || []}>
+              <defs>
+                <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorClick" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748B'}} />
+              <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748B'}} />
+              <RechartsTooltip 
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+              />
+              {trendMetric === 'volume' ? (
+                <>
+                  <Area type="monotone" dataKey="impressions" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" name="Impressions" />
+                  <Area type="monotone" dataKey="clicks" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorClick)" name="Clicks" />
+                </>
+              ) : (
+                <Area type="monotone" dataKey="spend" stroke="#8B5CF6" strokeWidth={2} fillOpacity={1} fill="url(#colorSpend)" name="Spend ($)" />
+              )}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* 3. Ads Table */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">All Ads</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+              <tr>
+                {[
+                  { key: 'adName', label: 'Ad' },
+                  { key: 'status', label: 'Status' },
+                  { key: 'impressions', label: 'Impressions' },
+                  { key: 'clicks', label: 'Clicks' },
+                  { key: 'ctr', label: 'CTR' },
+                  { key: 'spend', label: 'Spend' },
+                  { key: 'cpc', label: 'CPC' },
+                  { key: 'conversions', label: 'Conversions' },
+                  { key: 'cpa', label: 'CPA' }
+                ].map(col => (
+                  <th 
+                    key={col.key}
+                    className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[11px] cursor-pointer hover:text-slate-700 transition-colors"
+                    onClick={() => handleSort(col.key)}
+                  >
+                    <div className="flex items-center gap-1">
+                      {col.label}
+                      {sortBy === col.key && (
+                        <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {sortedAds.map(ad => {
+                const { ctr, cpc, cpm, cpa, cvr } = calculateExtendedMetrics(
+                  ad.impressions || 0,
+                  ad.clicks || 0,
+                  ad.spend || 0,
+                  0, 
+                  0
+                );
+                
+                return (
+                  <tr 
+                    key={ad.adId} 
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                    onClick={() => handleAdClick(ad.adId)}
+                  >
+                    <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white max-w-[200px] truncate">
+                      {ad.adName}
+                    </td>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={ad.status} />
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{n(ad.impressions).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{n(ad.clicks).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{fixed(ctr)}%</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fixed(ad.spend)}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fixed(cpc)}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">0</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fixed(cpa)}</td>
+                  </tr>
+                );
+              })}
+              {sortedAds.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                    No ads found. Launch a campaign to see performance data.
                   </td>
                 </tr>
-              );
-            })}
-            {sortedAds.length === 0 && (
-              <tr>
-                <td colSpan={10} className="px-6 py-12 text-center text-slate-500">
-                  No ads found. Launch a campaign to see performance data.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -528,10 +541,10 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
         <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
           <p className="text-slate-500">Select an ad from the "All Ads" tab to view details.</p>
           <button 
-            onClick={() => setActiveTab('ads')}
+            onClick={() => setActiveTab('overview')}
             className="mt-4 px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-emerald-600 transition-colors"
           >
-            Go to Ads List
+            Back to Dashboard
           </button>
         </div>
       );
@@ -576,18 +589,29 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
           </div>
         </div>
 
-        {/* KPI Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <KPICard label="Impressions" value={n(imp)} suffix="" digits={0} />
-          <KPICard label="Reach" value={n(reach)} suffix="" digits={0} />
-          <KPICard label="Clicks" value={n(clicks)} suffix="" digits={0} />
-          <KPICard label="CTR" value={ctr} suffix="%" />
-          <KPICard label="Spend" value={spend} prefix="$" />
-          <KPICard label="CPC" value={cpc} prefix="$" />
-          <KPICard label="CPM" value={cpm} prefix="$" />
-          <KPICard label="Conversions" value={conversions} digits={0} />
-          <KPICard label="CPA" value={cpa} prefix="$" />
-          <KPICard label="CVR" value={cvr} suffix="%" />
+        {/* KPI Grid - Organized by Rows (Volume, Cost, Outcome) */}
+        <div className="space-y-6">
+          {/* Row 1: Volume */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <KPICard label="Impressions" value={n(imp)} suffix="" digits={0} />
+            <KPICard label="Reach" value={n(reach)} suffix="" digits={0} />
+            <KPICard label="Clicks" value={n(clicks)} suffix="" digits={0} />
+            <KPICard label="CTR" value={ctr} suffix="%" />
+          </div>
+
+          {/* Row 2: Cost */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <KPICard label="Spend" value={spend} prefix="$" />
+            <KPICard label="CPC" value={cpc} prefix="$" />
+            <KPICard label="CPM" value={cpm} prefix="$" />
+          </div>
+
+          {/* Row 3: Outcome */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <KPICard label="Conversions" value={conversions} digits={0} />
+            <KPICard label="CPA" value={cpa} prefix="$" />
+            <KPICard label="CVR" value={cvr} suffix="%" />
+          </div>
         </div>
 
         {/* Ad Specific Trend - Using Campaign Trend as placeholder or filtered if available */}
@@ -645,28 +669,38 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
       {/* Tabs */}
       <div className="border-b border-slate-200 dark:border-slate-700">
         <div className="flex space-x-8">
-          {(['overview', 'ads', 'details'] as const).map((tab) => (
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`
+              py-4 px-1 text-sm font-bold border-b-2 transition-colors
+              ${activeTab === 'overview' 
+                ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }
+            `}
+          >
+            Dashboard
+          </button>
+          {selectedAdId && (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => setActiveTab('details')}
               className={`
                 py-4 px-1 text-sm font-bold border-b-2 transition-colors
-                ${activeTab === tab 
+                ${activeTab === 'details' 
                   ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 }
               `}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              Ad Details
             </button>
-          ))}
+          )}
         </div>
       </div>
 
       {/* Content Area */}
       <div className="min-h-[400px]">
-        {activeTab === 'overview' && renderOverview()}
-        {activeTab === 'ads' && renderAdsTable()}
+        {activeTab === 'overview' && renderDashboard()}
         {activeTab === 'details' && renderDetails()}
       </div>
     </div>

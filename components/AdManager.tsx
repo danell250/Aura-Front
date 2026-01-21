@@ -14,10 +14,10 @@ declare global {
   }
 }
 
-interface AdManagerProps {
+  interface AdManagerProps {
   currentUser: User;
   ads: Ad[];
-  onAdCreated: (ad: Ad) => Promise<boolean | { success: boolean; error?: string }>;
+  onAdCreated: (ad: Ad) => Promise<boolean | { success: boolean; error?: string; code?: string; currentUsage?: number; limit?: number; resetDate?: string }>;
   onAdCancelled: (adId: string) => void;
   onAdUpdated?: (adId: string, updates: Partial<Ad>) => Promise<boolean>;
   onClose: () => void;
@@ -38,6 +38,7 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const [buttonsRendered, setButtonsRendered] = useState(false);
   const [showPayPal, setShowPayPal] = useState(false);
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
+  const [limitReachedData, setLimitReachedData] = useState<{ message: string; currentUsage?: number; limit?: number; resetDate?: string } | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const paypalRef = useRef<HTMLDivElement>(null);
@@ -576,7 +577,17 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
       } else {
         if (selectedSubscription.adsUsed >= selectedSubscription.adLimit) {
           console.log("❌ Subscription limit reached");
-          alert(`You have reached the limit of ${selectedSubscription.adLimit} ads for this subscription. Please purchase a new package or wait for renewal.`);
+          
+          const resetDate = selectedSubscription.endDate 
+            ? new Date(selectedSubscription.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            : undefined;
+
+          setLimitReachedData({
+            message: `You’ve used ${selectedSubscription.adsUsed}/${selectedSubscription.adLimit} ads on ${selectedSubscription.packageName} for this billing month. Your limit resets on ${resetDate || 'next billing cycle'}.`,
+            currentUsage: selectedSubscription.adsUsed,
+            limit: selectedSubscription.adLimit,
+            resetDate: resetDate
+          });
           return;
         }
       }
@@ -645,12 +656,25 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
       const result = await onAdCreated(finalAd);
       const success = typeof result === 'object' ? result.success : result;
       const error = typeof result === 'object' ? result.error : undefined;
+      const code = typeof result === 'object' ? (result as any).code : undefined;
 
       if (success) {
         await loadActiveSubscriptions();
         onClose();
       } else {
         console.warn("❌ Ad creation failed, keeping modal open");
+        
+        if (code === 'AD_LIMIT_REACHED') {
+            const errData = result as any;
+            setLimitReachedData({ 
+              message: error || 'Ad limit reached',
+              currentUsage: errData.currentUsage,
+              limit: errData.limit,
+              resetDate: errData.resetDate
+            });
+            return;
+         }
+
         // Show the exact error message from backend as requested: "Don't make users guess"
         // And avoid soft warnings/upgrade prompts if the limit is reached.
         alert(error || "Failed to publish ad. Please try again.");
@@ -679,7 +703,9 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-2xl animate-in fade-in duration-300">
+    <>
+
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-2xl animate-in fade-in duration-300">
       <div className="bg-white dark:bg-slate-900 w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-[3.5rem] p-8 sm:p-12 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.6)] border border-slate-200 dark:border-slate-800 no-scrollbar relative">
         
         <div className="flex justify-between items-center mb-10">
@@ -1153,17 +1179,76 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                       <input className="w-full p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl outline-none border border-slate-100 dark:border-slate-700 text-[10px] font-black dark:text-white shadow-inner" value={form.ctaLink} onChange={e => setForm({...form, ctaLink: e.target.value})} />
                     </div>
                   </div>
-                  <button
-                    onClick={handleBroadcast}
-                    disabled={isQuotaDepleted}
-                    className={`w-full py-6 font-black uppercase rounded-[2.5rem] text-sm tracking-[0.4em] shadow-2xl transition-all mt-6 ${
-                      isQuotaDepleted
-                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                        : 'aura-bg-gradient text-white shadow-emerald-500/40 hover:brightness-110 active:scale-95'
-                    }`}
-                  >
-                    Create Signal
-                  </button>
+                  {limitReachedData ? (
+                    <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 shadow-xl animate-in slide-in-from-bottom-4 mt-6">
+                      <div className="flex items-start gap-5 mb-6">
+                        <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center text-2xl shrink-0">
+                          🚫
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Ad Limit Reached</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">
+                            {limitReachedData.resetDate ? `Resets ${limitReachedData.resetDate}` : 'Plan Limit Exceeded'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
+                        {limitReachedData.message}
+                      </p>
+
+                      {(limitReachedData.currentUsage !== undefined && limitReachedData.limit !== undefined) && (
+                        <div className="mb-8">
+                          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                            <span>Usage</span>
+                            <span>{limitReachedData.currentUsage} / {limitReachedData.limit}</span>
+                          </div>
+                          <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-3 overflow-hidden border border-slate-200 dark:border-slate-600">
+                            <div 
+                              className="h-full bg-rose-500 rounded-full"
+                              style={{ width: `${Math.min(100, (limitReachedData.currentUsage / limitReachedData.limit) * 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <button
+                          onClick={() => {
+                            if (onGoToAdPlans) onGoToAdPlans();
+                            setLimitReachedData(null);
+                          }}
+                          className="flex-1 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase rounded-2xl text-[10px] tracking-widest transition-all shadow-lg hover:shadow-emerald-500/30"
+                        >
+                          View Plans
+                        </button>
+                        <button
+                          onClick={() => setLimitReachedData(null)}
+                          className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-300 font-black uppercase rounded-2xl text-[10px] tracking-widest transition-all"
+                        >
+                          Close
+                        </button>
+                      </div>
+                      
+                      {limitReachedData.resetDate && (
+                         <p className="text-[9px] text-center text-slate-400 font-bold uppercase tracking-widest mt-6">
+                           Or wait until reset on {limitReachedData.resetDate}
+                         </p>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleBroadcast}
+                      disabled={isQuotaDepleted}
+                      className={`w-full py-6 font-black uppercase rounded-[2.5rem] text-sm tracking-[0.4em] shadow-2xl transition-all mt-6 ${
+                        isQuotaDepleted
+                          ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                          : 'aura-bg-gradient text-white shadow-emerald-500/40 hover:brightness-110 active:scale-95'
+                      }`}
+                    >
+                      Create Signal
+                    </button>
+                  )}
                   {isQuotaDepleted && (
                     <p className="text-xs text-amber-600 mt-2">
                       Monthly signal limit reached. Resets on {selectedSubscription?.endDate ? new Date(selectedSubscription.endDate).toLocaleDateString() : '—'}.
@@ -1219,6 +1304,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
         )}
       </div>
     </div>
+    </>
   );
 };
 

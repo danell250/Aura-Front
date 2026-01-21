@@ -1314,7 +1314,14 @@ const App: React.FC = () => {
         console.error('Failed to create ad on backend:', result.error);
         // Revert optimistic update
         setAds(prev => prev.filter(a => a.id !== newAd.id));
-        return { success: false, error: result.error };
+        return { 
+          success: false, 
+          error: result.error,
+          code: result.code,
+          currentUsage: result.currentUsage,
+          limit: result.limit,
+          resetDate: result.resetDate
+        };
       }
     } catch (error) {
       console.error('Failed to save ad to backend:', error);

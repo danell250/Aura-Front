@@ -5,7 +5,7 @@ export class AdService {
   /**
    * Create a new ad
    */
-  static async createAd(adData: Omit<Ad, 'id' | 'timestamp' | 'reactions' | 'reactionUsers'>): Promise<{ success: boolean; ad?: Ad; error?: string }> {
+  static async createAd(adData: Omit<Ad, 'id' | 'timestamp' | 'reactions' | 'reactionUsers'>): Promise<{ success: boolean; ad?: Ad; error?: string; code?: string; currentUsage?: number; limit?: number; resetDate?: string }> {
     try {
       const response = await apiFetch('/ads', {
         method: 'POST',
@@ -21,7 +21,14 @@ export class AdService {
       }
 
       const errorResult = await response.json();
-      return { success: false, error: errorResult.message || errorResult.error || 'Failed to create ad' };
+      return { 
+        success: false, 
+        error: errorResult.message || errorResult.error || 'Failed to create ad',
+        code: errorResult.code,
+        currentUsage: errorResult.currentUsage,
+        limit: errorResult.limit,
+        resetDate: errorResult.resetDate
+      };
     } catch (error) {
       console.error('❌ Error creating ad:', error);
       return { success: false, error: 'Failed to create ad' };
@@ -101,7 +108,7 @@ export class AdService {
   /**
    * Update an ad by ID
    */
-  static async updateAd(adId: string, updates: Partial<Ad>): Promise<{ success: boolean; ad?: Ad; error?: string }> {
+  static async updateAd(adId: string, updates: Partial<Ad>): Promise<{ success: boolean; ad?: Ad; error?: string; code?: string }> {
     try {
       const response = await apiFetch(`/ads/${adId}`, {
         method: 'PUT',
@@ -116,7 +123,11 @@ export class AdService {
       }
 
       const errorResult = await response.json();
-      return { success: false, error: errorResult.message || errorResult.error || 'Failed to update ad' };
+      return { 
+        success: false, 
+        error: errorResult.message || errorResult.error || 'Failed to update ad',
+        code: errorResult.code
+      };
     } catch (error) {
       console.error('❌ Error updating ad:', error);
       return { success: false, error: 'Failed to update ad' };
@@ -126,7 +137,7 @@ export class AdService {
   /**
    * Update an ad status by ID
    */
-  static async updateAdStatus(adId: string, status: 'active' | 'paused' | 'ended' | 'cancelled'): Promise<{ success: boolean; ad?: Ad; error?: string }> {
+  static async updateAdStatus(adId: string, status: 'active' | 'paused' | 'ended' | 'cancelled'): Promise<{ success: boolean; ad?: Ad; error?: string; code?: string }> {
     try {
       const response = await apiFetch(`/ads/${adId}/status`, {
         method: 'PUT',
@@ -141,7 +152,11 @@ export class AdService {
       }
 
       const errorResult = await response.json();
-      return { success: false, error: errorResult.message || errorResult.error || 'Failed to update ad status' };
+      return { 
+        success: false, 
+        error: errorResult.message || errorResult.error || 'Failed to update ad status',
+        code: errorResult.code
+      };
     } catch (error) {
       console.error('❌ Error updating ad status:', error);
       return { success: false, error: 'Failed to update ad status' };

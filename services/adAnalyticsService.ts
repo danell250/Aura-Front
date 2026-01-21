@@ -24,6 +24,7 @@ export interface CampaignPerformance {
   activeAds: number;
   daysToNextExpiry?: number | null;
   performanceScore: number;
+  lastUpdated: number;
   trendData: {
     date: string;
     impressions: number;

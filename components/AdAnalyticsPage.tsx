@@ -5,8 +5,7 @@ import { adSubscriptionService, AdSubscription } from '../services/adSubscriptio
 import { getApiBaseUrl } from '../constants';
 import { io } from 'socket.io-client';
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, Legend, Tooltip
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer 
 } from 'recharts';
 
 interface AdAnalyticsPageProps {
@@ -511,8 +510,8 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
             </button>
           </div>
         </div>
-        <div className="h-72 w-full min-w-0">
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <div className="h-72 w-full" style={{ minWidth: 0 }}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
             <AreaChart data={campaignPerformance?.trendData || []}>
               <defs>
                 <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
@@ -674,7 +673,6 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
              </h2>
              <div className="flex items-center gap-3 mt-2">
                <StatusBadge status={adInfo?.status || 'active'} />
-               <span className="text-xs text-slate-500">ID: {selectedAdId}</span>
              </div>
           </div>
           <div className="text-right">

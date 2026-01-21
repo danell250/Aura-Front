@@ -511,8 +511,8 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
             </button>
           </div>
         </div>
-        <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-72 w-full min-w-0">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <AreaChart data={campaignPerformance?.trendData || []}>
               <defs>
                 <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">

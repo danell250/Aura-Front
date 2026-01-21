@@ -20,6 +20,7 @@ export interface CampaignPerformance {
   totalReach: number;
   totalEngagement: number;
   totalSpend: number;
+  totalConversions: number;
   averageCTR: number;
   activeAds: number;
   daysToNextExpiry?: number | null;
@@ -42,7 +43,9 @@ export interface AdPerformanceMetrics {
   ctr: number;
   engagement: number;
   spend: number;
+  conversions: number;
   roi: number;
+  lastUpdated: number;
   createdAt: number;
 }
 
@@ -64,6 +67,7 @@ export const normalizeCampaignPerformance = (c: any): CampaignPerformance => ({
   totalReach: Number(c?.totalReach ?? 0),
   totalEngagement: Number(c?.totalEngagement ?? 0),
   totalSpend: Number(c?.totalSpend ?? 0),
+  totalConversions: Number(c?.totalConversions ?? 0),
   averageCTR: Number(c?.averageCTR ?? 0),
   activeAds: Number(c?.activeAds ?? 0),
   daysToNextExpiry: c?.daysToNextExpiry,
@@ -87,7 +91,9 @@ export const normalizeAdPerformanceMetrics = (m: any): AdPerformanceMetrics => (
   ctr: Number(m?.ctr ?? 0),
   engagement: Number(m?.engagement ?? 0),
   spend: Number(m?.spend ?? 0),
+  conversions: Number(m?.conversions ?? 0),
   roi: Number(m?.roi ?? 0),
+  lastUpdated: m?.lastUpdated ?? m?.createdAt ?? Date.now(),
   createdAt: m?.createdAt ?? Date.now()
 });
 
@@ -225,6 +231,23 @@ export const adAnalyticsService = {
       });
     } catch (error) {
       console.error('[AdAnalytics] Error tracking engagement:', error);
+    }
+  },
+
+  // Track ad conversion
+  async trackConversion(adId: string): Promise<void> {
+    try {
+      const token = localStorage.getItem('aura_auth_token');
+      await fetch(`${API_BASE_URL}/ads/${adId}/conversion`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.error('[AdAnalytics] Error tracking conversion:', error);
     }
   }
 };

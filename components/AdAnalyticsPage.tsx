@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { User, Ad } from '../types';
 import { adAnalyticsService, AdAnalytics, AdPerformanceMetrics, CampaignPerformance, normalizeAnalytics } from '../services/adAnalyticsService';
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
@@ -56,6 +56,12 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
   // New: Check if user can create ads based on strict limit
   const canCreateAd = subscription && subscription.adsUsed < subscription.adLimit;
 
+  // Keep a ref to ads to avoid re-subscribing socket on ads change
+  const adsRef = useRef(ads);
+  useEffect(() => {
+    adsRef.current = ads;
+  }, [ads]);
+
   // Reset load state on user change
   useEffect(() => {
     hasLoadedRef.current = false;
@@ -105,7 +111,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
       // don't poll while user is deep-diving a single ad
       if (activeTab === 'details' && selectedAdId) return;
       load(false);
-    }, 120000);
+    }, 30000);
 
     return () => {
       cancelled = true;
@@ -177,7 +183,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
 
       setAdPerformance(prev => {
         const existing = prev.find(p => p.adId === metrics.adId);
-        const ad = ads.find(a => a.id === metrics.adId);
+        const ad = adsRef.current.find(a => a.id === metrics.adId);
 
         const impressions = metrics.impressions;
         const clicks = metrics.clicks;
@@ -199,7 +205,9 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                     ctr,
                     engagement,
                     spend,
-                    roi: spend > 0 ? (engagement + clicks) / spend : 0
+                    conversions: metrics.conversions,
+                    roi: spend > 0 ? (engagement + clicks) / spend : 0,
+                    lastUpdated: metrics.lastUpdated
                   }
                 : p
             )
@@ -214,37 +222,17 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                 ctr,
                 engagement,
                 spend,
+                conversions: metrics.conversions,
                 roi: spend > 0 ? (engagement + clicks) / spend : 0,
-                createdAt
+                createdAt,
+                lastUpdated: metrics.lastUpdated
               }
             ];
         
         // Update campaign totals
-        if (existing) {
-          const deltaImpressions = impressions - (existing.impressions || 0);
-          const deltaClicks = clicks - (existing.clicks || 0);
-          const deltaEngagement = engagement - (existing.engagement || 0);
-          const deltaSpend = spend - (existing.spend || 0);
-
-          setCampaignPerformance(prevCampaign => {
-            if (!prevCampaign) return prevCampaign;
-            const totalImpressions = prevCampaign.totalImpressions + deltaImpressions;
-            const totalClicks = prevCampaign.totalClicks + deltaClicks;
-            const totalEngagement = prevCampaign.totalEngagement + deltaEngagement;
-            const totalSpend = prevCampaign.totalSpend + deltaSpend;
-            const averageCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : prevCampaign.averageCTR;
-
-            return {
-              ...prevCampaign,
-              totalImpressions,
-              totalClicks,
-              totalEngagement,
-              totalSpend,
-              totalReach: totalImpressions, // Rough estimate update
-              averageCTR
-            };
-          });
-        }
+        // REMOVED: We no longer update campaign totals incrementally to avoid double-counting.
+        // Campaign totals are now authoritative from the backend via periodic polling.
+        
         return next;
       });
 
@@ -274,7 +262,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
       socket.off('analytics_update', handleAnalyticsUpdate);
       socket.close();
     };
-  }, [currentUser.id, ads]);
+  }, [currentUser.id]);
 
 
   // --- Derived Metrics & Data ---
@@ -303,7 +291,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
     // Calculate conversions by summing up from adPerformance if available, otherwise 0
     // Note: AdPerformanceMetrics currently lacks 'conversions', so we might need to assume 0 or 
     // fetch it. For now, we will sum 0 to be safe until backend sends it in the list.
-    const totalConversions = 0; 
+    const totalConversions = campaignPerformance?.totalConversions ?? 0;
     
     const { ctr, cpc, cpm, cpa, cvr } = calculateExtendedMetrics(
       totalImpressions,
@@ -382,7 +370,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
       // Helper to access properties safely
       const getVal = (obj: any, key: string) => {
         if (key === 'cpa' || key === 'conversions') return 0; // Missing in list
-        if (key === 'lastUpdated') return obj.createdAt; // Approximate
+        if (key === 'lastUpdated') return obj.lastUpdated;
         return obj[key] ?? 0;
       };
 
@@ -612,7 +600,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                   ad.impressions || 0,
                   ad.clicks || 0,
                   ad.spend || 0,
-                  0, 
+                  ad.conversions || 0, 
                   0
                 );
                 
@@ -633,7 +621,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">{fmt2(ctr)}%</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">${fmt2(ad.spend)}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">${fmt2(cpc)}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">0</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">{n2(ad.conversions)}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">${fmt2(cpa)}</td>
                   </tr>
                 );

@@ -16,15 +16,18 @@ const TrendingTopics: React.FC<TrendingTopicsProps> = ({
     const fetchTrends = async () => {
       try {
         const topics = await TrendingService.fetchTrendingTopics();
-        setTrendingTopics(topics);
+
+        // ✅ Guard: don’t wipe UI if backend returns empty
+        if (Array.isArray(topics) && topics.length > 0) {
+          setTrendingTopics(topics);
+        }
       } catch (error) {
         console.error('Failed to fetch trending topics', error);
+        // ✅ Keep last good state on error
       }
     };
 
     fetchTrends();
-    
-    // Refresh every 2 minutes to keep it relatively fresh
     const interval = setInterval(fetchTrends, 2 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);

@@ -25,7 +25,7 @@ export class TrendingService {
    */
   static async fetchTrendingTopics(limit: number = 10, hours: number = 24): Promise<TrendingTopic[]> {
     const CACHE_KEY = `aura_trending_topics_v1_${limit}_${hours}`;
-    const TTL_MS = 5 * 60 * 1000; // 5 minutes (tweak if you want)
+    const TTL_MS = 5 * 60 * 1000; // 5 minutes
 
     const readCache = (): { ts: number; data: TrendingTopic[] } | null => {
       try {
@@ -47,45 +47,33 @@ export class TrendingService {
       }
     };
 
-    // 1) Return fresh cache immediately (fast load after refresh)
+    // ✅ 1) Fast path: use fresh cache immediately
     const cached = readCache();
-    if (cached && Date.now() - cached.ts < TTL_MS) {
+    if (cached && Date.now() - cached.ts < TTL_MS && cached.data.length) {
       return cached.data;
     }
 
-    // 2) Try network
+    // ✅ 2) Network path
     try {
       const response = await apiFetch(`/posts/hashtags/trending?limit=${limit}&hours=${hours}`);
       if (response.ok) {
         const result = await response.json();
-
         if (result?.success && Array.isArray(result.data)) {
           const topics: TrendingTopic[] = result.data.map((item: any) => {
             let category: 'rising' | 'hot' | 'steady' = 'steady';
             if (item.count >= 10) category = 'hot';
             else if (item.count >= 5) category = 'rising';
 
-            return {
-              hashtag: item._id,
-              count: item.count,
-              growth: 0,
-              category
-            };
+            return { hashtag: item._id, count: item.count, growth: 0, category };
           });
 
-          // 3) Save and return
-          writeCache(topics);
-          return topics;
+          if (topics.length) writeCache(topics);
+          return topics.length ? topics : (cached?.data ?? []);
         }
       }
-
-      // If response isn't ok or payload unexpected, fall back to old cache if any
-      if (cached?.data?.length) return cached.data;
-      return [];
+      return cached?.data ?? [];
     } catch (e) {
-      // 4) Network error: fall back to last cached trends
-      if (cached?.data?.length) return cached.data;
-      return [];
+      return cached?.data ?? [];
     }
   }
 

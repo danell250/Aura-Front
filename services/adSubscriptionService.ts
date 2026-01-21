@@ -17,6 +17,8 @@ export interface AdSubscription {
   paypalSubscriptionId?: string;
   adsUsed: number;
   adLimit: number;
+  periodStart?: number;
+  periodEnd?: number;
   createdAt: number;
   updatedAt: number;
 }

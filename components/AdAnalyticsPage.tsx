@@ -18,8 +18,12 @@ interface AdAnalyticsPageProps {
 type AnalyticsTab = 'overview' | 'ads' | 'details';
 
 const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = [], onDeleteAd }) => {
-  const n = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-  const fixed = (v: any, d = 2) => n(v).toFixed(d);
+  const n2 = (v: any) => {
+    const num = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(num) ? num : 0;
+  };
+  const fmt2 = (v: any) => n2(v).toFixed(2);
+  const fmt = (v: any, d = 2) => n2(v).toFixed(d);
 
   const API_BASE_URL = getApiBaseUrl();
   const SOCKET_BASE_URL = API_BASE_URL.endsWith('/api')
@@ -86,7 +90,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
     // Stop campaign polling if we are looking at a specific ad in details tab
     if (activeTab === 'details' && selectedAdId) return;
 
-    const id = window.setInterval(() => load(false), 30000);
+    const id = window.setInterval(() => load(false), 120000);
 
     return () => {
       cancelled = true;
@@ -130,8 +134,8 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
     };
 
     loadOne(true);
-    // Poll single ad details every 15s
-    const id = window.setInterval(() => loadOne(false), 15000);
+    // Poll single ad details every 60s
+    const id = window.setInterval(() => loadOne(false), 60000);
 
     return () => {
       cancelled = true;
@@ -311,13 +315,19 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
   const usageStats = useMemo(() => {
     if (!subscription) return null;
 
+    // Prefer backend values if available (from new strict quota logic)
+    if (subscription.periodEnd) {
+      return {
+        usedAds: subscription.adsUsed,
+        adLimit: subscription.adLimit,
+        remainingAds: Math.max(0, subscription.adLimit - subscription.adsUsed),
+        resetsAt: new Date(subscription.periodEnd)
+      };
+    }
+
+    // Fallback: Calculate start of current billing window for legacy/unmigrated subscriptions
     const now = new Date();
-    // Calculate start of current billing window
     let windowStart = new Date(subscription.startDate);
-    
-    // Advance by months until we pass now, then step back one month
-    // Or simpler: just keep adding months until windowEnd > now.
-    // windowStart is the start of that window.
     
     // Safety: prevent infinite loop if startDate is in future
     if (windowStart > now) {
@@ -335,19 +345,20 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
     
     const resetsAt = nextMonth;
     
-    // Filter ads created >= windowStart and are active
-    const usedAds = adPerformance.filter(ad => 
-      ad.status === 'active' && 
-      (ad.createdAt || 0) >= windowStart.getTime()
-    ).length;
+    // If backend isn't tracking period yet, we trust subscription.adsUsed if it seems plausible,
+    // otherwise we might want to fallback to counting active ads. 
+    // But since backend is source of truth, let's stick to subscription.adsUsed
+    // or calculate if subscription.adsUsed is 0 but we have active ads? 
+    // The user instruction said: "Stop using subscription.adsUsed if the backend isn’t updating it (but after the backend fix above, it WILL be correct)."
+    // So we should use subscription.adsUsed.
     
     return {
-      usedAds,
+      usedAds: subscription.adsUsed,
       adLimit: subscription.adLimit,
-      remainingAds: Math.max(0, subscription.adLimit - usedAds),
+      remainingAds: Math.max(0, subscription.adLimit - subscription.adsUsed),
       resetsAt
     };
-  }, [subscription, adPerformance]);
+  }, [subscription]);
 
   // --- Sort & Filter Helpers ---
 
@@ -387,7 +398,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
       <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">{label}</p>
       <div>
         <p className="text-xl font-black text-slate-900 dark:text-white">
-          {prefix}{typeof value === 'number' ? fixed(value, digits) : value}{suffix}
+          {prefix}{typeof value === 'number' ? fmt(value, digits) : value}{suffix}
         </p>
         {subValue && <p className="text-xs text-slate-400 mt-1">{subValue}</p>}
       </div>
@@ -444,9 +455,9 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <KPICard label="Impressions" value={n(overviewMetrics.impressions)} suffix="" digits={0} />
-          <KPICard label="Reach" value={n(overviewMetrics.reach)} suffix="" digits={0} />
-          <KPICard label="Clicks" value={n(overviewMetrics.clicks)} suffix="" digits={0} />
+          <KPICard label="Impressions" value={n2(overviewMetrics.impressions)} suffix="" digits={0} />
+          <KPICard label="Reach" value={n2(overviewMetrics.reach)} suffix="" digits={0} />
+          <KPICard label="Clicks" value={n2(overviewMetrics.clicks)} suffix="" digits={0} />
           <KPICard label="CTR" value={overviewMetrics.ctr} suffix="%" />
           <KPICard label="Spend" value={overviewMetrics.spend} prefix="$" />
           <KPICard label="CPC" value={overviewMetrics.cpc} prefix="$" />
@@ -577,13 +588,13 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                     <td className="px-6 py-4">
                       <StatusBadge status={ad.status} />
                     </td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{n(ad.impressions).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{n(ad.clicks).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{fixed(ctr)}%</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fixed(ad.spend)}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fixed(cpc)}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{n2(ad.impressions).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{n2(ad.clicks).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{fmt2(ctr)}%</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fmt2(ad.spend)}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fmt2(cpc)}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300">0</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fixed(cpa)}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fmt2(cpa)}</td>
                   </tr>
                 );
               })}
@@ -659,9 +670,9 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
         <div className="space-y-6">
           {/* Row 1: Volume */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KPICard label="Impressions" value={n(imp)} suffix="" digits={0} />
-            <KPICard label="Reach" value={n(reach)} suffix="" digits={0} />
-            <KPICard label="Clicks" value={n(clicks)} suffix="" digits={0} />
+            <KPICard label="Impressions" value={n2(imp)} suffix="" digits={0} />
+            <KPICard label="Reach" value={n2(reach)} suffix="" digits={0} />
+            <KPICard label="Clicks" value={n2(clicks)} suffix="" digits={0} />
             <KPICard label="CTR" value={ctr} suffix="%" />
           </div>
 

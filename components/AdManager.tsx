@@ -651,14 +651,9 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
         onClose();
       } else {
         console.warn("❌ Ad creation failed, keeping modal open");
-        if (error && (error.includes('Plan limit reached') || error.includes('limit reached'))) {
-            if (confirm(`${error}\n\nWould you like to view upgrade options?`)) {
-                if (onGoToAdPlans) onGoToAdPlans();
-                else window.location.href = '/ad-plans';
-            }
-        } else {
-            alert(error || "Failed to publish ad. Please try again.");
-        }
+        // Show the exact error message from backend as requested: "Don't make users guess"
+        // And avoid soft warnings/upgrade prompts if the limit is reached.
+        alert(error || "Failed to publish ad. Please try again.");
       }
     } catch (err) {
       console.error("❌ Error during ad creation:", err);

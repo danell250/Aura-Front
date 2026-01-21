@@ -308,6 +308,49 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
     };
   }, [campaignPerformance, adPerformance]);
 
+  const usageStats = useMemo(() => {
+    if (!subscription) return null;
+
+    const now = new Date();
+    // Calculate start of current billing window
+    let windowStart = new Date(subscription.startDate);
+    
+    // Advance by months until we pass now, then step back one month
+    // Or simpler: just keep adding months until windowEnd > now.
+    // windowStart is the start of that window.
+    
+    // Safety: prevent infinite loop if startDate is in future
+    if (windowStart > now) {
+       return { usedAds: 0, adLimit: subscription.adLimit, remainingAds: subscription.adLimit, resetsAt: windowStart };
+    }
+
+    let nextMonth = new Date(windowStart);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    
+    while (nextMonth <= now) {
+      windowStart = nextMonth;
+      nextMonth = new Date(windowStart);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+    }
+    
+    const resetsAt = nextMonth;
+    
+    // Filter ads created >= windowStart and are active
+    const usedAds = adPerformance.filter(ad => 
+      ad.status === 'active' && 
+      (ad.createdAt || 0) >= windowStart.getTime()
+    ).length;
+    
+    return {
+      usedAds,
+      adLimit: subscription.adLimit,
+      remainingAds: Math.max(0, subscription.adLimit - usedAds),
+      resetsAt
+    };
+  }, [subscription, adPerformance]);
+
+  // --- Sort & Filter Helpers ---
+
   const sortedAds = useMemo(() => {
     return [...adPerformance].sort((a, b) => {
       // Helper to access properties safely
@@ -352,14 +395,13 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
   );
 
   const StatusBadge = ({ status }: { status: string }) => {
-    const colors = {
-      active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-      paused: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-      completed: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
-    };
-    const c = (colors as any)[status] || colors.completed;
+    const isActive = status === 'active';
     return (
-      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${c}`}>
+      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+        isActive
+          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+          : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400'
+      }`}>
         {status}
       </span>
     );
@@ -369,6 +411,30 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
 
   const renderDashboard = () => (
     <div className="space-y-8">
+      {/* Usage Summary Bar */}
+      {usageStats && (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-white dark:bg-slate-800">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-semibold text-slate-900 dark:text-white">Ad Usage</h3>
+            <span className="text-sm text-gray-500 dark:text-slate-400">
+              Resets {usageStats.resetsAt.toLocaleDateString()}
+            </span>
+          </div>
+
+          <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-slate-900 dark:bg-slate-100 transition-all duration-500 ease-out"
+              style={{ width: `${Math.min(100, (usageStats.usedAds / usageStats.adLimit) * 100)}%` }}
+            />
+          </div>
+
+          <p className="mt-2 text-sm text-gray-600 dark:text-slate-400">
+            {usageStats.usedAds} of {usageStats.adLimit} ads active ·{' '}
+            <strong className="text-slate-900 dark:text-white">{usageStats.remainingAds}</strong> remaining
+          </p>
+        </div>
+      )}
+
       {/* 1. Campaign Overview (KPI Strip) */}
       <div>
         <div className="flex items-center justify-between mb-4">

@@ -21,7 +21,7 @@ export class AdService {
       }
 
       const errorResult = await response.json();
-      return { success: false, error: errorResult.error || 'Failed to create ad' };
+      return { success: false, error: errorResult.message || errorResult.error || 'Failed to create ad' };
     } catch (error) {
       console.error('❌ Error creating ad:', error);
       return { success: false, error: 'Failed to create ad' };
@@ -116,7 +116,7 @@ export class AdService {
       }
 
       const errorResult = await response.json();
-      return { success: false, error: errorResult.error || 'Failed to update ad' };
+      return { success: false, error: errorResult.message || errorResult.error || 'Failed to update ad' };
     } catch (error) {
       console.error('❌ Error updating ad:', error);
       return { success: false, error: 'Failed to update ad' };
@@ -141,7 +141,7 @@ export class AdService {
       }
 
       const errorResult = await response.json();
-      return { success: false, error: errorResult.error || 'Failed to update ad status' };
+      return { success: false, error: errorResult.message || errorResult.error || 'Failed to update ad status' };
     } catch (error) {
       console.error('❌ Error updating ad status:', error);
       return { success: false, error: 'Failed to update ad status' };

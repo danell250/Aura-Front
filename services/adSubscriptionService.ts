@@ -82,7 +82,7 @@ export const adSubscriptionService = {
       console.log('[AdSubscriptionService] Fetching single active subscription for:', userId);
       const token = localStorage.getItem('aura_auth_token');
       
-      const response = await fetchWithTimeout(`${API_BASE_URL}/ad-subscriptions/user/${userId}/active`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/ad-subscriptions/user/${userId}/active?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

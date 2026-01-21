@@ -510,39 +510,41 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
             </button>
           </div>
         </div>
-        <div className="h-72 w-full" style={{ minWidth: 0 }}>
-          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
-            <AreaChart data={campaignPerformance?.trendData || []}>
-              <defs>
-                <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#059669" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="#059669" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorClick" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#34D399" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="#34D399" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748B'}} />
-              <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748B'}} />
-              <RechartsTooltip 
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-              />
-              {trendMetric === 'volume' ? (
-                <>
-                  <Area type="monotone" dataKey="impressions" stroke="#059669" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" name="Impressions" isAnimationActive={false} />
-                  <Area type="monotone" dataKey="clicks" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorClick)" name="Clicks" isAnimationActive={false} />
-                </>
-              ) : (
-                <Area type="monotone" dataKey="spend" stroke="#34D399" strokeWidth={2} fillOpacity={1} fill="url(#colorSpend)" name="Spend ($)" isAnimationActive={false} />
-              )}
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="h-72 w-full relative">
+          <div className="absolute inset-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <AreaChart data={campaignPerformance?.trendData || []}>
+                <defs>
+                  <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#059669" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#059669" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorClick" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#34D399" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="#34D399" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748B'}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748B'}} />
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                />
+                {trendMetric === 'volume' ? (
+                  <>
+                    <Area type="monotone" dataKey="impressions" stroke="#059669" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" name="Impressions" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="clicks" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorClick)" name="Clicks" isAnimationActive={false} />
+                  </>
+                ) : (
+                  <Area type="monotone" dataKey="spend" stroke="#34D399" strokeWidth={2} fillOpacity={1} fill="url(#colorSpend)" name="Spend ($)" isAnimationActive={false} />
+                )}
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 

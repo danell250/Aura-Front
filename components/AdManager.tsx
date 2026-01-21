@@ -40,6 +40,12 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
   const [limitReachedData, setLimitReachedData] = useState<{ message: string; currentUsage?: number; limit?: number; resetDate?: string } | null>(null);
   
+  const fixed = (v: any, digits = 2) => {
+    const x = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(x) ? x.toFixed(digits) : (0).toFixed(digits);
+  };
+  const fmt2 = (v: any) => fixed(v, 2);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const paypalRef = useRef<HTMLDivElement>(null);
   const activeInstanceRef = useRef<any>(null);

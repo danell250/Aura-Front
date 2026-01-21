@@ -24,32 +24,67 @@ export class TrendingService {
    * Fetch trending topics from the backend API
    */
   static async fetchTrendingTopics(limit: number = 10, hours: number = 24): Promise<TrendingTopic[]> {
+    const CACHE_KEY = `aura_trending_topics_v1_${limit}_${hours}`;
+    const TTL_MS = 5 * 60 * 1000; // 5 minutes (tweak if you want)
+
+    const readCache = (): { ts: number; data: TrendingTopic[] } | null => {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed.ts !== 'number' || !Array.isArray(parsed.data)) return null;
+        return parsed;
+      } catch {
+        return null;
+      }
+    };
+
+    const writeCache = (data: TrendingTopic[]) => {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+      } catch {
+        // ignore storage errors (private mode / quota)
+      }
+    };
+
+    // 1) Return fresh cache immediately (fast load after refresh)
+    const cached = readCache();
+    if (cached && Date.now() - cached.ts < TTL_MS) {
+      return cached.data;
+    }
+
+    // 2) Try network
     try {
       const response = await apiFetch(`/posts/hashtags/trending?limit=${limit}&hours=${hours}`);
       if (response.ok) {
         const result = await response.json();
-        if (result.success && Array.isArray(result.data)) {
-          // Map backend format {_id: "tag", count: 10} to frontend TrendingTopic
-          return result.data.map((item: any) => {
-             // Calculate simple category based on count for now, 
-             // since backend aggregation is simple. 
-             // Ideally backend should provide growth/category.
-             let category: 'rising' | 'hot' | 'steady' = 'steady';
-             if (item.count >= 10) category = 'hot';
-             else if (item.count >= 5) category = 'rising';
-             
-             return {
-               hashtag: item._id,
-               count: item.count,
-               growth: 0, // Backend doesn't calculate growth yet
-               category
-             };
+
+        if (result?.success && Array.isArray(result.data)) {
+          const topics: TrendingTopic[] = result.data.map((item: any) => {
+            let category: 'rising' | 'hot' | 'steady' = 'steady';
+            if (item.count >= 10) category = 'hot';
+            else if (item.count >= 5) category = 'rising';
+
+            return {
+              hashtag: item._id,
+              count: item.count,
+              growth: 0,
+              category
+            };
           });
+
+          // 3) Save and return
+          writeCache(topics);
+          return topics;
         }
       }
+
+      // If response isn't ok or payload unexpected, fall back to old cache if any
+      if (cached?.data?.length) return cached.data;
       return [];
-    } catch (error) {
-      console.error('Error fetching trending topics:', error);
+    } catch (e) {
+      // 4) Network error: fall back to last cached trends
+      if (cached?.data?.length) return cached.data;
       return [];
     }
   }

@@ -33,6 +33,18 @@ const saveRecentSearch = (userId: string | undefined, q: string, limit = 8) => {
   localStorage.setItem(makeRecentKey(userId), JSON.stringify(next));
 };
 
+const removeRecentSearch = (userId: string | undefined, q: string) => {
+  const existing = loadRecentSearches(userId, 50);
+  const next = existing.filter(x => x.q.toLowerCase() !== q.toLowerCase());
+  localStorage.setItem(makeRecentKey(userId), JSON.stringify(next));
+  return next.slice(0, 8);
+};
+
+const clearRecentSearches = (userId: string | undefined) => {
+  localStorage.removeItem(makeRecentKey(userId));
+  return [];
+};
+
 interface SearchDropdownProps {
   posts: Post[];
   users: User[];
@@ -58,6 +70,7 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isFocused, setIsFocused] = useState(false);
   const [recent, setRecent] = useState<RecentSearchItem[]>(() => loadRecentSearches(userId));
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -75,7 +88,7 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
         const items = loadRecentSearches(userId);
         setRecent(items);
         setResults([]);
-        setIsOpen(items.length > 0);
+        setIsOpen(isFocused && items.length > 0);
         return;
       }
 
@@ -99,7 +112,7 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
     // Debounce search
     const timeoutId = setTimeout(performSearch, 200);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, posts, users, ads, userId]);
+  }, [searchQuery, posts, users, ads, userId, isFocused]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -217,7 +230,12 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
           type="text" 
           value={searchQuery} 
           onChange={handleInputChange}
-          onFocus={handleInputFocus}
+          onFocus={() => { setIsFocused(true); handleInputFocus(); }}
+          onBlur={() => { 
+            setIsFocused(false); 
+            // small delay so clicking a dropdown item still works 
+            setTimeout(() => setIsOpen(false), 150); 
+          }}
           placeholder={placeholder}
           className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-11 pr-10 py-2 focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500/30 transition-all text-sm font-medium outline-none" 
         />
@@ -250,17 +268,55 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
       {/* Search Results Dropdown */}
       {isOpen && !searchQuery.trim() && recent.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
-          <div className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
-            Recent searches
+          <div className="px-4 py-2 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+            <span>Recent searches</span>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                const next = clearRecentSearches(userId);
+                setRecent(next);
+                setIsOpen(false);
+              }}
+              className="normal-case text-[11px] font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              Clear
+            </button>
           </div>
           {recent.map(item => (
-            <button
+            <div
               key={item.q + item.ts}
-              className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm"
-              onClick={() => onSearchChange(item.q)}
+              className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
-              <span className="text-slate-700 dark:text-slate-200">{item.q}</span>
-            </button>
+              <button
+                type="button"
+                className="flex-1 text-left text-sm min-w-0"
+                onMouseDown={(e) => e.preventDefault()} // prevent blur before click
+                onClick={() => {
+                  onSearchChange(item.q);
+                  inputRef.current?.focus();
+                }}
+              >
+                <span className="text-slate-700 dark:text-slate-200 truncate block">{item.q}</span>
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()} // keep dropdown open
+                onClick={() => {
+                  const next = removeRecentSearch(userId, item.q);
+                  setRecent(next);
+                  setIsOpen(next.length > 0 && isFocused);
+                }}
+                className="ml-3 p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-500 dark:hover:text-slate-200"
+                aria-label={`Remove ${item.q} from recent searches`}
+                title="Remove"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           ))}
         </div>
       )}

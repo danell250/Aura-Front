@@ -14,11 +14,12 @@ interface AdAnalyticsPageProps {
   onDeleteAd?: (id: string) => void | Promise<void>;
   onOpenAdManager?: () => void;
   refreshTrigger?: number;
+  isDarkMode?: boolean;
 }
 
 type AnalyticsTab = 'overview' | 'ads' | 'details';
 
-const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = [], onDeleteAd, onOpenAdManager, refreshTrigger }) => {
+const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = [], onDeleteAd, onOpenAdManager, refreshTrigger, isDarkMode = false }) => {
   const fixed = (v: any, digits = 2) => {
     const x = typeof v === 'number' ? v : Number(v);
     return Number.isFinite(x) ? x.toFixed(digits) : (0).toFixed(digits);
@@ -406,13 +407,13 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
   // --- Components ---
 
   const KPICard = ({ label, value, subValue, prefix = '', suffix = '', digits = 2 }: any) => (
-    <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
-      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">{label}</p>
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col justify-between">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">{label}</p>
       <div>
-        <p className="text-xl font-black text-slate-900 dark:text-white">
+        <p className="text-2xl md:text-[26px] font-semibold tabular-nums text-slate-900 dark:text-white">
           {prefix}{typeof value === 'number' ? fmt(value, digits) : value}{suffix}
         </p>
-        {subValue && <p className="text-xs text-slate-400 mt-1">{subValue}</p>}
+        {subValue && <p className="text-xs text-slate-400 mt-1 tabular-nums">{subValue}</p>}
       </div>
     </div>
   );
@@ -436,24 +437,24 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
     <div className="space-y-8">
       {/* Usage Summary Bar */}
       {usageStats && (
-        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">Ad Usage</h3>
-            <span className="text-sm text-emerald-600 dark:text-emerald-400">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-slate-900 shadow-sm">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-semibold text-slate-900 dark:text-white">Ad Usage</h3>
+            <span className="text-sm text-slate-500 tabular-nums">
               Resets {usageStats.resetsAt.toLocaleDateString()}
             </span>
           </div>
 
-          <div className="w-full h-2 bg-emerald-200/50 dark:bg-emerald-900/50 rounded-full overflow-hidden">
+          <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500 ease-out"
               style={{ width: `${Math.min(100, (usageStats.usedAds / usageStats.adLimit) * 100)}%` }}
             />
           </div>
 
-          <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">
+          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400 tabular-nums">
             {usageStats.usedAds} of {usageStats.adLimit} ads used this month ·{' '}
-            <strong className="text-emerald-900 dark:text-emerald-100">
+            <strong className="text-slate-900 dark:text-white">
               {usageStats.remainingAds}
             </strong>{' '}
             remaining
@@ -484,7 +485,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
       </div>
 
       {/* 2. Trends (One Chart Only) */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">Performance Trends</h3>
           <div className="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-lg">
@@ -510,9 +511,15 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
             </button>
           </div>
         </div>
-        <div className="h-72 w-full">
+        
+        {(!campaignPerformance?.trendData || campaignPerformance.trendData.length === 0) ? (
+          <div className="h-72 flex items-center justify-center text-slate-400">
+            Collecting trend data…
+          </div>
+        ) : (
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <AreaChart data={campaignPerformance?.trendData || []}>
+              <AreaChart data={campaignPerformance.trendData}>
                 <defs>
                   <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#059669" stopOpacity={0.1}/>
@@ -527,11 +534,26 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                     <stop offset="95%" stopColor="#34D399" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748B'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#64748B'}} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? 'rgba(148,163,184,0.18)' : '#E2E8F0'} />
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fill: isDarkMode ? '#94A3B8' : '#64748B' }} 
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fill: isDarkMode ? '#94A3B8' : '#64748B' }} 
+                />
                 <RechartsTooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  contentStyle={{ 
+                    borderRadius: '12px', 
+                    border: 'none', 
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    backgroundColor: isDarkMode ? '#0f172a' : '#ffffff',
+                    color: isDarkMode ? '#f1f5f9' : '#0f172a'
+                  }}
                 />
                 {trendMetric === 'volume' ? (
                   <>
@@ -543,17 +565,18 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                 )}
               </AreaChart>
             </ResponsiveContainer>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* 3. Ads Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">All Ads</h3>
         </div>
-        <div className="overflow-x-auto">
+        <div className="max-h-[520px] overflow-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
               <tr>
                 {[
                   { key: 'adName', label: 'Ad' },
@@ -568,7 +591,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                 ].map(col => (
                   <th 
                     key={col.key}
-                    className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[11px] cursor-pointer hover:text-emerald-600 transition-colors"
+                    className="px-6 py-4 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[11px] cursor-pointer hover:text-emerald-600 transition-colors"
                     onClick={() => handleSort(col.key)}
                   >
                     <div className="flex items-center gap-1">
@@ -594,7 +617,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                 return (
                   <tr 
                     key={ad.adId} 
-                    className="hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-colors cursor-pointer"
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
                     onClick={() => handleAdClick(ad.adId)}
                   >
                     <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white max-w-[200px] truncate">
@@ -603,13 +626,13 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                     <td className="px-6 py-4">
                       <StatusBadge status={ad.status} />
                     </td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{n2(ad.impressions).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{n2(ad.clicks).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{fmt2(ctr)}%</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fmt2(ad.spend)}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fmt2(cpc)}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">0</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">${fmt2(cpa)}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">{n2(ad.impressions).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">{n2(ad.clicks).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">{fmt2(ctr)}%</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">${fmt2(ad.spend)}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">${fmt2(cpc)}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">0</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">${fmt2(cpa)}</td>
                   </tr>
                 );
               })}
@@ -630,7 +653,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
   const renderDetails = () => {
     if (!selectedAdId) {
       return (
-        <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
+        <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800">
           <p className="text-slate-500">Select an ad from the "All Ads" tab to view details.</p>
           <button 
             onClick={() => setActiveTab('overview')}
@@ -720,9 +743,9 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
             I'll use the campaign trend but labeled "Campaign Trend Context" for now, or just hide it to be safe.
             Let's assume for this "professional" layout, we need the slot.
         */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-6">Ad Performance History</h3>
-          <div className="h-64 flex items-center justify-center bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+          <div className="h-64 flex items-center justify-center bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
              <p className="text-slate-400 text-sm">Historical trend data for individual ads is accumulating...</p>
           </div>
         </div>
@@ -744,12 +767,12 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
         </div>
         
         {subscription && (
-          <div className="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="text-right px-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 {subscription.packageName}
               </p>
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-200 tabular-nums">
                 {subscription.adsUsed} / {subscription.adLimit} Used This Month
               </p>
             </div>
@@ -761,16 +784,16 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
               onClick={canCreateAd ? onOpenAdManager : undefined}
               disabled={!canCreateAd}
               className={`
-                px-6 py-3 font-bold rounded-xl transition-all flex items-center gap-2
+                px-6 py-3 font-bold rounded-xl transition-all flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/40
                 ${canCreateAd 
                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20 active:scale-95' 
-                  : 'bg-slate-300 text-slate-500 cursor-not-allowed'}
+                  : 'bg-slate-300 text-slate-500 dark:bg-slate-700 dark:text-slate-400 cursor-not-allowed'}
               `}
             >
               <span>+</span> Create Ad
             </button>
             {!canCreateAd && usageStats && (
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1 tabular-nums">
                 Monthly ad limit reached. Resets on {usageStats.resetsAt.toLocaleDateString()}.
               </p>
             )}
@@ -779,15 +802,15 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-slate-200 dark:border-slate-700">
+      <div className="border-b border-slate-200 dark:border-slate-800">
         <div className="flex space-x-8">
           <button
             onClick={() => setActiveTab('overview')}
             className={`
               py-4 px-1 text-sm font-bold border-b-2 transition-colors
               ${activeTab === 'overview' 
-                ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
-                : 'border-transparent text-slate-500 hover:text-emerald-600 hover:border-emerald-200'
+                ? 'border-emerald-500 text-slate-900 dark:text-white' 
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }
             `}
           >
@@ -799,8 +822,8 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
               className={`
                 py-4 px-1 text-sm font-bold border-b-2 transition-colors
                 ${activeTab === 'details' 
-                  ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
-                  : 'border-transparent text-slate-500 hover:text-emerald-600 hover:border-emerald-200'
+                  ? 'border-emerald-500 text-slate-900 dark:text-white' 
+                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }
               `}
             >

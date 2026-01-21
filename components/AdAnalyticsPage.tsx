@@ -418,7 +418,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
   );
 
   const StatusBadge = ({ status }: { status: string }) => {
-    const isActive = status === 'active';
+    const isActive = status.toLowerCase() === 'active';
     return (
       <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
         isActive
@@ -492,7 +492,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
               onClick={() => setTrendMetric('volume')}
               className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
                 trendMetric === 'volume'
-                  ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                  ? 'bg-emerald-500 text-white shadow-sm'
                   : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
               }`}
             >
@@ -502,7 +502,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
               onClick={() => setTrendMetric('spend')}
               className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
                 trendMetric === 'spend'
-                  ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                  ? 'bg-emerald-500 text-white shadow-sm'
                   : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
               }`}
             >
@@ -515,16 +515,16 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
             <AreaChart data={campaignPerformance?.trendData || []}>
               <defs>
                 <linearGradient id="colorImp" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#059669" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#059669" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorClick" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#10B981" stopOpacity={0.1}/>
                   <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                 </linearGradient>
-                <linearGradient id="colorClick" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                </linearGradient>
                 <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#34D399" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#34D399" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -535,11 +535,11 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
               />
               {trendMetric === 'volume' ? (
                 <>
-                  <Area type="monotone" dataKey="impressions" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" name="Impressions" isAnimationActive={false} />
-                  <Area type="monotone" dataKey="clicks" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorClick)" name="Clicks" isAnimationActive={false} />
+                  <Area type="monotone" dataKey="impressions" stroke="#059669" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" name="Impressions" isAnimationActive={false} />
+                  <Area type="monotone" dataKey="clicks" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorClick)" name="Clicks" isAnimationActive={false} />
                 </>
               ) : (
-                <Area type="monotone" dataKey="spend" stroke="#8B5CF6" strokeWidth={2} fillOpacity={1} fill="url(#colorSpend)" name="Spend ($)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="spend" stroke="#34D399" strokeWidth={2} fillOpacity={1} fill="url(#colorSpend)" name="Spend ($)" isAnimationActive={false} />
               )}
             </AreaChart>
           </ResponsiveContainer>
@@ -568,13 +568,13 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                 ].map(col => (
                   <th 
                     key={col.key}
-                    className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[11px] cursor-pointer hover:text-slate-700 transition-colors"
+                    className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[11px] cursor-pointer hover:text-emerald-600 transition-colors"
                     onClick={() => handleSort(col.key)}
                   >
                     <div className="flex items-center gap-1">
                       {col.label}
                       {sortBy === col.key && (
-                        <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        <span className="text-emerald-600">{sortOrder === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </div>
                   </th>
@@ -594,7 +594,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                 return (
                   <tr 
                     key={ad.adId} 
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                    className="hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-colors cursor-pointer"
                     onClick={() => handleAdClick(ad.adId)}
                   >
                     <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white max-w-[200px] truncate">
@@ -634,7 +634,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
           <p className="text-slate-500">Select an ad from the "All Ads" tab to view details.</p>
           <button 
             onClick={() => setActiveTab('overview')}
-            className="mt-4 px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-emerald-600 transition-colors"
+            className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-colors"
           >
             Back to Dashboard
           </button>
@@ -763,7 +763,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
               className={`
                 px-6 py-3 font-bold rounded-xl transition-all flex items-center gap-2
                 ${canCreateAd 
-                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20 active:scale-95' 
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-500/20 active:scale-95' 
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'}
               `}
             >
@@ -787,7 +787,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
               py-4 px-1 text-sm font-bold border-b-2 transition-colors
               ${activeTab === 'overview' 
                 ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                : 'border-transparent text-slate-500 hover:text-emerald-600 hover:border-emerald-200'
               }
             `}
           >
@@ -800,7 +800,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                 py-4 px-1 text-sm font-bold border-b-2 transition-colors
                 ${activeTab === 'details' 
                   ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' 
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  : 'border-transparent text-slate-500 hover:text-emerald-600 hover:border-emerald-200'
                 }
               `}
             >

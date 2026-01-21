@@ -14,17 +14,23 @@ interface AdAnalyticsPageProps {
   ads?: Ad[];
   onDeleteAd?: (id: string) => void | Promise<void>;
   onOpenAdManager?: () => void;
+  refreshTrigger?: number;
 }
 
 type AnalyticsTab = 'overview' | 'ads' | 'details';
 
-const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = [], onDeleteAd, onOpenAdManager }) => {
+const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = [], onDeleteAd, onOpenAdManager, refreshTrigger }) => {
+  const fixed = (v: any, digits = 2) => {
+    const x = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(x) ? x.toFixed(digits) : (0).toFixed(digits);
+  };
+
   const n2 = (v: any) => {
     const num = typeof v === 'number' ? v : Number(v);
     return Number.isFinite(num) ? num : 0;
   };
-  const fmt2 = (v: any) => n2(v).toFixed(2);
-  const fmt = (v: any, d = 2) => n2(v).toFixed(d);
+  const fmt2 = (v: any) => fixed(v, 2);
+  const fmt = (v: any, d = 2) => fixed(v, d);
 
   const API_BASE_URL = getApiBaseUrl();
   const SOCKET_BASE_URL = API_BASE_URL.endsWith('/api')
@@ -44,6 +50,9 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
   const [subscription, setSubscription] = useState<AdSubscription | null>(null);
   const [trendMetric, setTrendMetric] = useState<'volume' | 'spend'>('volume');
   const hasLoadedRef = React.useRef<boolean>(false);
+
+  // New: Check if user can create ads based on strict limit
+  const canCreateAd = subscription && subscription.adsUsed < subscription.adLimit;
 
   // Reset load state on user change
   useEffect(() => {
@@ -70,8 +79,10 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
           adAnalyticsService.getUserAdPerformance(currentUser.id)
         ]);
         if (cancelled) return;
-        setCampaignPerformance(campaign);
-        setAdPerformance(performance);
+
+        const same = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
+        setCampaignPerformance(prev => (same(prev, campaign) ? prev : campaign));
+        setAdPerformance(prev => (same(prev, performance) ? prev : performance));
         hasLoadedRef.current = true;
       } catch (e) {
         if (!cancelled) {
@@ -88,10 +99,11 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
 
     load(!hasLoadedRef.current);
 
-    // Stop campaign polling if we are looking at a specific ad in details tab
-    if (activeTab === 'details' && selectedAdId) return;
-
-    const id = window.setInterval(() => load(false), 120000);
+    const id = window.setInterval(() => {
+      // don't poll while user is deep-diving a single ad
+      if (activeTab === 'details' && selectedAdId) return;
+      load(false);
+    }, 120000);
 
     return () => {
       cancelled = true;
@@ -111,7 +123,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
         setSubscription(null);
       }
     })();
-  }, [currentUser.id]);
+  }, [currentUser.id, refreshTrigger, ads.length]);
 
   // Load Single Ad Details
   useEffect(() => {
@@ -441,8 +453,11 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
           </div>
 
           <p className="mt-2 text-sm text-gray-600 dark:text-slate-400">
-            {usageStats.usedAds} of {usageStats.adLimit} ads active ·{' '}
-            <strong className="text-slate-900 dark:text-white">{usageStats.remainingAds}</strong> remaining
+            {usageStats.usedAds} of {usageStats.adLimit} ads used this month ·{' '}
+            <strong className="text-slate-900 dark:text-white">
+              {usageStats.remainingAds}
+            </strong>{' '}
+            remaining
           </p>
         </div>
       )}
@@ -521,11 +536,11 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
               />
               {trendMetric === 'volume' ? (
                 <>
-                  <Area type="monotone" dataKey="impressions" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" name="Impressions" />
-                  <Area type="monotone" dataKey="clicks" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorClick)" name="Clicks" />
+                  <Area type="monotone" dataKey="impressions" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorImp)" name="Impressions" isAnimationActive={false} />
+                  <Area type="monotone" dataKey="clicks" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorClick)" name="Clicks" isAnimationActive={false} />
                 </>
               ) : (
-                <Area type="monotone" dataKey="spend" stroke="#8B5CF6" strokeWidth={2} fillOpacity={1} fill="url(#colorSpend)" name="Spend ($)" />
+                <Area type="monotone" dataKey="spend" stroke="#8B5CF6" strokeWidth={2} fillOpacity={1} fill="url(#colorSpend)" name="Spend ($)" isAnimationActive={false} />
               )}
             </AreaChart>
           </ResponsiveContainer>
@@ -737,18 +752,31 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                 {subscription.packageName}
               </p>
               <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                {subscription.adsUsed} / {subscription.adLimit} Ads Active
+                {subscription.adsUsed} / {subscription.adLimit} Used This Month
               </p>
             </div>
           </div>
         )}
         {onOpenAdManager && (
-          <button
-            onClick={onOpenAdManager}
-            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-2"
-          >
-            <span>+</span> Create Ad
-          </button>
+          <div className="flex flex-col items-end">
+            <button
+              onClick={canCreateAd ? onOpenAdManager : undefined}
+              disabled={!canCreateAd}
+              className={`
+                px-6 py-3 font-bold rounded-xl transition-all flex items-center gap-2
+                ${canCreateAd 
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20 active:scale-95' 
+                  : 'bg-slate-300 text-slate-500 cursor-not-allowed'}
+              `}
+            >
+              <span>+</span> Create Ad
+            </button>
+            {!canCreateAd && usageStats && (
+              <p className="text-xs text-slate-500 mt-1">
+                Monthly ad limit reached. Resets on {usageStats.resetsAt.toLocaleDateString()}.
+              </p>
+            )}
+          </div>
         )}
       </div>
 

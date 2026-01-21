@@ -666,12 +666,13 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
         
         if (code === 'AD_LIMIT_REACHED') {
             const errData = result as any;
-            setLimitReachedData({ 
-              message: error || 'Ad limit reached',
-              currentUsage: errData.currentUsage,
-              limit: errData.limit,
-              resetDate: errData.resetDate
-            });
+            const resetDate = errData.periodEnd ? new Date(errData.periodEnd).toLocaleDateString() : 'next month';
+            const msg = `Ad limit reached.\n\nYou’ve used ${errData.limit}/${errData.limit} ads for this month.\nResets on ${resetDate}.\n\nView upgrade options?`;
+
+            if (confirm(msg)) {
+              if (onGoToAdPlans) onGoToAdPlans();
+              else window.location.href = '/ad-plans';
+            }
             return;
          }
 

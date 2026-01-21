@@ -2255,6 +2255,7 @@ const App: React.FC = () => {
           ads={ads}
           onDeleteAd={handleDeleteAd}
           onOpenAdManager={() => setIsAdManagerOpen(true)}
+          refreshTrigger={adSubsRefreshTick}
         />
       )}
       {isSettingsOpen && (

@@ -172,7 +172,7 @@ const SerendipityModal: React.FC<SerendipityModalProps> = ({
               Activity
             </p>
             <p className="text-sm font-semibold text-slate-900 dark:text-white">
-              You: {match.activityLevel.currentUser.toFixed(0)} • Them: {match.activityLevel.candidate.toFixed(0)}
+              You: {fmt0(match.activityLevel?.currentUser)} • Them: {fmt0(match.activityLevel?.candidate)}
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Based on how often you both show up
@@ -183,7 +183,7 @@ const SerendipityModal: React.FC<SerendipityModalProps> = ({
               Profile Signal
             </p>
             <p className="text-sm font-semibold text-slate-900 dark:text-white">
-              You: {match.profileCompleteness.currentUser.toFixed(0)} • Them: {match.profileCompleteness.candidate.toFixed(0)}
+              You: {fmt0(match.profileCompleteness?.currentUser)} • Them: {fmt0(match.profileCompleteness?.candidate)}
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               How complete your profiles feel

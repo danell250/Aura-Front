@@ -177,7 +177,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
         createOrder: (data: any, actions: any) => {
           console.log('[Aura] Creating order for:', selectedBundle.name);
 
-          const price = Number(selectedBundle.numericPrice).toFixed(2);
+          const price = fmt2(selectedBundle.numericPrice);
 
           if (!price || isNaN(Number(price))) {
             throw new Error('Invalid bundle price');

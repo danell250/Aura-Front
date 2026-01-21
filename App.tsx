@@ -2254,6 +2254,7 @@ const App: React.FC = () => {
           currentUser={currentUser}
           ads={ads}
           onDeleteAd={handleDeleteAd}
+          onOpenAdManager={() => setIsAdManagerOpen(true)}
         />
       )}
       {isSettingsOpen && (

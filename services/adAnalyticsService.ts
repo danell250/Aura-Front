@@ -67,6 +67,7 @@ export const normalizeCampaignPerformance = (c: any): CampaignPerformance => ({
   activeAds: Number(c?.activeAds ?? 0),
   daysToNextExpiry: c?.daysToNextExpiry,
   performanceScore: Number(c?.performanceScore ?? 0),
+  lastUpdated: c?.lastUpdated ?? Date.now(),
   trendData: Array.isArray(c?.trendData) ? c.trendData.map((t: any) => ({
     date: t?.date ?? '',
     impressions: Number(t?.impressions ?? 0),

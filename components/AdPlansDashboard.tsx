@@ -15,6 +15,12 @@ interface AdPlansDashboardProps {
 }
 
 const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAdManager, onUpdateAd, onCancelAd, refreshTrigger: externalRefreshTrigger }) => {
+  const n2 = (v: any) => {
+    const num = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(num) ? num : 0;
+  };
+  const fmt2 = (v: any) => n2(v).toFixed(2);
+
   const [adSubscriptions, setAdSubscriptions] = useState<AdSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [internalRefreshTrigger, setInternalRefreshTrigger] = useState(0);
@@ -76,6 +82,9 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
     .filter(s => s.status === 'active')
     .reduce((sum, s) => sum + (s.adLimit - s.adsUsed), 0);
   const totalAdsCreatedFromSubscriptions = adSubscriptions.reduce((sum, s) => sum + s.adsUsed, 0);
+  const totalAdLimit = adSubscriptions
+    .filter(s => s.status === 'active')
+    .reduce((sum, s) => sum + s.adLimit, 0);
   const totalPotentialReach = adSubscriptions
     .filter(s => s.status === 'active')
     .reduce((sum, s) => sum + (s.adLimit * 100), 0);
@@ -89,7 +98,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
     : (adPerformance.length > 0
       ? (adPerformance.reduce((sum, m) => sum + (m.ctr || 0), 0) / adPerformance.length)
       : 0);
-  const formattedAverageCTR = Number(averageCTR || 0).toFixed(2);
+  const formattedAverageCTR = fmt2(averageCTR);
   const totalEngagement = campaignPerformance ? campaignPerformance.totalEngagement : adPerformance.reduce((sum, m) => sum + (m.engagement || 0), 0);
 
   const nextExpiringAd = userAds
@@ -154,15 +163,23 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center relative">
                   <span className="text-2xl">📡</span>
+                  {hasSubscriptions && (
+                    <div className="absolute -bottom-1 -right-1 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                      {totalAdsCreatedFromSubscriptions}/{totalAdLimit}
+                    </div>
+                  )}
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {totalActiveAds}
-                  </p>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {totalActiveAds}
+                    </p>
+                    <span className="text-xs text-slate-400 font-semibold">active</span>
+                  </div>
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                    Active Signals
+                    {hasSubscriptions ? `${totalAdsCreatedFromSubscriptions} used / ${totalAdLimit - totalAdsCreatedFromSubscriptions} left` : 'Active Signals'}
                   </p>
                 </div>
               </div>
@@ -287,7 +304,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">Clicks</div>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
-                      <div className="text-sm font-bold text-slate-900 dark:text-white">{Number(perf?.ctr || 0).toFixed(2)}%</div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">{fmt2(perf?.ctr)}%</div>
                       <div className="text-[10px] text-slate-500 dark:text-slate-400">CTR</div>
                     </div>
                   </div>
@@ -513,7 +530,7 @@ const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAd
                   <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full">Estimate</span>
                 </div>
                 <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-                  ${(user.auraCredits || 100).toFixed(2)}
+                  ${fmt2(user.auraCredits || 100)}
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400">Per ad impression</div>
               </div>

@@ -13,11 +13,12 @@ interface AdAnalyticsPageProps {
   currentUser: User;
   ads?: Ad[];
   onDeleteAd?: (id: string) => void | Promise<void>;
+  onOpenAdManager?: () => void;
 }
 
 type AnalyticsTab = 'overview' | 'ads' | 'details';
 
-const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = [], onDeleteAd }) => {
+const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = [], onDeleteAd, onOpenAdManager }) => {
   const n2 = (v: any) => {
     const num = typeof v === 'number' ? v : Number(v);
     return Number.isFinite(num) ? num : 0;
@@ -740,6 +741,14 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
               </p>
             </div>
           </div>
+        )}
+        {onOpenAdManager && (
+          <button
+            onClick={onOpenAdManager}
+            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <span>+</span> Create Ad
+          </button>
         )}
       </div>
 

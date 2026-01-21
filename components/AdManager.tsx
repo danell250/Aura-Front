@@ -354,7 +354,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
               throw new Error('Invalid price configuration');
             }
 
-            const priceValue = Number(selectedPkg.numericPrice).toFixed(2);
+            const priceValue = fmt2(selectedPkg.numericPrice);
             console.log('[Aura] Order amount:', priceValue);
 
             if (!actions || !actions.order) {

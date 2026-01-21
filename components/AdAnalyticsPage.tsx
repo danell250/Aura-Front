@@ -436,24 +436,24 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
     <div className="space-y-8">
       {/* Usage Summary Bar */}
       {usageStats && (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 bg-white dark:bg-slate-800">
+        <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold text-slate-900 dark:text-white">Ad Usage</h3>
-            <span className="text-sm text-gray-500 dark:text-slate-400">
+            <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">Ad Usage</h3>
+            <span className="text-sm text-emerald-600 dark:text-emerald-400">
               Resets {usageStats.resetsAt.toLocaleDateString()}
             </span>
           </div>
 
-          <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-emerald-200/50 dark:bg-emerald-900/50 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-slate-900 dark:bg-slate-100 transition-all duration-500 ease-out"
+              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500 ease-out"
               style={{ width: `${Math.min(100, (usageStats.usedAds / usageStats.adLimit) * 100)}%` }}
             />
           </div>
 
-          <p className="mt-2 text-sm text-gray-600 dark:text-slate-400">
+          <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">
             {usageStats.usedAds} of {usageStats.adLimit} ads used this month ·{' '}
-            <strong className="text-slate-900 dark:text-white">
+            <strong className="text-emerald-900 dark:text-emerald-100">
               {usageStats.remainingAds}
             </strong>{' '}
             remaining

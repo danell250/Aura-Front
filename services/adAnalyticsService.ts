@@ -44,6 +44,7 @@ export interface AdPerformanceMetrics {
   engagement: number;
   spend: number;
   conversions: number;
+  reach: number;
   roi: number;
   lastUpdated: number;
   createdAt: number;
@@ -92,6 +93,7 @@ export const normalizeAdPerformanceMetrics = (m: any): AdPerformanceMetrics => (
   engagement: Number(m?.engagement ?? 0),
   spend: Number(m?.spend ?? 0),
   conversions: Number(m?.conversions ?? 0),
+  reach: Number(m?.reach ?? 0),
   roi: Number(m?.roi ?? 0),
   lastUpdated: m?.lastUpdated ?? m?.createdAt ?? Date.now(),
   createdAt: m?.createdAt ?? Date.now()

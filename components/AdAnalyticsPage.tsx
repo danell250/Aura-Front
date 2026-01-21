@@ -189,7 +189,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
         const clicks = metrics.clicks;
         const engagement = metrics.engagement;
         const spend = metrics.spend;
-        // const reach = metrics.reach; // Not in AdPerformanceMetrics interface yet
+        const reach = metrics.reach;
         const ctr = metrics.ctr;
         const adName = existing?.adName || ad?.headline || (ad as any)?.title || 'Untitled Ad';
         const status = existing?.status || (ad?.status as any) || 'active';
@@ -206,6 +206,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                     engagement,
                     spend,
                     conversions: metrics.conversions,
+                    reach,
                     roi: spend > 0 ? (engagement + clicks) / spend : 0,
                     lastUpdated: metrics.lastUpdated
                   }
@@ -223,6 +224,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                 engagement,
                 spend,
                 conversions: metrics.conversions,
+                reach,
                 roi: spend > 0 ? (engagement + clicks) / spend : 0,
                 createdAt,
                 lastUpdated: metrics.lastUpdated
@@ -230,8 +232,9 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
             ];
         
         // Update campaign totals
-        // REMOVED: We no longer update campaign totals incrementally to avoid double-counting.
-        // Campaign totals are now authoritative from the backend via periodic polling.
+        // Note: We don't update campaignPerformance state here. 
+        // Instead, the UI derives "Campaign Overview" totals by summing up adPerformance.
+        // This ensures the top KPI cards match the table data in real-time.
         
         return next;
       });
@@ -284,14 +287,12 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
   };
 
   const overviewMetrics = useMemo(() => {
-    const totalImpressions = campaignPerformance?.totalImpressions ?? 0;
-    const totalClicks = campaignPerformance?.totalClicks ?? 0;
-    const totalSpend = campaignPerformance?.totalSpend ?? 0;
-    const totalReach = campaignPerformance?.totalReach ?? 0;
-    // Calculate conversions by summing up from adPerformance if available, otherwise 0
-    // Note: AdPerformanceMetrics currently lacks 'conversions', so we might need to assume 0 or 
-    // fetch it. For now, we will sum 0 to be safe until backend sends it in the list.
-    const totalConversions = campaignPerformance?.totalConversions ?? 0;
+    // Aggregate metrics from adPerformance to ensure real-time updates from socket
+    const totalImpressions = adPerformance.reduce((sum, ad) => sum + (ad.impressions || 0), 0);
+    const totalClicks = adPerformance.reduce((sum, ad) => sum + (ad.clicks || 0), 0);
+    const totalSpend = adPerformance.reduce((sum, ad) => sum + (ad.spend || 0), 0);
+    const totalReach = adPerformance.reduce((sum, ad) => sum + (ad.reach || 0), 0);
+    const totalConversions = adPerformance.reduce((sum, ad) => sum + (ad.conversions || 0), 0);
     
     const { ctr, cpc, cpm, cpa, cvr } = calculateExtendedMetrics(
       totalImpressions,
@@ -313,7 +314,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
       cpa,
       cvr
     };
-  }, [campaignPerformance, adPerformance]);
+  }, [adPerformance]);
 
   const usageStats = useMemo(() => {
     if (!subscription) return null;
@@ -572,12 +573,15 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                   { key: 'adName', label: 'Ad' },
                   { key: 'status', label: 'Status' },
                   { key: 'impressions', label: 'Impressions' },
+                  { key: 'reach', label: 'Reach' },
                   { key: 'clicks', label: 'Clicks' },
                   { key: 'ctr', label: 'CTR' },
                   { key: 'spend', label: 'Spend' },
                   { key: 'cpc', label: 'CPC' },
+                  { key: 'cpm', label: 'CPM' },
                   { key: 'conversions', label: 'Conversions' },
-                  { key: 'cpa', label: 'CPA' }
+                  { key: 'cpa', label: 'CPA' },
+                  { key: 'cvr', label: 'CVR' }
                 ].map(col => (
                   <th 
                     key={col.key}
@@ -601,7 +605,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                   ad.clicks || 0,
                   ad.spend || 0,
                   ad.conversions || 0, 
-                  0
+                  ad.reach || 0
                 );
                 
                 return (
@@ -617,18 +621,21 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                       <StatusBadge status={ad.status} />
                     </td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">{n2(ad.impressions).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">{n2(ad.reach).toLocaleString()}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">{n2(ad.clicks).toLocaleString()}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">{fmt2(ctr)}%</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">${fmt2(ad.spend)}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">${fmt2(cpc)}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">${fmt2(cpm)}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">{n2(ad.conversions)}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">${fmt2(cpa)}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300 tabular-nums">{fmt2(cvr)}%</td>
                   </tr>
                 );
               })}
               {sortedAds.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={12} className="px-6 py-12 text-center text-slate-500">
                     No ads found. Launch a campaign to see performance data.
                   </td>
                 </tr>

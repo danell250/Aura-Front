@@ -16,7 +16,8 @@ interface AdPlansDashboardProps {
 
 const AdPlansDashboard: React.FC<AdPlansDashboardProps> = ({ user, ads, onOpenAdManager, onUpdateAd, onCancelAd, refreshTrigger: externalRefreshTrigger }) => {
   const n2 = (v: any) => {
-    const num = typeof v === 'number' ? v : Number(v);
+    const val = v ?? 0;
+    const num = Number(val);
     return Number.isFinite(num) ? num : 0;
   };
   const fmt2 = (v: any) => n2(v).toFixed(2);

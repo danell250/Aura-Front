@@ -41,8 +41,9 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const [limitReachedData, setLimitReachedData] = useState<{ message: string; currentUsage?: number; limit?: number; resetDate?: string } | null>(null);
   
   const fixed = (v: any, digits = 2) => {
-    const x = typeof v === 'number' ? v : Number(v);
-    return Number.isFinite(x) ? x.toFixed(digits) : (0).toFixed(digits);
+    const val = v ?? 0;
+    const num = Number(val);
+    return Number.isFinite(num) ? num.toFixed(digits) : (0).toFixed(digits);
   };
   const fmt2 = (v: any) => fixed(v, 2);
   

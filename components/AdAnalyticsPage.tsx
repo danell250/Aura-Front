@@ -21,12 +21,14 @@ type AnalyticsTab = 'overview' | 'ads' | 'details';
 
 const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = [], onDeleteAd, onOpenAdManager, refreshTrigger, isDarkMode = false }) => {
   const fixed = (v: any, digits = 2) => {
-    const x = typeof v === 'number' ? v : Number(v);
-    return Number.isFinite(x) ? x.toFixed(digits) : (0).toFixed(digits);
+    const val = v ?? 0;
+    const num = Number(val);
+    return Number.isFinite(num) ? num.toFixed(digits) : (0).toFixed(digits);
   };
 
   const n2 = (v: any) => {
-    const num = typeof v === 'number' ? v : Number(v);
+    const val = v ?? 0;
+    const num = Number(val);
     return Number.isFinite(num) ? num : 0;
   };
   const fmt2 = (v: any) => fixed(v, 2);

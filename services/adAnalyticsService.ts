@@ -73,7 +73,8 @@ export const normalizeCampaignPerformance = (c: any): CampaignPerformance => ({
     date: t?.date ?? '',
     impressions: Number(t?.impressions ?? 0),
     clicks: Number(t?.clicks ?? 0),
-    engagement: Number(t?.engagement ?? 0)
+    engagement: Number(t?.engagement ?? 0),
+    spend: Number(t?.spend ?? 0)
   })) : []
 });
 

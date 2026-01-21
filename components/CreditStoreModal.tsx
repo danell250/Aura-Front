@@ -29,8 +29,9 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
   const buttonsInstanceRef = useRef<any>(null);
 
   const fixed = (v: any, digits = 2) => {
-    const x = typeof v === 'number' ? v : Number(v);
-    return Number.isFinite(x) ? x.toFixed(digits) : (0).toFixed(digits);
+    const val = v ?? 0;
+    const num = Number(val);
+    return Number.isFinite(num) ? num.toFixed(digits) : (0).toFixed(digits);
   };
   const fmt2 = (v: any) => fixed(v, 2);
 

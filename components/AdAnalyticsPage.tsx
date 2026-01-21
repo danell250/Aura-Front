@@ -510,8 +510,7 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
             </button>
           </div>
         </div>
-        <div className="h-72 w-full relative">
-          <div className="absolute inset-0">
+        <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <AreaChart data={campaignPerformance?.trendData || []}>
                 <defs>
@@ -544,7 +543,6 @@ const AdAnalyticsPage: React.FC<AdAnalyticsPageProps> = ({ currentUser, ads = []
                 )}
               </AreaChart>
             </ResponsiveContainer>
-          </div>
         </div>
       </div>
 

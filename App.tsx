@@ -858,6 +858,12 @@ const App: React.FC = () => {
     socket.on('comment_deleted', handleCommentDeleted);
     socket.on('comment_reaction_updated', handleCommentReactionUpdated);
 
+    const handlePostView = (payload: { postId: string; viewCount: number }) => {
+      if (!payload || !payload.postId) return;
+      setPosts(prev => prev.map(p => (p.id === payload.postId ? { ...p, viewCount: payload.viewCount } : p)));
+    };
+    socket.on('post_view', handlePostView);
+
     return () => {
       socket.off('post_updated', handlePostUpdate);
       socket.off('new_post', handleNewPost);
@@ -865,28 +871,10 @@ const App: React.FC = () => {
       socket.off('comment_updated', handleCommentUpdated);
       socket.off('comment_deleted', handleCommentDeleted);
       socket.off('comment_reaction_updated', handleCommentReactionUpdated);
-      socket.close();
-    };
-  }, [isAuthenticated, currentUser]);
-
-  useEffect(() => {
-    const socket = io(SOCKET_BASE_URL, {
-      withCredentials: true,
-      transports: ['websocket', 'polling']
-    });
-
-    const handlePostView = (payload: { postId: string; viewCount: number }) => {
-      if (!payload || !payload.postId) return;
-      setPosts(prev => prev.map(p => (p.id === payload.postId ? { ...p, viewCount: payload.viewCount } : p)));
-    };
-
-    socket.on('post_view', handlePostView);
-
-    return () => {
       socket.off('post_view', handlePostView);
       socket.close();
     };
-  }, []);
+  }, [isAuthenticated, currentUser]);
 
   const toggleDarkMode = () => {
     setIsDarkMode(prev => {

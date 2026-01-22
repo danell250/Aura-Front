@@ -147,27 +147,57 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
     }
   }, [step, activeSubscriptions, selectedSubscription, selectedPkg]);
 
+  const resetToStep1 = useCallback(() => {
+    setStep(1);
+    setSelectedPkg(null);
+    setSelectedSubscription(null);
+    setPaymentVerified(false);
+    setRenderError(null);
+    setSdkReady(false);
+    setIsPaying(false);
+    isRenderingRef.current = false;
+    setButtonsRendered(false);
+  }, []);
+
   // Detect or Load PayPal SDK
   useEffect(() => {
     if (!selectedPkg) return;
 
-    // Cleanup any existing PayPal scripts (both new tag and legacy ones)
-    const existing = document.querySelector('script[data-paypal-sdk]') || document.querySelector('script[src*="paypal.com/sdk/js"]');
-    if (existing) {
-      existing.remove();
+    const paymentType = selectedPkg.paymentType || 'one-time';
+    const targetUrl = getPaypalSdkUrl(paymentType);
+
+    // Check if the correct SDK is already loaded
+    const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]') as HTMLScriptElement;
+    const isCorrectScript = existingScript && existingScript.src === targetUrl;
+    const isPayPalReady = window.paypal && window.paypal.Buttons;
+
+    if (isCorrectScript && isPayPalReady) {
+      // SDK is already loaded and ready with the correct configuration
+      if (!sdkReady) {
+        setSdkReady(true);
+      }
+      return;
+    }
+
+    // If a script exists but it's the wrong one (or broken), remove it
+    if (existingScript) {
+      console.log(`[Aura] Switching PayPal SDK config to ${paymentType}...`);
+      existingScript.remove();
       if (window.paypal) {
         // @ts-ignore
         delete window.paypal;
       }
     }
 
+    setSdkReady(false);
+    
     const script = document.createElement('script');
-    script.src = getPaypalSdkUrl(selectedPkg.paymentType);
+    script.src = targetUrl;
     script.async = true;
     script.setAttribute('data-paypal-sdk', 'true');
 
     script.onload = () => {
-      console.log(`[Aura] PayPal SDK loaded for ${selectedPkg.paymentType}`);
+      console.log(`[Aura] PayPal SDK loaded for ${paymentType}`);
       setSdkReady(true);
     };
     script.onerror = () => {
@@ -175,17 +205,16 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
       setRenderError('Failed to load PayPal SDK');
     };
 
-    setSdkReady(false);
     document.body.appendChild(script);
 
+    // Cleanup: We ONLY remove the script if the component is unmounting completely
+    // or if we are about to load a different script (handled above).
+    // In React Strict Mode, we want the script to persist across the immediate remount.
     return () => {
-      script.remove();
-      if (window.paypal) {
-        // @ts-ignore
-        delete window.paypal;
-      }
+      // Intentional: Do not remove script here to allow reuse.
+      // The button cleanup handles the UI elements.
     };
-  }, [selectedPkg?.paymentType, selectedPkg?.id]);
+  }, [selectedPkg?.paymentType]);
 
   const cleanupPayPal = useCallback(() => {
     console.log("[Aura] Cleaning up PayPal instance...");
@@ -604,10 +633,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
         });
         if (ok) {
           setEditingAd(null);
-          setStep(1);
-          setSelectedPkg(null);
-          setSelectedSubscription(null);
-          setPaymentVerified(false);
+          resetToStep1();
           return;
         } else {
           console.warn("❌ Ad update failed");
@@ -923,7 +949,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
                           Continue to Create Ad
                         </button>
                         <button 
-                          onClick={() => setStep(1)}
+                          onClick={resetToStep1}
                           className="w-full py-4 bg-transparent text-slate-400 font-black uppercase rounded-2xl text-[10px] tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-all"
                         >
                           Cancel & Go Back
@@ -976,7 +1002,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
                           </button>
                         )}
                         <button 
-                          onClick={() => setStep(1)}
+                          onClick={resetToStep1}
                           className="w-full py-4 bg-transparent text-slate-400 font-black uppercase rounded-2xl text-[10px] tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-all"
                         >
                           Cancel & Go Back
@@ -1261,10 +1287,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
                   {/* Back to plans button */}
                   <button
                     onClick={() => {
-                      setStep(1);
-                      setSelectedPkg(null);
-                      setSelectedSubscription(null);
-                      setPaymentVerified(false);
+                      resetToStep1();
                       setForm({
                         id: crypto.randomUUID ? crypto.randomUUID() : `ad-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                         headline: '',

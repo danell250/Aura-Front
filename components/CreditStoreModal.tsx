@@ -96,29 +96,41 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
     let scriptTag: HTMLScriptElement | null = null;
 
     const loadPayPal = async () => {
-      // Check if already loaded
-      if (window.paypal?.Buttons) {
-        if (isMounted) setSdkReady(true);
-        return;
-      }
-
       // Check for existing script
-      const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
+      const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]') as HTMLScriptElement;
+      
       if (existingScript) {
-        const waitForReady = setInterval(() => {
+        // Verify if the existing script matches our configuration
+        if (existingScript.src === PAYPAL_SDK_URL) {
           if (window.paypal?.Buttons) {
             if (isMounted) setSdkReady(true);
-            clearInterval(waitForReady);
+            return;
           }
-        }, 300);
+          
+          // Script exists but PayPal not ready yet, wait for it
+          const waitForReady = setInterval(() => {
+            if (window.paypal?.Buttons) {
+              if (isMounted) setSdkReady(true);
+              clearInterval(waitForReady);
+            }
+          }, 300);
 
-        setTimeout(() => {
-          clearInterval(waitForReady);
-          if (isMounted && !window.paypal?.Buttons) {
-            setRenderError("PayPal SDK timeout");
+          setTimeout(() => {
+            clearInterval(waitForReady);
+            if (isMounted && !window.paypal?.Buttons) {
+              setRenderError("PayPal SDK timeout");
+            }
+          }, 8000);
+          return;
+        } else {
+          // Wrong configuration (e.g. left over from AdManager), remove and reload
+          console.log("[Aura] Switching PayPal SDK for Credit Store...");
+          existingScript.remove();
+          if (window.paypal) {
+            // @ts-ignore
+            delete window.paypal;
           }
-        }, 8000);
-        return;
+        }
       }
 
       try {

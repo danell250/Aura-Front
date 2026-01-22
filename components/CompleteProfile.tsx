@@ -164,9 +164,10 @@ const CompleteProfile: React.FC<CompleteProfileProps> = ({ onComplete }) => {
         return;
       }
 
-      if (data.token) {
-        localStorage.setItem('aura_auth_token', data.token);
-      }
+      // Token is handled via cookies now
+      // if (data.token) {
+      //   localStorage.setItem('aura_auth_token', data.token);
+      // }
 
       onComplete(data.user || {});
     } catch (err: any) {

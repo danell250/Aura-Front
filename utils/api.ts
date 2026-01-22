@@ -17,10 +17,6 @@ const addRefreshSubscriber = (cb: (token: string) => void) => {
 // Centralized fetch utility with credentials for CORS and Auto-Refresh
 export const fetchWithCredentials = async (url: string, options: RequestInit = {}) => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-
-  // Attach bearer token if present
-  let token = localStorage.getItem('aura_auth_token');
-  if (token) headers['Authorization'] = `Bearer ${token}`;
   
   // Merge with any existing headers
   Object.assign(headers, options.headers || {});
@@ -56,16 +52,12 @@ export const fetchWithCredentials = async (url: string, options: RequestInit = {
       });
     }
     
-    // Retry request with new token
-    const newToken = localStorage.getItem('aura_auth_token');
-    if (newToken) {
-      headers['Authorization'] = `Bearer ${newToken}`;
-      response = await fetch(url, {
-        ...options,
-        credentials: 'include' as RequestCredentials,
-        headers
-      });
-    }
+    // Retry request (cookies should be updated by refresh)
+    response = await fetch(url, {
+      ...options,
+      credentials: 'include' as RequestCredentials,
+      headers
+    });
   }
 
   return response;

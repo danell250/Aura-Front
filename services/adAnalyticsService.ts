@@ -103,12 +103,10 @@ export const adAnalyticsService = {
   // Get analytics for a specific ad
   async getAdAnalytics(adId: string): Promise<AdAnalytics | null> {
     try {
-      const token = localStorage.getItem('aura_auth_token');
       const response = await fetch(`${API_BASE_URL}/ads/${adId}/analytics`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });
@@ -129,12 +127,10 @@ export const adAnalyticsService = {
   // Get campaign performance for user
   async getCampaignPerformance(userId: string): Promise<CampaignPerformance> {
     try {
-      const token = localStorage.getItem('aura_auth_token');
       const response = await fetch(`${API_BASE_URL}/ads/analytics/campaign/${userId}`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });
@@ -155,12 +151,10 @@ export const adAnalyticsService = {
   // Get all ad performance metrics for user
   async getUserAdPerformance(userId: string): Promise<AdPerformanceMetrics[]> {
     try {
-      const token = localStorage.getItem('aura_auth_token');
       const response = await fetch(`${API_BASE_URL}/ads/analytics/user/${userId}`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });
@@ -183,12 +177,10 @@ export const adAnalyticsService = {
   // Track ad impression
   async trackImpression(adId: string): Promise<void> {
     try {
-      const token = localStorage.getItem('aura_auth_token');
       const response = await fetch(`${API_BASE_URL}/ads/${adId}/impression`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });
@@ -204,12 +196,10 @@ export const adAnalyticsService = {
   // Track ad click
   async trackClick(adId: string): Promise<void> {
     try {
-      const token = localStorage.getItem('aura_auth_token');
       await fetch(`${API_BASE_URL}/ads/${adId}/click`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });
@@ -221,12 +211,10 @@ export const adAnalyticsService = {
   // Track ad engagement
   async trackEngagement(adId: string, engagementType: 'like' | 'comment' | 'share'): Promise<void> {
     try {
-      const token = localStorage.getItem('aura_auth_token');
       await fetch(`${API_BASE_URL}/ads/${adId}/engagement`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ engagementType }),
         credentials: 'include'
@@ -239,12 +227,10 @@ export const adAnalyticsService = {
   // Track ad conversion
   async trackConversion(adId: string): Promise<void> {
     try {
-      const token = localStorage.getItem('aura_auth_token');
       await fetch(`${API_BASE_URL}/ads/${adId}/conversion`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });

@@ -14,7 +14,6 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
     const data = await response.json();
     if (data.success && data.accessToken) {
-      localStorage.setItem('aura_auth_token', data.accessToken);
       return data.accessToken;
     }
     return null;

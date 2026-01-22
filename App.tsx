@@ -7,6 +7,7 @@ import PostCard from './components/PostCard';
 import CreatePost from './components/CreatePost';
 import AdCard from './components/AdCard';
 import Login from './components/Login';
+import MagicLogin from './components/MagicLogin';
 import CompleteProfile from './components/CompleteProfile';
 import ProfileView from './components/ProfileView';
 import ChatView from './components/ChatView';
@@ -178,6 +179,10 @@ const App: React.FC = () => {
       return;
     }
 
+    if (segments[0] === 'magic-login' || segments[0] === 'complete-profile') {
+      return;
+    }
+
     if (segments[0] === 'privacy') {
       setView({ type: 'privacy' });
       return;
@@ -284,22 +289,17 @@ const App: React.FC = () => {
     setUnreadNotificationCount(0);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('aura_credits');
-    localStorage.removeItem('aura_auth_token');
   }, []);
 
   const fetchCurrentUser = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
-      const token = localStorage.getItem('aura_auth_token');
-      let result;
-      if (token) {
-        result = await UserService.getMe(token);
-        if (!result.success || !result.user) {
-          handleUnauthorized();
-          return;
-        }
-      } else {
-        result = await UserService.getUserById(currentUser.id);
+      // Try to get current user using cookies
+      const result = await UserService.getMe();
+      
+      if (!result.success || !result.user) {
+        handleUnauthorized();
+        return;
       }
       
       if (result.success && result.user) {
@@ -470,13 +470,10 @@ const App: React.FC = () => {
     const usersToProcess = savedUsers ? JSON.parse(savedUsers) : MOCK_USERS;
     setAllUsers(ensureAuraSupportUser(usersToProcess));
 
+    // Check for token in URL (legacy/magic link support) - we don't store it anymore
     const urlParams = new URLSearchParams(window.location.search);
-    const tokenParam = urlParams.get('token');
-    if (tokenParam) {
-      localStorage.setItem('aura_auth_token', tokenParam);
-    }
-    const hasTokenParam = urlParams.has('token');
-
+    // const tokenParam = urlParams.get('token'); 
+    
     let wasAuthenticated = false;
 
     (async () => {
@@ -507,8 +504,7 @@ const App: React.FC = () => {
       }
 
       try {
-        const tokenFromStorage = localStorage.getItem('aura_auth_token');
-        const result = await UserService.getMe(tokenFromStorage);
+        const result = await UserService.getMe();
 
         if (result.success && result.user) {
           const user = result.user;
@@ -538,8 +534,7 @@ const App: React.FC = () => {
           }
         } else {
           const savedSession = localStorage.getItem(STORAGE_KEY);
-          const savedToken = localStorage.getItem('aura_auth_token');
-          if (savedSession && savedToken) {
+          if (savedSession) {
             try {
               const user = JSON.parse(savedSession);
               const foundUser = usersToProcess.find((u: User) => u.id === user.id);
@@ -553,14 +548,12 @@ const App: React.FC = () => {
             } catch (e) {
               localStorage.removeItem(STORAGE_KEY);
             }
-          } else if (savedSession && !savedToken) {
-            localStorage.removeItem(STORAGE_KEY);
           }
         }
       } catch (error) {
         console.error('[App] Error during initial auth load:', error);
       } finally {
-        if (hasTokenParam) {
+        if (urlParams.has('token')) {
           const cleanedSearch = new URLSearchParams(window.location.search);
           cleanedSearch.delete('token');
           const newSearch = cleanedSearch.toString();
@@ -680,12 +673,9 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem(USERS_KEY, JSON.stringify(allUsers)); }, [allUsers]);
 
   useEffect(() => {
-    const token = localStorage.getItem('aura_auth_token') || '';
-    const url = token
-      ? `${API_BASE_URL}/posts/stream?token=${encodeURIComponent(token)}`
-      : `${API_BASE_URL}/posts/stream`;
+    const url = `${API_BASE_URL}/posts/stream`;
 
-    const es = new EventSource(url);
+    const es = new EventSource(url, { withCredentials: true });
 
     const onPostView = (e: MessageEvent) => {
       try {
@@ -1045,13 +1035,12 @@ const App: React.FC = () => {
     }
     
     try {
-      const token = localStorage.getItem('aura_auth_token');
       const response = await fetch(`${API_BASE_URL}/posts/${postId}/boost`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({ userId: currentUser.id, credits: boostCost })
       });
       
@@ -1080,13 +1069,12 @@ const App: React.FC = () => {
     
     if (!isSpecialUser) {
       try {
-        const token = localStorage.getItem('aura_auth_token');
         const response = await fetch(`${API_BASE_URL}/users/${currentUser.id}/spend-credits`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
           },
+          credentials: 'include',
           body: JSON.stringify({ credits: boostCost, reason: `Boosted user ${userId}` })
         });
         
@@ -1126,13 +1114,12 @@ const App: React.FC = () => {
 
     if (!isSpecialUser) {
       try {
-        const token = localStorage.getItem('aura_auth_token');
         const response = await fetch(`${API_BASE_URL}/users/${currentUser.id}/spend-credits`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            'Content-Type': 'application/json'
           },
+          credentials: 'include',
           body: JSON.stringify({
             credits: cost,
             reason: `Purchased ${glow} glow`
@@ -1198,13 +1185,12 @@ const App: React.FC = () => {
     setPosts(prev => [optimisticPost, ...prev]);
 
     try {
-      const token = localStorage.getItem('aura_auth_token') || '';
       const response = await fetch(`${API_BASE_URL}/posts`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           content: data.content,
           mediaUrl: data.mediaUrl,
@@ -2067,6 +2053,10 @@ const App: React.FC = () => {
       return <CompleteProfile onComplete={handleLogin} />;
     }
 
+    if (segments[0] === 'magic-login') {
+      return <MagicLogin onLogin={handleLogin} />;
+    }
+
     if (typeof window !== 'undefined' && path !== '/login') {
       const newUrl = '/login' + window.location.search + window.location.hash;
       window.history.replaceState({}, '', newUrl);
@@ -2275,13 +2265,12 @@ const App: React.FC = () => {
           onAdCancelled={handleDeleteAd}
           onAdUpdated={async (adId, updates) => {
             try {
-              const token = localStorage.getItem('aura_auth_token') || '';
               const response = await fetch(`${API_BASE_URL}/ads/${adId}`, {
                 method: 'PUT',
                 headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
+                  'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify(updates)
               });
               const result = await response.json();

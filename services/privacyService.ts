@@ -90,6 +90,7 @@ export class PrivacyService {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           userId,
           eventType,

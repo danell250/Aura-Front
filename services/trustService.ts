@@ -84,7 +84,8 @@ export async function recalculateTrustForAll(): Promise<boolean> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      credentials: 'include'
     });
     if (!resp.ok) return false;
     const json = await resp.json().catch(() => null);

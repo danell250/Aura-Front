@@ -73,6 +73,7 @@ export const subscriptionService = {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include'
       });
 
       if (!response.ok) {

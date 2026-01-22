@@ -49,13 +49,11 @@ export const adSubscriptionService = {
   async getUserSubscriptions(userId: string): Promise<AdSubscription[]> {
     try {
       console.log('[AdSubscriptionService] Fetching user subscriptions for:', userId);
-      const token = localStorage.getItem('aura_auth_token');
       
       const response = await fetchWithTimeout(`${API_BASE_URL}/ad-subscriptions/user/${userId}`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });
@@ -80,13 +78,11 @@ export const adSubscriptionService = {
   async getActiveSubscription(userId: string): Promise<AdSubscription | null> {
     try {
       console.log('[AdSubscriptionService] Fetching single active subscription for:', userId);
-      const token = localStorage.getItem('aura_auth_token');
       
       const response = await fetchWithTimeout(`${API_BASE_URL}/ad-subscriptions/user/${userId}/active?t=${Date.now()}`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });
@@ -109,13 +105,11 @@ export const adSubscriptionService = {
   async getActiveSubscriptions(userId: string): Promise<AdSubscription[]> {
     try {
       console.log('[AdSubscriptionService] Fetching active subscriptions for:', userId);
-      const token = localStorage.getItem('aura_auth_token');
       
       const response = await fetchWithTimeout(`${API_BASE_URL}/ad-subscriptions/user/${userId}/active`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });
@@ -147,13 +141,11 @@ export const adSubscriptionService = {
   }): Promise<AdSubscription> {
     try {
       console.log('[AdSubscriptionService] Creating subscription:', subscriptionData);
-      const token = localStorage.getItem('aura_auth_token');
       
       const response = await fetchWithTimeout(`${API_BASE_URL}/ad-subscriptions`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify(subscriptionData),
@@ -178,13 +170,11 @@ export const adSubscriptionService = {
   async useAdSlot(subscriptionId: string): Promise<AdSubscription> {
     try {
       console.log('[AdSubscriptionService] Using ad slot for subscription:', subscriptionId);
-      const token = localStorage.getItem('aura_auth_token');
       
       const response = await fetchWithTimeout(`${API_BASE_URL}/ad-subscriptions/${subscriptionId}/use-ad`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });
@@ -238,13 +228,11 @@ export const adSubscriptionService = {
   async getSubscriptionById(subscriptionId: string): Promise<AdSubscription | null> {
     try {
       console.log('[AdSubscriptionService] Fetching subscription by ID:', subscriptionId);
-      const token = localStorage.getItem('aura_auth_token');
       
       const response = await fetchWithTimeout(`${API_BASE_URL}/ad-subscriptions/${subscriptionId}`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });

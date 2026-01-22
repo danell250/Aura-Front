@@ -152,6 +152,7 @@ export const uploadService = {
       r = await fetch(getUrlEndpoint, { 
         method: "POST", 
         headers: { "Content-Type": "application/json" }, 
+        credentials: 'include',
         body: JSON.stringify({ 
           userId, 
           fileName: fileForUpload.name, 

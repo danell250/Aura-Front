@@ -15,7 +15,7 @@ interface CreditStoreModalProps {
 }
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj';
-const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&vault=true&intent=capture&disable-funding=credit,card`;
+const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=capture&disable-funding=credit,card`;
 
 const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundles, onPurchase, onClose }) => {
   const [step, setStep] = useState<1 | 2>(1);

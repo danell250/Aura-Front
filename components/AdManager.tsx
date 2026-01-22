@@ -65,7 +65,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
     mediaMimeType: '',
     mediaSize: 0,
     ctaText: 'Explore My Profile',
-    ctaLink: `https://auraradiance.vercel.app/profile/${currentUser.id}`
+    ctaLink: `https://auraso.vercel.app/profile/${currentUser.id}`
   });
   const [localMediaPreview, setLocalMediaPreview] = useState<string>('');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
@@ -1289,7 +1289,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
                         mediaMimeType: '',
                         mediaSize: 0,
                         ctaText: 'Explore My Profile',
-                        ctaLink: `https://auraradiance.vercel.app/profile/${currentUser.id}`
+                        ctaLink: `https://auraso.vercel.app/profile/${currentUser.id}`
                       });
                     }}
                     className="w-full py-4 bg-transparent text-slate-400 font-black uppercase rounded-2xl text-[10px] tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-all mt-2"

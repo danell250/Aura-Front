@@ -553,7 +553,10 @@ const App: React.FC = () => {
       } catch (error) {
         console.error('[App] Error during initial auth load:', error);
       } finally {
-        if (urlParams.has('token')) {
+        // Only clean token if we are NOT on the magic-login page
+        // MagicLogin needs the token to verify the user
+        const currentPath = window.location.pathname;
+        if (urlParams.has('token') && !currentPath.includes('/magic-login')) {
           const cleanedSearch = new URLSearchParams(window.location.search);
           cleanedSearch.delete('token');
           const newSearch = cleanedSearch.toString();

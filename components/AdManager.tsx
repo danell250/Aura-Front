@@ -53,7 +53,18 @@ const AdManager: React.FC<AdManagerProps> = ({ currentUser, ads, onAdCreated, on
   const isRenderingRef = useRef<boolean>(false);
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0lhWXhz9lUCYnIXg0Sfz-9-kDB7HbdwYPOrlspRzyS6TQWAlwRC2GlYSd4lze25jluDLj';
-const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&vault=true&intent=capture&components=buttons`;
+
+  const getPaypalSdkUrl = (paymentType?: 'one-time' | 'subscription') => {
+    const clientId = PAYPAL_CLIENT_ID;
+    const base = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&components=buttons`;
+
+    if (paymentType === 'subscription') {
+      return `${base}&vault=true&intent=subscription`;
+    }
+
+    // one-time
+    return `${base}&intent=capture`;
+  };
 
   const [form, setForm] = useState({
     id: crypto.randomUUID ? crypto.randomUUID() : `ad-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -138,68 +149,43 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
 
   // Detect or Load PayPal SDK
   useEffect(() => {
-    let isMounted = true;
-    let paypalScript: HTMLScriptElement | null = null;
-    
-    const loadSdk = async () => {
-      // Check for existing PayPal script
-      const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]') as HTMLScriptElement;
-      
-      if (existingScript) {
-        const hasVault = existingScript.src.includes('vault=true');
-        const hasCaptureIntent = existingScript.src.includes('intent=capture');
-        
-        if (!hasVault || !hasCaptureIntent) {
-          console.log("[Aura] Existing PayPal SDK missing required parameters. Reloading...");
-          existingScript.remove();
-          if (window.paypal) {
-            // @ts-ignore
-            delete window.paypal;
-          }
-        } else {
-          // Script matches requirements, wait for it to be ready
-          if (window.paypal && window.paypal.Buttons) {
-            if (isMounted) setSdkReady(true);
-            return;
-          }
-          
-          const check = setInterval(() => {
-            if (window.paypal && window.paypal.Buttons) {
-              if (isMounted) setSdkReady(true);
-              clearInterval(check);
-            }
-          }, 500);
-          return;
-        }
+    if (!selectedPkg) return;
+
+    // Cleanup any existing PayPal scripts (both new tag and legacy ones)
+    const existing = document.querySelector('script[data-paypal-sdk]') || document.querySelector('script[src*="paypal.com/sdk/js"]');
+    if (existing) {
+      existing.remove();
+      if (window.paypal) {
+        // @ts-ignore
+        delete window.paypal;
       }
+    }
 
-      console.log("[Aura] Injecting Payment Neural Link...");
-      paypalScript = document.createElement('script');
-      paypalScript.src = PAYPAL_SDK_URL;
-      paypalScript.setAttribute('data-sdk-integration-source', 'button-factory');
-      paypalScript.async = true;
-      paypalScript.onload = () => {
-        console.log("[Aura] Payment Neural Link Established.");
-        // Add a small delay to ensure PayPal SDK is fully initialized
-        setTimeout(() => {
-          if (isMounted && window.paypal && window.paypal.Buttons) {
-            setSdkReady(true);
-          }
-        }, 300);
-      };
-      paypalScript.onerror = () => {
-         console.error("[Aura] Failed to load Payment SDK");
-         if (isMounted) setRenderError("Neural Link Failure: Could not connect to payment gateway.");
-      };
-      document.body.appendChild(paypalScript);
+    const script = document.createElement('script');
+    script.src = getPaypalSdkUrl(selectedPkg.paymentType);
+    script.async = true;
+    script.setAttribute('data-paypal-sdk', 'true');
+
+    script.onload = () => {
+      console.log(`[Aura] PayPal SDK loaded for ${selectedPkg.paymentType}`);
+      setSdkReady(true);
+    };
+    script.onerror = () => {
+      console.error("[Aura] Failed to load Payment SDK");
+      setRenderError('Failed to load PayPal SDK');
     };
 
-    loadSdk();
+    setSdkReady(false);
+    document.body.appendChild(script);
 
-    return () => { 
-      isMounted = false;
+    return () => {
+      script.remove();
+      if (window.paypal) {
+        // @ts-ignore
+        delete window.paypal;
+      }
     };
-  }, []);
+  }, [selectedPkg?.paymentType, selectedPkg?.id]);
 
   const cleanupPayPal = useCallback(() => {
     console.log("[Aura] Cleaning up PayPal instance...");

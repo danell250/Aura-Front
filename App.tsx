@@ -748,8 +748,8 @@ const App: React.FC = () => {
       });
     };
 
-    const handleCommentAdded = (payload: { postId: string, comment: Comment }) => {
-      const { postId, comment } = payload;
+    const handleCommentAdded = (payload: { postId: string, comment: Comment, tempId?: string }) => {
+      const { postId, comment, tempId } = payload;
       setPosts(prev => prev.map(p => {
         if (p.id !== postId) return p;
         
@@ -757,13 +757,20 @@ const App: React.FC = () => {
         if (p.comments.some(c => c.id === comment.id)) return p;
         
         // Check if we have a matching optimistic comment to replace
-        // Match by content, author, and timestamp proximity (within 30s) or explicit flag
-        // Since we don't have the flag on the socket payload, we check the local comments for the flag
-        const optimisticIndex = p.comments.findIndex(c => 
-          (c as any).isOptimistic && 
-          c.author.id === comment.author.id && 
-          c.text === comment.text
-        );
+        let optimisticIndex = -1;
+        
+        if (tempId) {
+          optimisticIndex = p.comments.findIndex(c => c.id === tempId);
+        }
+        
+        if (optimisticIndex === -1) {
+          // Fallback: Match by content, author, and optimistic flag
+          optimisticIndex = p.comments.findIndex(c => 
+            (c as any).isOptimistic && 
+            c.author.id === comment.author.id && 
+            c.text === comment.text
+          );
+        }
 
         let newComments = [...p.comments];
         if (optimisticIndex !== -1) {
@@ -792,14 +799,65 @@ const App: React.FC = () => {
       }));
     };
 
+    const handleCommentUpdated = (payload: { postId: string, comment: Comment }) => {
+      const { postId, comment } = payload;
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        const newComments = p.comments.map(c => c.id === comment.id ? comment : c);
+        return { ...p, comments: newComments };
+      }));
+    };
+
+    const handleCommentDeleted = (payload: { postId: string, commentId: string }) => {
+      const { postId, commentId } = payload;
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        const newComments = p.comments.filter(c => c.id !== commentId);
+        // Only decrement if we actually removed something
+        const countDiff = p.comments.length - newComments.length;
+        return { 
+          ...p, 
+          comments: newComments, 
+          commentCount: Math.max(0, (p.commentCount || 0) - countDiff)
+        };
+      }));
+    };
+
+    const handleCommentReactionUpdated = (payload: { postId: string, commentId: string, reactions: Record<string, number>, reactionUsers: Record<string, string[]> }) => {
+      const { postId, commentId, reactions, reactionUsers } = payload;
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        const newComments = p.comments.map(c => {
+          if (c.id !== commentId) return c;
+          
+          // Recompute userReactions for current user
+          let userReactions: string[] = [];
+          if (currentUser?.id) {
+             userReactions = Object.keys(reactionUsers).filter(emoji => 
+               reactionUsers[emoji]?.includes(currentUser.id)
+             );
+          }
+
+          return { ...c, reactions, userReactions };
+        });
+        return { ...p, comments: newComments };
+      }));
+    };
+
     socket.on('post_updated', handlePostUpdate);
     socket.on('new_post', handleNewPost);
     socket.on('comment_added', handleCommentAdded);
+    socket.on('comment_updated', handleCommentUpdated);
+    socket.on('comment_deleted', handleCommentDeleted);
+    socket.on('comment_reaction_updated', handleCommentReactionUpdated);
 
     return () => {
       socket.off('post_updated', handlePostUpdate);
       socket.off('new_post', handleNewPost);
       socket.off('comment_added', handleCommentAdded);
+      socket.off('comment_updated', handleCommentUpdated);
+      socket.off('comment_deleted', handleCommentDeleted);
+      socket.off('comment_reaction_updated', handleCommentReactionUpdated);
       socket.close();
     };
   }, [isAuthenticated, currentUser]);
@@ -1532,7 +1590,7 @@ const App: React.FC = () => {
     }));
 
     try {
-      const result = await CommentService.createComment(postId, text, currentUser.id, parentId, taggedUserIds);
+      const result = await CommentService.createComment(postId, text, currentUser.id, parentId, taggedUserIds, optimisticComment.id);
       if (result.success && result.data) {
         const created = result.data;
         setPosts(prev => prev.map(p => {

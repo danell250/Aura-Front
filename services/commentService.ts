@@ -19,7 +19,7 @@ export class CommentService {
     }
   }
 
-  static async createComment(postId: string, text: string, authorId: string, parentId?: string, taggedUserIds?: string[]): Promise<{ success: boolean; data?: Comment; error?: string }>{
+  static async createComment(postId: string, text: string, authorId: string, parentId?: string, taggedUserIds?: string[], tempId?: string): Promise<{ success: boolean; data?: Comment; error?: string }>{
     try {
       const resp = await fetch(`${BACKEND_URL}/posts/${postId}/comments`, {
         method: 'POST',
@@ -27,7 +27,7 @@ export class CommentService {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify({ text, authorId, parentId, taggedUserIds })
+        body: JSON.stringify({ text, authorId, parentId, taggedUserIds, tempId })
       });
       const json = await resp.json().catch(() => ({} as any));
       if (resp.ok && json?.success && json?.data) return { success: true, data: json.data };

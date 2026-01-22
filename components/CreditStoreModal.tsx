@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { CreditBundle, User } from '../types';
 
+const log = (...args: any[]) => {
+  if (import.meta.env.DEV) console.log(...args);
+};
+
 declare global {
   interface Window {
     paypal?: any;
@@ -53,14 +57,14 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
         try {
           buttonsInstanceRef.current.close?.();
         } catch (e) {
-          console.debug('Error closing PayPal buttons:', e);
+          log('Error closing PayPal buttons:', e);
         }
       }
     };
   }, []);
 
   const retryPayPal = useCallback(() => {
-    console.log("[Aura] Retrying PayPal...");
+    log("[Aura] Retrying PayPal...");
     setRenderError(null);
     setSdkReady(false);
 
@@ -124,7 +128,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
           return;
         } else {
           // Wrong configuration (e.g. left over from AdManager), remove and reload
-          console.log("[Aura] Switching PayPal SDK for Credit Store...");
+          log("[Aura] Switching PayPal SDK for Credit Store...");
           existingScript.remove();
           if (window.paypal) {
             // @ts-ignore
@@ -134,7 +138,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
       }
 
       try {
-        console.log("[Aura] Loading PayPal SDK...");
+        log("[Aura] Loading PayPal SDK...");
         scriptTag = document.createElement('script');
         scriptTag.src = PAYPAL_SDK_URL;
         scriptTag.async = true;
@@ -176,11 +180,11 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
 
     // Don't re-render if buttons already exist
     if (paypalRef.current.children.length > 0) {
-      console.log('[Aura] PayPal buttons already rendered');
+      log('[Aura] PayPal buttons already rendered');
       return;
     }
 
-    console.log('[Aura] Creating PayPal buttons...');
+    log('[Aura] Creating PayPal buttons...');
     setRenderError(null);
 
     try {
@@ -194,7 +198,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
         },
 
         createOrder: (data: any, actions: any) => {
-          console.log('[Aura] Creating order for:', selectedBundle.name);
+          log('[Aura] Creating order for:', selectedBundle.name);
 
           const price = fmt2(selectedBundle.numericPrice);
 
@@ -228,7 +232,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
               throw new Error('No order ID returned');
             }
 
-            console.log('[Aura] Payment successful:', orderId);
+            log('[Aura] Payment successful:', orderId);
             if (mounted) {
               onPurchase(selectedBundle!, orderId);
               onClose();
@@ -251,7 +255,7 @@ const CreditStoreModal: React.FC<CreditStoreModalProps> = ({ currentUser, bundle
         },
 
         onCancel: () => {
-          console.log('[Aura] Payment cancelled');
+          log('[Aura] Payment cancelled');
           if (mounted) {
             setRenderError('Payment cancelled. No charges were made.');
           }

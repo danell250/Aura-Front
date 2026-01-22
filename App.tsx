@@ -706,8 +706,9 @@ const App: React.FC = () => {
     const socket = io(SOCKET_BASE_URL, {
       withCredentials: true,
       transports: ['polling', 'websocket'],
-      reconnectionAttempts: 5,
-      timeout: 20000,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
       path: '/socket.io/'
     });
 

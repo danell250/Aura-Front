@@ -8,6 +8,10 @@ import { subscriptionService } from '../services/subscriptionService';
 import { adSubscriptionService, AdSubscription } from '../services/adSubscriptionService';
 import { uploadService } from '../services/upload';
 
+const log = (...args: any[]) => {
+  if (import.meta.env.DEV) console.log(...args);
+};
+
 declare global {
   interface Window {
     paypal?: any;
@@ -96,7 +100,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
 
   // Debug logging
   useEffect(() => {
-    console.log("🔍 AdManager state:", {
+    log("🔍 AdManager state:", {
       step,
       selectedPkg,
       selectedSubscription,
@@ -137,7 +141,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
       if (availableSub) {
         const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === availableSub.packageId);
         if (matchingPkg) {
-          console.log("📦 Auto-selecting first active subscription with available slots:", availableSub);
+          log("📦 Auto-selecting first active subscription with available slots:", availableSub);
           setSelectedSubscription(availableSub);
           setSelectedPkg(matchingPkg);
           setPaymentVerified(true);
@@ -181,7 +185,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
 
     // If a script exists but it's the wrong one (or broken), remove it
     if (existingScript) {
-      console.log(`[Aura] Switching PayPal SDK config to ${paymentType}...`);
+      log(`[Aura] Switching PayPal SDK config to ${paymentType}...`);
       existingScript.remove();
       if (window.paypal) {
         // @ts-ignore
@@ -197,7 +201,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
     script.setAttribute('data-paypal-sdk', 'true');
 
     script.onload = () => {
-      console.log(`[Aura] PayPal SDK loaded for ${paymentType}`);
+      log(`[Aura] PayPal SDK loaded for ${paymentType}`);
       setSdkReady(true);
     };
     script.onerror = () => {
@@ -217,7 +221,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
   }, [selectedPkg?.paymentType]);
 
   const cleanupPayPal = useCallback(() => {
-    console.log("[Aura] Cleaning up PayPal instance...");
+    log("[Aura] Cleaning up PayPal instance...");
     
     try {
       // Clear any existing PayPal containers
@@ -251,7 +255,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
           activeInstanceRef.current.close();
         }
       } catch (e) {
-        console.debug("[Aura] Previous PayPal instance close error", e);
+        log("[Aura] Previous PayPal instance close error", e);
       }
       activeInstanceRef.current = null;
     }
@@ -297,7 +301,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
       }
 
       try {
-        console.log("[Aura] Initializing Payment Node...");
+        log("[Aura] Initializing Payment Node...");
         
         // Validate that PayPal SDK is fully ready before initialization
         if (!window.paypal || !window.paypal.Buttons) {
@@ -317,16 +321,16 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
         // Add the appropriate payment method based on package type
         if (selectedPkg.paymentType === 'subscription' && selectedPkg.subscriptionPlanId) {
           // Use PayPal Subscriptions API for monthly subscription plans
-          console.log("[Aura] Setting up subscription with plan ID:", selectedPkg.subscriptionPlanId);
+          log("[Aura] Setting up subscription with plan ID:", selectedPkg.subscriptionPlanId);
           buttonConfig.createSubscription = (data: any, actions: any) => {
-            console.log("[Aura] Creating subscription for package:", selectedPkg.name);
+            log("[Aura] Creating subscription for package:", selectedPkg.name);
             return actions.subscription.create({
               plan_id: selectedPkg.subscriptionPlanId
             });
           };
           
           buttonConfig.onApprove = async (data: any, actions: any) => {
-            console.log("[Aura] Subscription Approved. Subscription ID:", data.subscriptionID);
+            log("[Aura] Subscription Approved. Subscription ID:", data.subscriptionID);
             setIsPaying(true);
             try {
               // Create ad subscription record with PayPal subscription ID
@@ -342,7 +346,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
                   };
                   
                   await adSubscriptionService.createSubscription(subscriptionData);
-                  console.log("[Aura] Ad subscription record created successfully");
+                  log("[Aura] Ad subscription record created successfully");
                   
                   // Reload active subscriptions
                   await loadActiveSubscriptions();
@@ -369,7 +373,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
           // One-time payment configuration (for Personal Pulse)
           buttonConfig.style.label = 'pay';
           buttonConfig.createOrder = (data: any, actions: any) => {
-            console.log("[Aura] Creating one-time payment for package:", selectedPkg.name);
+            log("[Aura] Creating one-time payment for package:", selectedPkg.name);
             
             if (!selectedPkg.numericPrice || isNaN(Number(selectedPkg.numericPrice))) {
               console.error('[Aura] Invalid price for package:', selectedPkg);
@@ -377,7 +381,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
             }
 
             const priceValue = fmt2(selectedPkg.numericPrice);
-            console.log('[Aura] Order amount:', priceValue);
+            log('[Aura] Order amount:', priceValue);
 
             if (!actions || !actions.order) {
               throw new Error('PayPal actions not available');
@@ -394,11 +398,11 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
           };
           
           buttonConfig.onApprove = async (data: any, actions: any) => {
-            console.log("[Aura] Payment Approved. Processing...");
+            log("[Aura] Payment Approved. Processing...");
             setIsPaying(true);
             try {
               if (data.orderID && actions && actions.order) {
-                console.log("[Aura] Capturing payment:", data.orderID);
+                log("[Aura] Capturing payment:", data.orderID);
                 await actions.order.capture();
                 
                 // Create ad subscription record
@@ -414,7 +418,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
                     };
                     
                     await adSubscriptionService.createSubscription(subscriptionData);
-                    console.log("[Aura] Ad subscription record created successfully");
+                    log("[Aura] Ad subscription record created successfully");
                     
                     // Reload active subscriptions
                     await loadActiveSubscriptions();
@@ -443,7 +447,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
         }
 
         buttonConfig.onCancel = () => {
-          console.log("[Aura] Payment Cancelled.");
+          log("[Aura] Payment Cancelled.");
           isRenderingRef.current = false;
         };
 
@@ -462,7 +466,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
         };
 
         buttonConfig.onInit = () => {
-          console.log("[Aura] Payment Buttons Initialized.");
+          log("[Aura] Payment Buttons Initialized.");
         };
 
         // Create the buttons with the configured options
@@ -477,7 +481,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
                throw new Error('PayPal container element not found');
              }
              await buttons.render(`#${containerId}`);
-             console.log("[Aura] Payment Terminal Synchronized.");
+             log("[Aura] Payment Terminal Synchronized.");
              if (isComponentMounted) {
                setButtonsRendered(true);
              }
@@ -566,39 +570,39 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
   };
 
   const handleBroadcast = async () => {
-    console.log("🚀 handleBroadcast called");
-    console.log("📝 Form data:", form);
-    console.log("📦 Selected package:", selectedPkg);
-    console.log("🔒 Selected subscription:", selectedSubscription);
-    console.log("👤 Is special user:", isSpecialUser);
+    log("🚀 handleBroadcast called");
+    log("📝 Form data:", form);
+    log("📦 Selected package:", selectedPkg);
+    log("🔒 Selected subscription:", selectedSubscription);
+    log("👤 Is special user:", isSpecialUser);
 
     if (!form.headline || !form.description) {
-      console.log("❌ Form validation failed: missing headline or description");
+      log("❌ Form validation failed: missing headline or description");
       alert("Neural signal incomplete.");
       return;
     }
 
     if (!form.mediaUrl && !localMediaPreview) {
-      console.log("❌ Form validation failed: missing media");
+      log("❌ Form validation failed: missing media");
       alert("Please upload an image, GIF, or video.");
       return;
     }
 
     if (!selectedPkg) {
-      console.log("❌ No package selected");
+      log("❌ No package selected");
       alert("No package selected.");
       return;
     }
 
     // For non-special users, check if they have an active subscription with available slots
     if (!isSpecialUser) {
-      console.log("🔍 Checking subscription for non-special user");
+      log("🔍 Checking subscription for non-special user");
       if (!selectedSubscription) {
-        console.log("❌ No subscription selected for non-special user");
-        console.log("⚠️ Allowing ad creation without subscription for testing");
+        log("❌ No subscription selected for non-special user");
+        log("⚠️ Allowing ad creation without subscription for testing");
       } else {
         if (selectedSubscription.adsUsed >= selectedSubscription.adLimit) {
-          console.log("❌ Subscription limit reached");
+          log("❌ Subscription limit reached");
           
           const resetDate = selectedSubscription.endDate 
             ? new Date(selectedSubscription.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -791,13 +795,13 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
                                 alert("This plan has reached its ad limit. Purchase a new plan to continue.");
                                 return;
                               }
-                              console.log("🔄 Selecting existing subscription:", subscription);
+                              log("🔄 Selecting existing subscription:", subscription);
                               setSelectedSubscription(subscription);
                               const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === subscription.packageId);
                               if (matchingPkg) {
                                 setSelectedPkg(matchingPkg);
                                 setPaymentVerified(true);
-                                console.log("✅ Moving to step 3 with existing subscription");
+                                log("✅ Moving to step 3 with existing subscription");
                                 setStep(3);
                               } else {
                                 console.error("❌ No matching package found for subscription");
@@ -840,7 +844,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    console.log("🚀 Create Ad Now clicked for subscription:", subscription);
+                                    log("🚀 Create Ad Now clicked for subscription:", subscription);
                                     setSelectedSubscription(subscription);
                                     const matchingPkg = AD_PACKAGES.find(pkg => pkg.id === subscription.packageId);
                                     if (matchingPkg) {
@@ -903,10 +907,10 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
                         </ul>
                       </div>
                       <button onClick={() => { 
-                        console.log("📦 Selecting new package:", pkg);
+                        log("📦 Selecting new package:", pkg);
                         setSelectedPkg(pkg); 
                         setSelectedSubscription(null);
-                        console.log("🔄 Moving to step 2");
+                        log("🔄 Moving to step 2");
                         setStep(2); 
                         setShowPayPal(false); 
                       }} className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all">
@@ -940,7 +944,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
                       <div className="flex flex-col gap-4">
                         <button 
                           onClick={() => { 
-                            console.log("✅ Special user continuing to step 3");
+                            log("✅ Special user continuing to step 3");
                             setPaymentVerified(true); 
                             setStep(3); 
                           }}

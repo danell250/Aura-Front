@@ -70,7 +70,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
         return;
       }
 
-      setMode('reset_success');
+      setMode('magic_link_sent');
     } catch (err) {
       setError('Network error. Please try again.');
     } finally {

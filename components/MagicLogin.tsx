@@ -23,9 +23,11 @@ const MagicLogin: React.FC<MagicLoginProps> = ({ onLogin }) => {
 
     const verify = async () => {
       try {
-        const res = await fetch(`${getApiBaseUrl()}/auth/magic-link/verify?token=${token}&email=${encodeURIComponent(email)}`, {
-          headers: { 'Accept': 'application/json' },
-          credentials: 'include'
+        const res = await fetch(`${getApiBaseUrl()}/auth/magic-link/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ token, email }),
         });
         
         const data = await res.json();

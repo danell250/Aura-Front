@@ -600,9 +600,11 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
               </div>
               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">{comment.text}</p>
               
-              {commentLocalReactions && Object.keys(commentLocalReactions).length > 0 && (
+              {commentLocalReactions && Object.values(commentLocalReactions).some(c => (c as number) > 0) && (
                 <div className="absolute -bottom-3 right-4 flex gap-1 animate-in zoom-in duration-300">
-                  {Object.entries(commentLocalReactions).map(([emoji, count]) => (
+                  {Object.entries(commentLocalReactions)
+                    .filter(([_, count]) => (count as number) > 0)
+                    .map(([emoji, count]) => (
                     <button 
                       key={emoji} 
                       onClick={() => handleCommentReaction(emoji)}
@@ -1023,7 +1025,9 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
         ) : null}
 
         <div className="flex items-center gap-2 mb-6 flex-wrap">
-           {Object.entries(localReactions).map(([emoji, count]) => (
+           {Object.entries(localReactions)
+             .filter(([_, count]) => (count as number) > 0)
+             .map(([emoji, count]) => (
              <button key={emoji} onClick={() => handleInstantReaction(emoji)} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${localUserReactions.includes(emoji) ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-700 shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-transparent hover:border-slate-200'}`}>
                <span className="text-sm leading-none align-middle">{emoji}</span>
                <span className={`text-xs font-bold ${localUserReactions.includes(emoji) ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>{count as number}</span>

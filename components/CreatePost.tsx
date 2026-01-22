@@ -441,6 +441,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
             )}
           </div>
 
+        <div className="mt-3 px-1">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">
+            Tagging respects privacy. Some @mentioned users may not be tagged if their privacy settings prevent it.
+          </p>
+        </div>
+
         {/* Professional energy selector */}
         <div className="mt-4 flex flex-wrap gap-2 items-center px-1">
           <div className="flex items-center gap-2">
@@ -461,12 +467,6 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost, onTimeCapsule, onCreate
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="mt-3 px-1">
-          <p className="text-[11px] text-gray-500 dark:text-gray-400">
-            Tagging respects privacy. Some @mentioned users may not be tagged if their privacy settings prevent it.
-          </p>
         </div>
 
         {mediaPreview && (

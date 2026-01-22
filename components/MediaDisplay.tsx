@@ -17,6 +17,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   className = '', 
   onClick 
 }) => {
+  const [error, setError] = React.useState(false);
   const isVideo = type === 'video' || (src && src.toLowerCase().match(/\.(mp4|webm|ogg|mov|gifv)$/) !== null);
   // const isGif = src && src.toLowerCase().match(/\.gif$/) !== null;
 
@@ -30,7 +31,7 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   const baseClasses = `relative overflow-hidden flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase ${size !== 'custom' ? 'rounded-full' : ''} ${sizeClasses[size]} ${className}`;
 
-  if (!src) {
+  if (!src || error) {
     return (
       <div className={baseClasses} onClick={onClick}>
         {name ? name.charAt(0) : '?'}
@@ -47,7 +48,8 @@ export const Avatar: React.FC<AvatarProps> = ({
           autoPlay 
           loop 
           muted 
-          playsInline 
+          playsInline
+          onError={() => setError(true)}
         />
       </div>
     );
@@ -60,6 +62,7 @@ export const Avatar: React.FC<AvatarProps> = ({
         alt={name} 
         className="w-full h-full object-cover" 
         loading="lazy"
+        onError={() => setError(true)}
       />
     </div>
   );
@@ -82,7 +85,9 @@ export const MediaDisplay: React.FC<MediaDisplayProps> = ({
   autoPlay = true,
   fallback
 }) => {
-  if (!url) {
+  const [error, setError] = React.useState(false);
+
+  if (!url || error) {
     if (fallback) return <>{fallback}</>; 
     return <div className={`bg-slate-100 dark:bg-slate-800 ${className}`} />;
   }
@@ -100,6 +105,7 @@ export const MediaDisplay: React.FC<MediaDisplayProps> = ({
         muted={!controls} 
         playsInline 
         controls={controls}
+        onError={() => setError(true)}
       />
     );
   }
@@ -110,6 +116,7 @@ export const MediaDisplay: React.FC<MediaDisplayProps> = ({
       className={className} 
       alt="Media content" 
       loading="lazy" 
+      onError={() => setError(true)}
     />
   );
 };

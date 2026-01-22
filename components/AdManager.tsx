@@ -65,7 +65,7 @@ const PAYPAL_SDK_URL = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_
     mediaMimeType: '',
     mediaSize: 0,
     ctaText: 'Explore My Profile',
-    ctaLink: `https://auraso.vercel.app/profile/${currentUser.id}`
+    ctaLink: `https://auraradiance.vercel.app/profile/${currentUser.id}`
   });
   const [localMediaPreview, setLocalMediaPreview] = useState<string>('');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);

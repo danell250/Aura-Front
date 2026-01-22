@@ -73,12 +73,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
   };
 
   const slides = [
-    '/images/slideshow/Image 2026-01-19 at 12.09.png',
-    '/images/slideshow/Image 2026-01-18 at 20.06.png',
-    '/images/slideshow/Image 2026-01-19 at 13.09.png',
-    '/images/slideshow/Image 2026-01-19 at 12.13.png',
-    '/images/slideshow/Image 2026-01-20 at 10.47.png',
-    '/images/slideshow/Image 2026-01-20 at 10.22.png',
+    '/images/slideshow/Image 2026-01-22 at 20.34.png',
+    '/images/slideshow/Image 2026-01-22 at 20.50.png',
+    '/images/slideshow/Image 2026-01-22 at 20.58.png',
+    '/images/slideshow/Image 2026-01-22 at 20.27.png',
+    '/images/slideshow/Image 2026-01-22 at 20.30.png',
 
   ];
 
@@ -156,6 +155,19 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
     active:translate-y-[1px]
   `;
 
+  const googleButtonClasses = `
+  w-full py-3.5 px-6 rounded-xl
+  flex items-center justify-center gap-3
+  text-[12px] font-semibold
+  bg-white text-slate-800
+  border border-slate-200
+  shadow-sm
+  hover:bg-slate-50 hover:-translate-y-[1px]
+  active:translate-y-0
+  transition-all duration-150
+`;
+
+
   const primaryButtonClasses = `
     w-full py-4 mt-2 rounded-xl
     bg-emerald-500
@@ -175,16 +187,31 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
 
       <div className="w-full max-w-[1100px] grid grid-cols-1 md:grid-cols-12 grid-rows-[auto_auto_auto] md:grid-rows-2 gap-5 animate-in fade-in zoom-in duration-700">
         {/* TILE 1: LOGIN FORM */}
-        <div className={`${glassPanel} md:col-span-5 md:row-span-2 p-8 flex flex-col justify-center order-2 md:order-2`}>
+        <div
+          className={`
+    ${glassPanel}
+    md:col-span-5 md:row-span-2
+    p-6 md:p-7
+    flex flex-col
+    order-2 md:order-2
+    md:self-start
+    md:max-h-[520px]
+    mt-6 md:mt-20
+    disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0
+
+  `}
+        >
+
+
           {/* Aura top accent */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[rgb(var(--aura))] via-purple-500 to-[rgb(var(--aura))] opacity-90" />
           <div className="absolute inset-0 rounded-3xl ring-1 ring-[rgb(var(--aura)/0.10)] pointer-events-none" />
 
-          <div className="mb-8 flex flex-col items-center text-center">
-            <Logo size="sm" className="mb-6 opacity-95" />
-            <h1 className="text-2xl font-black tracking-tight leading-none mb-2 text-slate-900 dark:text-white">
+          <div className="mb-5 flex flex-col items-center text-center">
+            <h1 className="text-2xl font-black tracking-tight leading-none mb-2 text-[#0B1F3A] dark:text-slate-100">
               Welcome Back
             </h1>
+
           </div>
 
           {error && (
@@ -194,23 +221,27 @@ const Login: React.FC<LoginProps> = ({ onLogin, allUsers }) => {
           )}
 
           {mode === 'login_selection' && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
               <button onClick={() => setMode('magic_link_request')} className={primaryButtonClasses}>
                 <span className="text-lg mr-2">✨</span> Send me a magic link
               </button>
 
-              <div className="flex items-center gap-4 py-2 opacity-70">
+              <div className="flex items-center gap-4 py-1 opacity-70">
                 <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700"></div>
                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Or</span>
                 <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700"></div>
               </div>
 
-              <button onClick={handleGoogleLogin} disabled={isProcessing} className={socialButtonClasses}>
-                <svg className="w-4 h-4 opacity-80" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
+              <button onClick={handleGoogleLogin} disabled={isProcessing} className={googleButtonClasses}>
+                <svg className="w-5 h-5" viewBox="0 0 48 48" aria-hidden="true">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.62l6.86-6.86C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.02 17.74 9.5 24 9.5z" />
+                  <path fill="#4285F4" d="M46.5 24.5c0-1.64-.15-3.22-.43-4.75H24v9.01h12.7c-.55 2.97-2.2 5.48-4.7 7.18l7.19 5.58c4.2-3.88 6.31-9.6 6.31-17.02z" />
+                  <path fill="#FBBC05" d="M10.54 28.59c-.49-1.47-.77-3.04-.77-4.59s.28-3.12.77-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.98-6.19z" />
+                  <path fill="#34A853" d="M24 48c6.47 0 11.9-2.13 15.86-5.78l-7.19-5.58c-2 1.35-4.56 2.15-8.67 2.15-6.26 0-11.57-3.52-13.46-8.41l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
                 </svg>
-                Google
+                Continue with Google
               </button>
+
 
               <button
                 onClick={() => (window.location.href = `${API_BASE_URL}/auth/github`)}

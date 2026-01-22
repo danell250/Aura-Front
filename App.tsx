@@ -699,6 +699,111 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Real-time post updates (reactions, etc.) via Socket.io
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const socket = io(SOCKET_BASE_URL, {
+      withCredentials: true,
+      transports: ['websocket', 'polling']
+    });
+
+    const handlePostUpdate = (updatedPost: Post) => {
+      setPosts(prev => prev.map(p => {
+        if (p.id === updatedPost.id) {
+          // Preserve local view count if it's higher than the update
+          const currentViewCount = p.viewCount || 0;
+          const newViewCount = updatedPost.viewCount || 0;
+
+          // Recompute userReactions for current user using reactionUsers map if available
+          // This prevents showing the reactor's reactions as the current user's reactions
+          let finalUserReactions = p.userReactions;
+          const reactionUsers = (updatedPost as any).reactionUsers as Record<string, string[]> | undefined;
+          
+          if (reactionUsers && currentUser?.id) {
+            finalUserReactions = Object.keys(reactionUsers).filter(emoji => 
+              reactionUsers[emoji]?.includes(currentUser.id)
+            );
+          }
+          
+          return { 
+            ...p, 
+            ...updatedPost,
+            userReactions: finalUserReactions,
+            // Keep the higher view count to avoid jitter
+            viewCount: Math.max(currentViewCount, newViewCount) 
+          };
+        }
+        return p;
+      }));
+    };
+
+    const handleNewPost = (newPost: Post) => {
+      setPosts(prev => {
+        // Avoid duplicates (e.g. if we created it and have optimistic state, or received it twice)
+        if (prev.some(p => p.id === newPost.id)) {
+          return prev;
+        }
+        return [newPost, ...prev];
+      });
+    };
+
+    const handleCommentAdded = (payload: { postId: string, comment: Comment }) => {
+      const { postId, comment } = payload;
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        
+        // Check if comment already exists (by ID)
+        if (p.comments.some(c => c.id === comment.id)) return p;
+        
+        // Check if we have a matching optimistic comment to replace
+        // Match by content, author, and timestamp proximity (within 30s) or explicit flag
+        // Since we don't have the flag on the socket payload, we check the local comments for the flag
+        const optimisticIndex = p.comments.findIndex(c => 
+          (c as any).isOptimistic && 
+          c.author.id === comment.author.id && 
+          c.text === comment.text
+        );
+
+        let newComments = [...p.comments];
+        if (optimisticIndex !== -1) {
+           // Replace optimistic with real
+           newComments[optimisticIndex] = comment;
+        } else {
+           // Add new
+           newComments.push(comment);
+        }
+
+        // Recalculate count. If we replaced, count stays same (was +1 from optimistic).
+        // If we added, count +1.
+        // BUT, optimistic add already incremented p.commentCount.
+        // So if we replace, we don't increment.
+        // If we add (optimisticIndex === -1), we increment.
+        
+        const newCount = optimisticIndex !== -1 
+          ? (p.commentCount || newComments.length) 
+          : (p.commentCount || 0) + 1;
+
+        return {
+          ...p,
+          comments: newComments,
+          commentCount: newCount
+        };
+      }));
+    };
+
+    socket.on('post_updated', handlePostUpdate);
+    socket.on('new_post', handleNewPost);
+    socket.on('comment_added', handleCommentAdded);
+
+    return () => {
+      socket.off('post_updated', handlePostUpdate);
+      socket.off('new_post', handleNewPost);
+      socket.off('comment_added', handleCommentAdded);
+      socket.close();
+    };
+  }, [isAuthenticated, currentUser]);
+
   useEffect(() => {
     const socket = io(SOCKET_BASE_URL, {
       withCredentials: true,
@@ -1418,6 +1523,8 @@ const App: React.FC = () => {
       userReactions: [],
       taggedUserIds
     };
+    (optimisticComment as any).isOptimistic = true;
+
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p;
       const currentCount = p.commentCount ?? p.comments.length;
@@ -1430,10 +1537,36 @@ const App: React.FC = () => {
         const created = result.data;
         setPosts(prev => prev.map(p => {
           if (p.id !== postId) return p;
+          
+          // Remove optimistic comment
           const filtered = p.comments.filter(c => c.id !== optimisticComment.id);
+          
+          // Check if real comment is already present (e.g. via socket)
+          if (filtered.some(c => c.id === created.id)) {
+            return { ...p, comments: filtered };
+          }
+          
           const updatedComments = [...filtered, created];
+          // Recalculate count: We removed 1 optimistic (-1), adding 1 real (+1).
+          // But if socket added real (+1) and we just remove optimistic (-1), we are net 0 change?
+          // No, if socket added real, it incremented count.
+          // Then we remove optimistic here. Count should decrease by 1?
+          // Wait.
+          // Initial: Count 0.
+          // Optimistic Add: Count 1. Comments: [Opt]
+          // Socket Arrives: Replaces Opt with Real. Count 1. Comments: [Real]
+          // API Returns:
+          //    filtered = [Real].filter(id != Opt.id) -> [Real]
+          //    check if Real in filtered? Yes.
+          //    return { ...p, comments: [Real] }
+          //    We need to ensure count is correct.
+          //    If we return just filtered, we should probably verify count matches length.
+          
           const currentCount = p.commentCount ?? updatedComments.length;
-          return { ...p, comments: updatedComments, commentCount: currentCount };
+          // If we replaced (via socket), p.commentCount is 1.
+          // If we just return filtered ([Real]), length is 1.
+          
+          return { ...p, comments: updatedComments, commentCount: updatedComments.length };
         }));
       }
     } catch (error) {

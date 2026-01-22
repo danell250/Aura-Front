@@ -220,7 +220,7 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
   useEffect(() => {
     setLocalReactions(post.reactions || {});
     setLocalUserReactions(post.userReactions || []);
-  }, [post.id]);
+  }, [post.id, post.reactions, post.userReactions]);
 
   useEffect(() => {
     setCommentReactionsState({});
@@ -433,6 +433,8 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
     return () => { if (intervalId) window.clearInterval(intervalId); };
   }, [showComments, post.id, onLoadComments, post.comments]);
 
+  /*
+  // Polling disabled in favor of real-time socket updates
   useEffect(() => {
     if (!onSyncPost) return;
     if (post.id.startsWith('temp-')) return;
@@ -447,12 +449,13 @@ const PostCard: React.FC<PostCardProps> = React.memo(({
       } catch {
       }
     };
-    pollPost();
-    intervalId = window.setInterval(pollPost, 7000);
+    // pollPost();
+    // intervalId = window.setInterval(pollPost, 7000);
     return () => {
       if (intervalId) window.clearInterval(intervalId);
     };
   }, [post.id, onSyncPost]);
+  */
 
   useEffect(() => {
     // If you want views to count only once per session:

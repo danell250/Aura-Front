@@ -291,6 +291,14 @@ const App: React.FC = () => {
     localStorage.removeItem('aura_credits');
   }, []);
 
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      handleUnauthorized();
+    };
+    window.addEventListener('auth:session-expired', handleSessionExpired);
+    return () => window.removeEventListener('auth:session-expired', handleSessionExpired);
+  }, [handleUnauthorized]);
+
   const fetchCurrentUser = useCallback(async () => {
     if (!currentUser?.id) return;
     try {

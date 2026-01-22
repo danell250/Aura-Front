@@ -1,6 +1,4 @@
-import { getApiBaseUrl } from '../constants';
-
-const API_BASE_URL = getApiBaseUrl();
+import { apiFetch } from '../utils/api';
 
 export interface AdAnalytics {
   adId: string;
@@ -103,12 +101,8 @@ export const adAnalyticsService = {
   // Get analytics for a specific ad
   async getAdAnalytics(adId: string): Promise<AdAnalytics | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ads/${adId}/analytics`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+      const response = await apiFetch(`/ads/${adId}/analytics`, {
+        method: 'GET'
       });
 
       if (!response.ok) {
@@ -127,12 +121,8 @@ export const adAnalyticsService = {
   // Get campaign performance for user
   async getCampaignPerformance(userId: string): Promise<CampaignPerformance> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ads/analytics/campaign/${userId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+      const response = await apiFetch(`/ads/analytics/campaign/${userId}`, {
+        method: 'GET'
       });
 
       if (!response.ok) {
@@ -151,12 +141,8 @@ export const adAnalyticsService = {
   // Get all ad performance metrics for user
   async getUserAdPerformance(userId: string): Promise<AdPerformanceMetrics[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ads/analytics/user/${userId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+      const response = await apiFetch(`/ads/analytics/user/${userId}`, {
+        method: 'GET'
       });
 
       if (!response.ok) {
@@ -177,12 +163,8 @@ export const adAnalyticsService = {
   // Track ad impression
   async trackImpression(adId: string): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ads/${adId}/impression`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+      const response = await apiFetch(`/ads/${adId}/impression`, {
+        method: 'POST'
       });
       
       if (!response.ok && response.status === 404) {
@@ -196,12 +178,8 @@ export const adAnalyticsService = {
   // Track ad click
   async trackClick(adId: string): Promise<void> {
     try {
-      await fetch(`${API_BASE_URL}/ads/${adId}/click`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+      await apiFetch(`/ads/${adId}/click`, {
+        method: 'POST'
       });
     } catch (error) {
       console.error('[AdAnalytics] Error tracking click:', error);
@@ -211,13 +189,9 @@ export const adAnalyticsService = {
   // Track ad engagement
   async trackEngagement(adId: string, engagementType: 'like' | 'comment' | 'share'): Promise<void> {
     try {
-      await fetch(`${API_BASE_URL}/ads/${adId}/engagement`, {
+      await apiFetch(`/ads/${adId}/engagement`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ engagementType }),
-        credentials: 'include'
+        body: JSON.stringify({ engagementType })
       });
     } catch (error) {
       console.error('[AdAnalytics] Error tracking engagement:', error);
@@ -227,12 +201,8 @@ export const adAnalyticsService = {
   // Track ad conversion
   async trackConversion(adId: string): Promise<void> {
     try {
-      await fetch(`${API_BASE_URL}/ads/${adId}/conversion`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+      await apiFetch(`/ads/${adId}/conversion`, {
+        method: 'POST'
       });
     } catch (error) {
       console.error('[AdAnalytics] Error tracking conversion:', error);

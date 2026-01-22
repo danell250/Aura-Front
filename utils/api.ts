@@ -43,6 +43,9 @@ export const fetchWithCredentials = async (url: string, options: RequestInit = {
         onRefreshed(newToken);
       } else {
         // Refresh failed - allow the 401 to propagate (caller handles logout)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:session-expired'));
+        }
         return response; 
       }
     } else {

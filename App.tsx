@@ -705,7 +705,14 @@ const App: React.FC = () => {
 
     const socket = io(SOCKET_BASE_URL, {
       withCredentials: true,
-      transports: ['websocket', 'polling']
+      transports: ['polling', 'websocket'],
+      reconnectionAttempts: 5,
+      timeout: 20000,
+      path: '/socket.io/'
+    });
+
+    socket.on('connect_error', (err) => {
+      console.warn('Socket connection error:', err);
     });
 
     const handlePostUpdate = (updatedPost: Post) => {

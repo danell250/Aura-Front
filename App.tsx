@@ -1174,7 +1174,9 @@ const App: React.FC = () => {
     }
   }, [posts]);
 
-  const handleDeleteComment = useCallback((postId: string, commentId: string) => {
+  const handleDeleteComment = useCallback(async (postId: string, commentId: string) => {
+    // Optimistic update
+    const previousPosts = posts;
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p;
       const filteredComments = p.comments.filter(c => c.id !== commentId);
@@ -1185,7 +1187,21 @@ const App: React.FC = () => {
         commentCount: Math.max(0, currentCount - 1)
       };
     }));
-  }, []);
+
+    try {
+      const result = await CommentService.deleteComment(commentId);
+      if (!result.success) {
+        // Revert on failure
+        console.error('Failed to delete comment:', result.error);
+        setPosts(previousPosts);
+        alert(result.error || 'Failed to delete comment.');
+      }
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
+      setPosts(previousPosts);
+      alert('Network error while deleting comment.');
+    }
+  }, [posts]);
 
   const handleLike = useCallback((postId: string) => {
     setPosts(prev => prev.map(p => {

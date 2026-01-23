@@ -1,15 +1,11 @@
 import { Comment } from '../types';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : '/api';
+import { apiFetch } from '../utils/api';
 
 export class CommentService {
   static async getComments(postId: string): Promise<{ success: boolean; data?: Comment[]; error?: string }> {
     try {
-      const resp = await fetch(`${BACKEND_URL}/posts/${postId}/comments`, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+      const resp = await apiFetch(`/posts/${postId}/comments`, {
+        method: 'GET'
       });
       const json = await resp.json().catch(() => ({} as any));
       if (resp.ok && json?.success) return { success: true, data: json.data || [] };
@@ -21,12 +17,8 @@ export class CommentService {
 
   static async createComment(postId: string, text: string, authorId: string, parentId?: string, taggedUserIds?: string[], tempId?: string): Promise<{ success: boolean; data?: Comment; error?: string }>{
     try {
-      const resp = await fetch(`${BACKEND_URL}/posts/${postId}/comments`, {
+      const resp = await apiFetch(`/posts/${postId}/comments`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
         body: JSON.stringify({ text, authorId, parentId, taggedUserIds, tempId })
       });
       const json = await resp.json().catch(() => ({} as any));
@@ -39,12 +31,8 @@ export class CommentService {
 
   static async deleteComment(commentId: string): Promise<{ success: boolean; error?: string }>{
     try {
-      const resp = await fetch(`${BACKEND_URL}/comments/${commentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+      const resp = await apiFetch(`/comments/${commentId}`, {
+        method: 'DELETE'
       });
       const json = await resp.json().catch(() => ({} as any));
       if (resp.ok && json?.success) return { success: true };
@@ -56,12 +44,8 @@ export class CommentService {
 
   static async reactToComment(commentId: string, reaction: string, userId: string): Promise<{ success: boolean; data?: Comment; error?: string }> {
     try {
-      const resp = await fetch(`${BACKEND_URL}/comments/${commentId}/react`, {
+      const resp = await apiFetch(`/comments/${commentId}/react`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
         body: JSON.stringify({ reaction, userId })
       });
       const json = await resp.json().catch(() => ({} as any));

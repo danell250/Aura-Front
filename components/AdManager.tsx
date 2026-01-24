@@ -985,7 +985,7 @@ const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AXxjiGRRXzL0l
                               target="_blank" 
                               className="w-full py-5 aura-bg-gradient text-white font-black uppercase rounded-2xl text-[11px] tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all text-center block"
                             >
-                              Buy Personal Pulse – $39
+                              Buy Personal Pulse — Access Tier – $39
                             </a>
                             <p className="text-[9px] text-slate-400 text-center">
                               One-time payment • 14-day access • Auto-returns after payment

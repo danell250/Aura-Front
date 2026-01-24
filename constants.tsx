@@ -572,41 +572,63 @@ export const MOCK_USERS: User[] = [
 export const AD_PACKAGES: AdPackage[] = [
   {
     id: 'pkg-starter',
-    name: 'Personal Pulse',
+    name: 'Personal Pulse — Access Tier',
     subtitle: 'Start the signal',
     durationDays: 14,
-    price: '$39 • 14 Days',
+    price: '$39 • 14 days (one-time)',
     numericPrice: 39,
     adLimit: 1,
-    idealFor: 'First-time users, quick launches, testing ideas',
-    features: ['1 Active Signal', 'Up to 5,000 targeted impressions', '14-Day Signal Retention', 'Standard Feed Distribution', 'Basic Reach & Click Analytics', 'Ideal for announcements, promos, and experiments'],
+    idealFor: 'First-time users, testing ideas, announcements',
+    features: [
+      '1 Active Signal',
+      '14-Day Signal Visibility Window',
+      'Standard Feed Distribution',
+      'Signal View & Click Tracking',
+      'Basic Engagement Insights'
+    ],
     gradient: 'from-slate-400 to-slate-600',
     paymentType: 'one-time'
   },
   {
     id: 'pkg-pro',
-    name: 'Aura Radiance',
+    name: 'Aura Radiance — Growth Tools Tier',
     subtitle: 'Grow your presence',
     durationDays: 30,
     price: '$199 / month',
     numericPrice: 199,
     adLimit: 5,
-    idealFor: 'Creators, influencers, side hustles',
-    features: ['5 Active Signals at once', 'Up to 50,000 monthly impressions', 'Priority Feed Injection', 'Smart CTA Button (click + conversion tracking)', 'Creator Analytics Dashboard', 'Monthly Signal Refresh', 'Cancel anytime'],
+    idealFor: 'Creators, side hustles, early brands',
+    features: [
+      'Up to 5 Active Signals',
+      'Priority Distribution (relative to free & entry users)',
+      'Smart CTA Button (click tracking)',
+      'Creator Analytics Dashboard',
+      'Monthly Signal Refresh',
+      'Cancel anytime'
+    ],
     gradient: 'from-emerald-500 to-emerald-700',
     paymentType: 'subscription',
     subscriptionPlanId: 'P-7BE61882EP388262CNFRU2NA'
   },
   {
     id: 'pkg-enterprise',
-    name: 'Universal Signal',
+    name: 'Universal Signal — Power & Control Tier',
     subtitle: 'Own the network',
     durationDays: 30,
     price: '$699 / month',
     numericPrice: 699,
     adLimit: 20,
     idealFor: 'Brands, agencies, power users',
-    features: ['20 Active Signals simultaneously', 'Up to 250,000+ impressions / month', 'Maximum Network Penetration', 'Deep-Dive Neural Analytics', '– audience behavior', '– timing optimization', '– conversion insights', 'Verified Gold Aura Badge on all signals', 'Priority / White-Glove Support', 'Cancel anytime'],
+    features: [
+      'Up to 20 Active Signals',
+      'Maximum Distribution Priority',
+      'Advanced Analytics',
+      '– audience behavior',
+      '– timing performance',
+      '– signal interaction trends',
+      'Verified Aura Badge',
+      'Priority / White-Glove Support'
+    ],
     gradient: 'from-slate-900 via-emerald-900 to-black',
     paymentType: 'subscription',
     subscriptionPlanId: 'P-3UV62007TB5346040NFRU2OY'
